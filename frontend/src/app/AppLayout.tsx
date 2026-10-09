@@ -1,16 +1,27 @@
-import { BookOpen, Flame, Home, Layers, LogOut, Sparkles } from "lucide-react";
+import { LogOut, Palette, Target } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { Link, NavLink, Outlet, useLocation } from "react-router";
+import { Link, matchPath, NavLink, Outlet, useLocation } from "react-router";
 import { useAuth } from "../features/auth/AuthContext";
 import { ProgressProvider } from "../features/progress/ProgressProvider";
 import { useProgress } from "../features/progress/ProgressContext";
-import { levelProgress } from "../features/progress/levels";
 import { useActivityHeartbeat } from "../features/progress/useActivityHeartbeat";
-import { ThemeToggle } from "../features/theme/ThemeToggle";
+import { ThemeSwitch, ThemeToggle } from "../features/theme/ThemeToggle";
+import { Avatar } from "../shared/illustrations/Avatar";
+import { Dia } from "../shared/illustrations/Dia";
+import { Emoji } from "../shared/illustrations/Emoji";
+import type { EmojiName } from "../shared/illustrations/emojiNames";
+import { Chip } from "../shared/ui/Chip";
 import { cx } from "../shared/ui/cx";
-import { Logo } from "./Logo";
+import { Wordmark } from "./Logo";
+import { ProgressPanel } from "./ProgressPanel";
+import { useReviewSummary } from "./useReviewSummary";
 import "./layout.css";
+
+/** Task screens hide all navigation (one thing at a time). They render their own FocusHeader. */
+const FOCUS_ROUTES = ["/documents/:id/learn/:topicId", "/assessments/:id", "/review"];
+/** Screens wide enough to own the right side (no progress rail). */
+const FULL_WIDTH_ROUTES = ["/styleguide"];
 
 export function AppLayout() {
   return (
@@ -23,80 +34,121 @@ export function AppLayout() {
 function Shell() {
   useActivityHeartbeat();
   const location = useLocation();
+  const focus = FOCUS_ROUTES.some((p) => matchPath(p, location.pathname));
+  const fullWidth = FULL_WIDTH_ROUTES.some((p) => matchPath(p, location.pathname));
+  const reviews = useReviewSummary();
+
+  const page = (
+    <Suspense
+      fallback={
+        <div className="page-loading">
+          <Dia mood="thinking" size={72} />
+          Loading…
+        </div>
+      }
+    >
+      <Outlet key={location.pathname} />
+    </Suspense>
+  );
+
+  if (focus) {
+    return (
+      <div className="app app-focus">
+        <main className="focus-main" id="main">
+          {page}
+        </main>
+      </div>
+    );
+  }
+
   return (
-    <div className="app">
-      <TopBar />
-      <main className="content" id="main">
-        <Suspense
-          fallback={
-            <div className="page-loading">
-              <span className="spinner" role="status" aria-label="Loading" />
-            </div>
-          }
-        >
-          <Outlet key={location.pathname} />
-        </Suspense>
+    <div className={cx("app", fullWidth && "app-full")}>
+      <Sidebar reviewsDue={reviews?.dueNow ?? 0} />
+      <MobileTopBar />
+      <main className="main" id="main">
+        {page}
       </main>
-      <BottomNav />
+      {!fullWidth && (
+        <aside className="rail" aria-label="Your progress">
+          <ProgressPanel />
+        </aside>
+      )}
+      <TabBar reviewsDue={reviews?.dueNow ?? 0} />
     </div>
   );
 }
 
-const NAV = [
-  { to: "/", label: "Home", icon: Home, end: true },
-  { to: "/library", label: "Library", icon: BookOpen, end: false },
-  { to: "/review", label: "Review", icon: Layers, end: false },
+const NAV: { to: string; label: string; emoji: EmojiName; end: boolean }[] = [
+  { to: "/", label: "Home", emoji: "house", end: true },
+  { to: "/library", label: "Library", emoji: "books", end: false },
+  { to: "/review", label: "Review", emoji: "repeat-button", end: false },
 ];
 
-function TopBar() {
+function Sidebar({ reviewsDue }: { reviewsDue: number }) {
   return (
-    <header className="topbar">
-      <div className="topbar-inner">
-        <Link to="/" className="brand" aria-label="Ved home">
-          <Logo />
-          <span>Ved</span>
-        </Link>
-        <nav className="topnav" aria-label="Main">
-          {NAV.map(({ to, label, icon: Icon, end }) => (
-            <NavLink key={to} to={to} end={end} className={({ isActive }) => cx("topnav-link", isActive && "active")}>
-              <Icon size={17} aria-hidden />
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-        <div className="topbar-right">
-          <ProgressChips />
-          <ThemeToggle />
-          <UserMenu />
-        </div>
+    <nav className="sidebar" aria-label="Main">
+      <Link to="/" className="sidebar-brand" aria-label="Ved home">
+        <Wordmark />
+      </Link>
+      <div className="sidebar-nav">
+        {NAV.map(({ to, label, emoji, end }) => (
+          <NavLink key={to} to={to} end={end} className={({ isActive }) => cx("nav-item", isActive && "active")}>
+            <Emoji name={emoji} size={30} />
+            <span>{label}</span>
+            {to === "/review" && reviewsDue > 0 && <span className="nav-count">{reviewsDue}</span>}
+          </NavLink>
+        ))}
+      </div>
+      <div className="sidebar-foot">
+        <ThemeSwitch />
+        <UserMenu placement="up" />
+      </div>
+    </nav>
+  );
+}
+
+function MobileTopBar() {
+  const { summary } = useProgress();
+  return (
+    <header className="mobile-top">
+      <Link to="/" aria-label="Ved home">
+        <Wordmark />
+      </Link>
+      <div className="row" style={{ gap: "var(--space-1)" }}>
+        {summary && (
+          <>
+            <Chip emoji="fire" tone="streak" label={`${summary.streak.current} day streak`}>
+              {summary.streak.current}
+            </Chip>
+            <Chip emoji="high-voltage" tone="xp" label={`${summary.xp.total} XP`}>
+              {summary.xp.total}
+            </Chip>
+          </>
+        )}
+        <ThemeToggle />
+        <UserMenu placement="down" compact />
       </div>
     </header>
   );
 }
 
-function ProgressChips() {
-  const { summary } = useProgress();
-  if (!summary) return null;
-  const { streak, xp } = summary;
+function TabBar({ reviewsDue }: { reviewsDue: number }) {
   return (
-    <div className="chips" aria-label="Your progress">
-      <span className={cx("stat-chip", "streak", streak.activeToday && "lit")} title={streak.activeToday ? "Streak active today" : "Learn today to extend your streak"}>
-        <Flame size={16} aria-hidden />
-        <span className="tabular">{streak.current}</span>
-        <span className="visually-hidden">day streak</span>
-      </span>
-      <span className="stat-chip xp" title={`${xp.total} XP · ${xp.nextLevelXp - xp.total} XP to level ${xp.level + 1}`}>
-        <Sparkles size={15} aria-hidden />
-        <span>Lv {xp.level}</span>
-        <span className="xp-mini" aria-hidden>
-          <span style={{ width: `${levelProgress(xp) * 100}%` }} />
-        </span>
-      </span>
-    </div>
+    <nav className="tabbar" aria-label="Main">
+      {NAV.map(({ to, label, emoji, end }) => (
+        <NavLink key={to} to={to} end={end} className={({ isActive }) => cx("tab-item", isActive && "active")}>
+          <span className="tab-icon">
+            <Emoji name={emoji} size={28} />
+            {to === "/review" && reviewsDue > 0 && <span className="nav-count nav-count-dot">{reviewsDue}</span>}
+          </span>
+          <span>{label}</span>
+        </NavLink>
+      ))}
+    </nav>
   );
 }
 
-function UserMenu() {
+function UserMenu({ placement, compact }: { placement: "up" | "down"; compact?: boolean }) {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -115,57 +167,48 @@ function UserMenu() {
     };
   }, [open]);
 
-  const initials = (user?.fullName ?? "?")
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join("");
-
+  if (!user) return null;
   return (
     <div className="user-menu" ref={ref}>
-      <button className="avatar" aria-haspopup="menu" aria-expanded={open} aria-label="Account menu" onClick={() => setOpen((o) => !o)}>
-        {initials}
+      <button className={cx("user-button", compact && "user-button-compact")} aria-haspopup="menu" aria-expanded={open} aria-label="Account menu" onClick={() => setOpen((o) => !o)}>
+        <Avatar seed={user.id} size={compact ? 32 : 40} />
+        {!compact && (
+          <span className="user-button-text">
+            <strong>{user.fullName}</strong>
+            <span className="xs muted">{user.role === "TEACHER" ? "Teacher" : "Student"}</span>
+          </span>
+        )}
       </button>
       <AnimatePresence>
         {open && (
           <motion.div
-            className="menu"
+            className={cx("menu", placement === "up" && "menu-up")}
             role="menu"
-            initial={{ opacity: 0, y: -4, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            initial={{ opacity: 0, y: placement === "up" ? 6 : -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: placement === "up" ? 6 : -6 }}
             transition={{ duration: 0.15 }}
           >
             <div className="menu-profile">
-              <strong>{user?.fullName}</strong>
-              <span className="muted small">{user?.email}</span>
-              <span className="badge badge-primary" style={{ alignSelf: "flex-start", marginTop: 6 }}>
-                {user?.role === "TEACHER" ? "Teacher" : "Student"}
-              </span>
+              <Avatar seed={user.id} size={44} />
+              <div style={{ minWidth: 0 }}>
+                <strong className="break">{user.fullName}</strong>
+                <div className="xs muted break">{user.email}</div>
+              </div>
             </div>
             <div className="menu-separator" />
             <Link to="/welcome" className="menu-item" role="menuitem" onClick={() => setOpen(false)}>
-              <Flame size={16} aria-hidden /> Daily goal
+              <Target size={18} aria-hidden /> Daily goal
+            </Link>
+            <Link to="/styleguide" className="menu-item" role="menuitem" onClick={() => setOpen(false)}>
+              <Palette size={18} aria-hidden /> Design system
             </Link>
             <button className="menu-item" role="menuitem" onClick={() => void logout()}>
-              <LogOut size={16} aria-hidden /> Sign out
+              <LogOut size={18} aria-hidden /> Sign out
             </button>
           </motion.div>
         )}
       </AnimatePresence>
     </div>
-  );
-}
-
-function BottomNav() {
-  return (
-    <nav className="bottomnav" aria-label="Main">
-      {NAV.map(({ to, label, icon: Icon, end }) => (
-        <NavLink key={to} to={to} end={end} className={({ isActive }) => cx("bottomnav-link", isActive && "active")}>
-          <Icon size={20} aria-hidden />
-          <span>{label}</span>
-        </NavLink>
-      ))}
-    </nav>
   );
 }

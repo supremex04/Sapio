@@ -3,7 +3,7 @@ import { Link, type LinkProps } from "react-router";
 import { cx } from "./cx";
 import { Spinner } from "./Spinner";
 
-export type ButtonVariant = "primary" | "secondary" | "soft" | "ghost" | "danger" | "accent";
+export type ButtonVariant = "primary" | "secondary" | "soft" | "ghost" | "success" | "danger" | "accent" | "mastery" | "review";
 export type ButtonSize = "sm" | "md" | "lg";
 
 interface StyleProps {

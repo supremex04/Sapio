@@ -1,28 +1,30 @@
 /*
- * Design tokens - the only place raw colors, sizes and timings are defined.
- * Components reference var(--token) exclusively. See docs/specs/design-system.md.
+ * Ved design tokens ("Diya" design system v2): the only place raw colours, sizes and timings live.
+ * Components use semantic tokens (--color-primary, --surface, --text, …), never palette values directly.
+ * Spec: docs/specs/design-system.md. Living reference: /styleguide.
  */
 :root {
-  /* Typography */
-  --font-sans: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Fraunces Variable", Fraunces, Georgia, "Times New Roman", serif;
+  /* ---------- Typography ---------- */
+  --font-sans: "Nunito Variable", Nunito, ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-sans);
   --font-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
 
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
-  --text-base: 1rem;
-  --text-md: 1.125rem;
-  --text-lg: 1.375rem;
-  --text-xl: 1.75rem;
-  --text-2xl: 2.25rem;
-  --text-3xl: 3rem;
+  --text-display: 2.375rem; /* 38 */
+  --text-h1: 1.875rem; /* 30 */
+  --text-h2: 1.375rem; /* 22 */
+  --text-h3: 1.125rem; /* 18 */
+  --text-body: 1rem; /* 16 */
+  --text-lesson: 1.0625rem; /* 17 */
+  --text-small: 0.875rem; /* 14 */
+  --text-label: 0.75rem; /* 12 */
 
-  --weight-regular: 400;
-  --weight-medium: 500;
-  --weight-semibold: 600;
-  --weight-bold: 700;
+  --weight-body: 600;
+  --weight-reading: 500;
+  --weight-strong: 700;
+  --weight-heading: 800;
+  --weight-black: 900;
 
-  /* Spacing (4px grid) */
+  /* ---------- Space (4px grid) ---------- */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -34,135 +36,234 @@
   --space-12: 3rem;
   --space-16: 4rem;
 
-  /* Radius */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+  /* ---------- Shape ---------- */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
   --radius-xl: 24px;
   --radius-full: 999px;
+  --border-width: 2px;
+  /* The signature 3D lip under interactive elements. */
+  --edge: 4px;
 
-  /* Motion */
+  /* ---------- Motion ---------- */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --duration-fast: 120ms;
-  --duration-base: 200ms;
-  --duration-slow: 400ms;
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 100ms;
+  --duration-base: 180ms;
+  --duration-slow: 320ms;
 
-  /* Layout */
-  --content-width: 1120px;
-  --reading-width: 720px;
-  --topbar-height: 64px;
+  /* ---------- Layout ---------- */
+  --content-width: 1080px;
+  --main-width: 640px;
+  --reading-width: 680px;
+  --sidebar-width: 248px;
+  --rail-width: 340px;
+  --topbar-height: 60px;
+  --tabbar-height: 68px;
 
-  /* ---------- Light palette ---------- */
+  /* ======================= LIGHT ======================= */
   color-scheme: light;
-  --color-bg: #f7f7fb;
-  --color-bg-accent: radial-gradient(1200px 600px at 10% -10%, #ece9ff 0%, transparent 60%),
-    radial-gradient(900px 500px at 100% 0%, #fff3e0 0%, transparent 55%);
-  --color-surface: #ffffff;
-  --color-surface-2: #f3f3f9;
-  --color-surface-3: #eaeaf3;
-  --color-border: #e5e5ef;
-  --color-border-strong: #d2d2e0;
 
-  --color-text: #17172b;
-  --color-text-2: #45455f;
-  --color-text-muted: #6f6f8a;
-  --color-text-inverse: #ffffff;
+  /* Palette: soft (tinted surface) / main (fill) / edge (3D lip) / ink (text on soft) */
+  --blue-soft: #e6f2ff;
+  --blue-main: #2f8af3;
+  --blue-edge: #1f6ccc;
+  --blue-ink: #155aab;
 
-  --color-primary: #5b4bdb;
-  --color-primary-hover: #4b3bc9;
-  --color-primary-soft: #efecff;
-  --color-primary-soft-2: #e1dcff;
-  --color-primary-text: #4636c0;
+  --green-soft: #e3f7e8;
+  --green-main: #3fbf5f;
+  --green-edge: #2c9a48;
+  --green-ink: #1d7535;
 
-  --color-accent: #f59f00;
-  --color-accent-soft: #fff4dc;
-  --color-accent-text: #a35300;
+  --red-soft: #ffe7e5;
+  --red-main: #f0564d;
+  --red-edge: #c93d35;
+  --red-ink: #a52a23;
 
-  --color-success: #1a9a52;
-  --color-success-soft: #e5f7ec;
-  --color-success-text: #11753c;
+  --amber-soft: #fff2d6;
+  --amber-main: #ffa41c;
+  --amber-edge: #d98200;
+  --amber-ink: #8f5300;
 
-  --color-warning: #d97706;
-  --color-warning-soft: #fff4e2;
-  --color-warning-text: #9a4d00;
+  --purple-soft: #f1e8ff;
+  --purple-main: #9a68ee;
+  --purple-edge: #7a4acf;
+  --purple-ink: #5d34a6;
 
-  --color-danger: #e0335b;
-  --color-danger-soft: #ffeef2;
-  --color-danger-text: #b81d42;
+  --teal-soft: #dcf6f3;
+  --teal-main: #17b3a8;
+  --teal-edge: #0e8c84;
+  --teal-ink: #0a6a64;
 
-  --color-info-soft: #eef4ff;
+  --pink-soft: #ffe6f1;
+  --pink-main: #ec5f9c;
+  --pink-edge: #c4437b;
+  --pink-ink: #9c2c5d;
 
-  /* Lesson section kinds */
-  --kind-concept: #5b4bdb;
-  --kind-example: #0f8f7e;
-  --kind-analogy: #d9480f;
-  --kind-summary: #a35300;
+  --clay-main: #e77d43; /* Dia's lamp */
+  --clay-edge: #bf5a26;
 
-  --chart-bar: #5b4bdb;
-  --chart-grid: #ececf3;
+  /* Neutrals */
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f6f7f9;
+  --surface-3: #eceff3;
+  --border: #e3e6eb;
+  --border-strong: #cfd5dd;
+  --text: #1d2430;
+  --text-2: #444e5e;
+  --text-muted: #727c8c;
+  --text-on-fill: #ffffff;
+  --disabled: #e3e6eb;
+  --disabled-text: #9aa3b0;
 
-  --shadow-sm: 0 1px 2px rgb(23 23 43 / 0.05);
-  --shadow-md: 0 1px 2px rgb(23 23 43 / 0.04), 0 4px 16px rgb(23 23 43 / 0.06);
-  --shadow-lg: 0 2px 4px rgb(23 23 43 / 0.04), 0 16px 40px rgb(23 23 43 / 0.1);
-  --shadow-glow: 0 8px 30px rgb(91 75 219 / 0.25);
-
-  --focus-ring: 0 0 0 3px rgb(91 75 219 / 0.35);
-  --overlay: rgb(15 15 30 / 0.4);
+  --shadow-float: 0 10px 30px rgb(29 36 48 / 0.12), 0 2px 6px rgb(29 36 48 / 0.06);
+  --focus-ring: 0 0 0 3px var(--surface), 0 0 0 6px rgb(47 138 243 / 0.55);
+  --overlay: rgb(29 36 48 / 0.45);
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --color-bg: #0c0c16;
-  --color-bg-accent: radial-gradient(1200px 600px at 10% -10%, #1e1946 0%, transparent 60%),
-    radial-gradient(900px 500px at 100% 0%, #2a1d0c 0%, transparent 55%);
-  --color-surface: #15151f;
-  --color-surface-2: #1c1c29;
-  --color-surface-3: #252535;
-  --color-border: #282838;
-  --color-border-strong: #383850;
 
-  --color-text: #ededf7;
-  --color-text-2: #bdbdd3;
-  --color-text-muted: #8b8ba6;
-  --color-text-inverse: #0c0c16;
+  --blue-soft: #15304d;
+  --blue-main: #4aa0ff;
+  --blue-edge: #2a73c6;
+  --blue-ink: #9cccff;
 
-  --color-primary: #8b7cff;
-  --color-primary-hover: #a094ff;
-  --color-primary-soft: #221d45;
-  --color-primary-soft-2: #2d2660;
-  --color-primary-text: #b3a9ff;
+  --green-soft: #173823;
+  --green-main: #55d071;
+  --green-edge: #2f9a4b;
+  --green-ink: #9ae8ac;
 
-  --color-accent: #ffb938;
-  --color-accent-soft: #2e2411;
-  --color-accent-text: #ffc861;
+  --red-soft: #432121;
+  --red-main: #ff6e66;
+  --red-edge: #c94740;
+  --red-ink: #ffb0aa;
 
-  --color-success: #3dd68c;
-  --color-success-soft: #10291c;
-  --color-success-text: #5fe3a2;
+  --amber-soft: #3d2d10;
+  --amber-main: #ffb53c;
+  --amber-edge: #c98714;
+  --amber-ink: #ffd28a;
 
-  --color-warning: #ffa94d;
-  --color-warning-soft: #2e2011;
-  --color-warning-text: #ffbe73;
+  --purple-soft: #2e2347;
+  --purple-main: #b08bff;
+  --purple-edge: #7f59cf;
+  --purple-ink: #d6c2ff;
 
-  --color-danger: #ff6b8b;
-  --color-danger-soft: #311520;
-  --color-danger-text: #ff8fa8;
+  --teal-soft: #113a38;
+  --teal-main: #2fd0c3;
+  --teal-edge: #17998f;
+  --teal-ink: #92ece4;
 
-  --color-info-soft: #18203a;
+  --pink-soft: #43203a;
+  --pink-main: #ff79b4;
+  --pink-edge: #c64d84;
+  --pink-ink: #ffb7d6;
 
-  --kind-concept: #8b7cff;
-  --kind-example: #38d9c0;
-  --kind-analogy: #ff8a50;
-  --kind-summary: #ffc861;
+  --clay-main: #f08a50;
+  --clay-edge: #b85a28;
 
-  --chart-bar: #8b7cff;
-  --chart-grid: #232333;
+  --bg: #121a23;
+  --surface: #17212c;
+  --surface-2: #1d2936;
+  --surface-3: #243241;
+  --border: #2a3846;
+  --border-strong: #3a4b5d;
+  --text: #eef2f6;
+  --text-2: #c2ccd7;
+  --text-muted: #8c9aab;
+  --text-on-fill: #ffffff;
+  --disabled: #26323f;
+  --disabled-text: #66768a;
 
-  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
-  --shadow-md: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 16px rgb(0 0 0 / 0.3);
-  --shadow-lg: 0 2px 4px rgb(0 0 0 / 0.3), 0 16px 40px rgb(0 0 0 / 0.45);
-  --shadow-glow: 0 8px 30px rgb(139 124 255 / 0.25);
-  --focus-ring: 0 0 0 3px rgb(139 124 255 / 0.45);
-  --overlay: rgb(0 0 0 / 0.55);
+  --shadow-float: 0 10px 30px rgb(0 0 0 / 0.45), 0 2px 6px rgb(0 0 0 / 0.3);
+  --focus-ring: 0 0 0 3px var(--bg), 0 0 0 6px rgb(74 160 255 / 0.6);
+  --overlay: rgb(0 0 0 / 0.6);
+}
+
+/* ---------- Semantic roles (theme-independent mapping onto the palette) ---------- */
+:root {
+  --color-primary: var(--blue-main);
+  --color-primary-edge: var(--blue-edge);
+  --color-primary-soft: var(--blue-soft);
+  --color-primary-text: var(--blue-ink);
+
+  --color-success: var(--green-main);
+  --color-success-edge: var(--green-edge);
+  --color-success-soft: var(--green-soft);
+  --color-success-text: var(--green-ink);
+
+  --color-danger: var(--red-main);
+  --color-danger-edge: var(--red-edge);
+  --color-danger-soft: var(--red-soft);
+  --color-danger-text: var(--red-ink);
+
+  --color-xp: var(--amber-main);
+  --color-xp-edge: var(--amber-edge);
+  --color-xp-soft: var(--amber-soft);
+  --color-xp-text: var(--amber-ink);
+
+  --color-mastery: var(--purple-main);
+  --color-mastery-edge: var(--purple-edge);
+  --color-mastery-soft: var(--purple-soft);
+  --color-mastery-text: var(--purple-ink);
+
+  --color-review: var(--teal-main);
+  --color-review-edge: var(--teal-edge);
+  --color-review-soft: var(--teal-soft);
+  --color-review-text: var(--teal-ink);
+
+  /* Lesson section kinds */
+  --kind-concept: var(--blue-main);
+  --kind-concept-soft: var(--blue-soft);
+  --kind-example: var(--green-main);
+  --kind-example-soft: var(--green-soft);
+  --kind-analogy: var(--pink-main);
+  --kind-analogy-soft: var(--pink-soft);
+  --kind-summary: var(--purple-main);
+  --kind-summary-soft: var(--purple-soft);
+
+  --chart-bar: var(--blue-main);
+  --chart-bar-goal: var(--green-main);
+  --chart-grid: var(--border);
+
+  /* ---- v1 compatibility aliases (keep until every screen is migrated; then delete) ---- */
+  --color-bg: var(--bg);
+  --color-bg-accent: none;
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-text-2: var(--text-2);
+  --color-text-muted: var(--text-muted);
+  --color-text-inverse: var(--text-on-fill);
+  --color-primary-hover: var(--blue-edge);
+  --color-primary-soft-2: var(--blue-soft);
+  --color-accent: var(--amber-main);
+  --color-accent-soft: var(--amber-soft);
+  --color-accent-text: var(--amber-ink);
+  --color-warning: var(--amber-main);
+  --color-warning-soft: var(--amber-soft);
+  --color-warning-text: var(--amber-ink);
+  --color-info-soft: var(--blue-soft);
+  --text-xs: var(--text-label);
+  --text-sm: var(--text-small);
+  --text-base: var(--text-body);
+  --text-md: var(--text-h3);
+  --text-lg: var(--text-h2);
+  --text-xl: var(--text-h1);
+  --text-2xl: var(--text-h1);
+  --text-3xl: var(--text-display);
+  --weight-regular: var(--weight-reading);
+  --weight-medium: var(--weight-body);
+  --weight-semibold: var(--weight-strong);
+  --weight-bold: var(--weight-heading);
+  --ease-spring: var(--ease-bounce);
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: var(--shadow-float);
+  --shadow-glow: none;
 }

@@ -17,6 +17,7 @@ const TestSetupPage = lazy(() => import("../features/study/assessment/TestSetupP
 const StudyHubPage = lazy(() => import("../features/study/hub/StudyHubPage").then((m) => ({ default: m.StudyHubPage })));
 const LearnPathPage = lazy(() => import("../features/study/learn/LearnPathPage").then((m) => ({ default: m.LearnPathPage })));
 const LessonPage = lazy(() => import("../features/study/learn/LessonPage").then((m) => ({ default: m.LessonPage })));
+const StyleguidePage = lazy(() => import("./styleguide/StyleguidePage").then((m) => ({ default: m.StyleguidePage })));
 const ReviewPage = lazy(() => import("../features/study/review/ReviewPage").then((m) => ({ default: m.ReviewPage })));
 
 /** Route table. New features add their routes inside the authenticated layout. */
@@ -40,6 +41,7 @@ export function App() {
                   <Route path="documents/:id/learn/:topicId" element={<LessonPage />} />
                   <Route path="documents/:id/test" element={<TestSetupPage />} />
                   <Route path="assessments/:id" element={<AssessmentPage />} />
+                  <Route path="styleguide" element={<StyleguidePage />} />
                 </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

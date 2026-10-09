@@ -1,14 +1,15 @@
+import type { EmojiName } from "../../shared/illustrations/emojiNames";
 import type { AnswerResult, Confidence, Verdict } from "./types";
 
-export const CONFIDENCE_OPTIONS: { value: Confidence; label: string }[] = [
-  { value: "LOW", label: "Unsure" },
-  { value: "MEDIUM", label: "Fairly sure" },
-  { value: "HIGH", label: "Certain" },
+export const CONFIDENCE_OPTIONS: { value: Confidence; label: string; emoji: EmojiName }[] = [
+  { value: "LOW", label: "Guessing", emoji: "thinking-face" },
+  { value: "MEDIUM", label: "Fairly sure", emoji: "slightly-smiling-face" },
+  { value: "HIGH", label: "Certain", emoji: "smiling-face-with-sunglasses" },
 ];
 
 export type Tone = "success" | "warning";
 
-/** Growth-mindset verdict copy. Mistakes are amber, never alarming (learning-science.md §3). */
+/** Growth-mindset verdict copy. Mistakes get a soft tint and encouraging words (learning-science.md §3). */
 export function verdictCopy(verdict: Verdict, context: "warmup" | "normal"): { title: string; tone: Tone } {
   if (verdict === "CORRECT") return { title: context === "warmup" ? "Good instinct!" : "Correct", tone: "success" };
   if (verdict === "PARTIAL") return { title: "Partly there", tone: "warning" };

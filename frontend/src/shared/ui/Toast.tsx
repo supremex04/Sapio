@@ -1,4 +1,5 @@
-import { AlertCircle, CheckCircle2, Info, Sparkles, Trophy } from "lucide-react";
+import { Emoji } from "../illustrations/Emoji";
+import type { EmojiName } from "../illustrations/emojiNames";
 import { AnimatePresence, motion } from "motion/react";
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 
@@ -16,7 +17,7 @@ interface ToastApi {
 
 const ToastContext = createContext<ToastApi | null>(null);
 
-const ICONS = { success: CheckCircle2, error: AlertCircle, info: Info, xp: Sparkles, level: Trophy } as const;
+const ICONS: Record<ToastKind, EmojiName> = { success: "check-mark-button", error: "cross-mark", info: "light-bulb", xp: "high-voltage", level: "crown" };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -41,7 +42,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <div className="toast-region" aria-live="polite" aria-atomic="false">
         <AnimatePresence initial={false}>
           {toasts.map((t) => {
-            const Icon = ICONS[t.kind];
             return (
               <motion.div
                 key={t.id}
@@ -55,7 +55,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 role={t.kind === "error" ? "alert" : "status"}
               >
                 <span className="toast-icon">
-                  <Icon size={18} aria-hidden />
+                  <Emoji name={ICONS[t.kind]} size={26} />
                 </span>
                 <div>{t.message}</div>
               </motion.div>

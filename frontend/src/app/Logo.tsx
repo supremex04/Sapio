@@ -1,17 +1,20 @@
-/** Ved mark: an open book with a small "spark" of insight. */
-export function Logo({ size = 30 }: { size?: number }) {
+/** Ved mark: a flat diya with its flame (the lamp of knowledge; Dia is its character form). */
+export function Logo({ size = 32 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden className="logo-mark">
-      <defs>
-        <linearGradient id="ved-logo-g" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#7c6cf0" />
-          <stop offset="1" stopColor="#4b3bc9" />
-        </linearGradient>
-      </defs>
-      <rect width="32" height="32" rx="9" fill="url(#ved-logo-g)" />
-      <path d="M9 10.5c2.6-.9 5-.6 7 1v11c-2-1.6-4.4-1.9-7-1z" fill="#fff" opacity=".95" />
-      <path d="M23 10.5c-2.6-.9-5-.6-7 1v11c2-1.6 4.4-1.9 7-1z" fill="#fff" opacity=".7" />
-      <circle cx="23.5" cy="8.5" r="2.5" fill="#ffb938" />
+      <path d="M16 2.5c4.2 4.6 6 8.3 4 11.4-1.4 2.1-6.6 2.1-8 0-2-3.1-.2-6.8 4-11.4z" fill="var(--amber-main)" />
+      <path d="M16 8.5c1.9 2.3 2.5 4.3 1.6 5.8-.6 1-2.6 1-3.2 0-.9-1.5-.3-3.5 1.6-5.8z" fill="#ffe066" />
+      <path d="M3 16.5h26c0 7-5.8 12-13 12S3 23.5 3 16.5z" fill="var(--clay-main)" />
+      <path d="M5.2 21.5c2.4 4 6.3 6 10.8 6s8.4-2 10.8-6c-2.9 2.4-6.6 3.5-10.8 3.5S8.1 23.9 5.2 21.5z" fill="var(--clay-edge)" />
     </svg>
+  );
+}
+
+export function Wordmark() {
+  return (
+    <span className="brand">
+      <Logo />
+      <span className="brand-name">ved</span>
+    </span>
   );
 }

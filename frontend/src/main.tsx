@@ -1,5 +1,4 @@
-import "@fontsource-variable/inter";
-import "@fontsource-variable/fraunces/full.css";
+import "@fontsource-variable/nunito";
 // Global styles first, so feature stylesheets (imported by components) can override them.
 import "./styles/tokens.css";
 import "./styles/base.css";

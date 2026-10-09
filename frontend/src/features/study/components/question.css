@@ -1,0 +1,104 @@
+/* Shared question UI (lesson checks, tests, reviews). Option tiles and the sheet live in components.css. */
+.question {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.question-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-label);
+  font-weight: var(--weight-black);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--amber-ink);
+}
+.question-prompt {
+  font-size: var(--text-h2);
+  font-weight: var(--weight-heading);
+  line-height: 1.35;
+}
+.question-prompt p {
+  margin: 0;
+}
+.question-hint {
+  color: var(--text-muted);
+  font-weight: var(--weight-strong);
+}
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.option-text {
+  flex: 1;
+  min-width: 0;
+}
+.option-text .markdown {
+  font-size: var(--text-body);
+  font-weight: var(--weight-strong);
+  line-height: 1.4;
+  color: inherit;
+}
+.option-text p {
+  margin: 0;
+}
+
+.confidence {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.confidence-label {
+  font-size: var(--text-small);
+  font-weight: var(--weight-heading);
+  color: var(--text-muted);
+  margin-right: var(--space-1);
+}
+
+.sheet-note {
+  font-size: var(--text-small);
+  font-weight: var(--weight-strong);
+  opacity: 0.85;
+}
+
+.feedback-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.feedback-body .markdown {
+  font-size: var(--text-body);
+  font-weight: var(--weight-body);
+  color: inherit;
+}
+.feedback-hypercorrect {
+  font-weight: var(--weight-heading);
+}
+.feedback-reference {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+}
+
+.feedback-inline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+}
+.feedback-inline-correct {
+  background: var(--green-soft);
+  color: var(--green-ink);
+}
+.feedback-inline-partial {
+  background: var(--amber-soft);
+  color: var(--amber-ink);
+}
+.feedback-inline-incorrect {
+  background: var(--red-soft);
+  color: var(--red-ink);
+}
