@@ -177,6 +177,10 @@
   --disabled: #26323f;
   --disabled-text: #66768a;
 
+  /* Charts: the edge steps sit in the validated lightness band on dark surfaces (dataviz skill). */
+  --chart-bar: var(--blue-edge);
+  --chart-bar-goal: var(--green-edge);
+
   --shadow-float: 0 10px 30px rgb(0 0 0 / 0.45), 0 2px 6px rgb(0 0 0 / 0.3);
   --focus-ring: 0 0 0 3px var(--bg), 0 0 0 6px rgb(74 160 255 / 0.6);
   --overlay: rgb(0 0 0 / 0.6);
@@ -227,43 +231,4 @@
   --chart-bar: var(--blue-main);
   --chart-bar-goal: var(--green-main);
   --chart-grid: var(--border);
-
-  /* ---- v1 compatibility aliases (keep until every screen is migrated; then delete) ---- */
-  --color-bg: var(--bg);
-  --color-bg-accent: none;
-  --color-surface: var(--surface);
-  --color-surface-2: var(--surface-2);
-  --color-surface-3: var(--surface-3);
-  --color-border: var(--border);
-  --color-border-strong: var(--border-strong);
-  --color-text: var(--text);
-  --color-text-2: var(--text-2);
-  --color-text-muted: var(--text-muted);
-  --color-text-inverse: var(--text-on-fill);
-  --color-primary-hover: var(--blue-edge);
-  --color-primary-soft-2: var(--blue-soft);
-  --color-accent: var(--amber-main);
-  --color-accent-soft: var(--amber-soft);
-  --color-accent-text: var(--amber-ink);
-  --color-warning: var(--amber-main);
-  --color-warning-soft: var(--amber-soft);
-  --color-warning-text: var(--amber-ink);
-  --color-info-soft: var(--blue-soft);
-  --text-xs: var(--text-label);
-  --text-sm: var(--text-small);
-  --text-base: var(--text-body);
-  --text-md: var(--text-h3);
-  --text-lg: var(--text-h2);
-  --text-xl: var(--text-h1);
-  --text-2xl: var(--text-h1);
-  --text-3xl: var(--text-display);
-  --weight-regular: var(--weight-reading);
-  --weight-medium: var(--weight-body);
-  --weight-semibold: var(--weight-strong);
-  --weight-bold: var(--weight-heading);
-  --ease-spring: var(--ease-bounce);
-  --shadow-sm: none;
-  --shadow-md: none;
-  --shadow-lg: var(--shadow-float);
-  --shadow-glow: none;
 }

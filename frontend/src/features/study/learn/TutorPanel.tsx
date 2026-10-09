@@ -1,7 +1,10 @@
 import { MessageCircleQuestion, Send, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 import { errorMessage } from "../../../shared/api/errors";
+import { Dia } from "../../../shared/illustrations/Dia";
+import { Alert } from "../../../shared/ui/Alert";
 import { Badge } from "../../../shared/ui/Badge";
 import { Button, IconButton } from "../../../shared/ui/Button";
 import { Markdown } from "../../../shared/ui/Markdown";
@@ -16,7 +19,10 @@ interface Message extends TutorTurn {
 const MAX_HISTORY = 10;
 const STARTERS = ["Can you explain this more simply?", "Why does this matter?", "Give me another example"];
 
-/** "Ask the tutor": elaboration on demand, grounded in the document. History stays on the client. */
+/**
+ * "Ask the tutor": elaboration on demand, grounded in the document. Renders its own trigger (for the
+ * lesson's focus header) and a solid slide-over panel. History stays on the client.
+ */
 export function TutorPanel({ topicId, topicTitle }: { topicId: string; topicTitle: string }) {
   const { refresh } = useProgress();
   const [open, setOpen] = useState(false);
@@ -26,6 +32,7 @@ export function TutorPanel({ topicId, topicTitle }: { topicId: string; topicTitl
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
@@ -34,10 +41,17 @@ export function TutorPanel({ topicId, topicTitle }: { topicId: string; topicTitl
   useEffect(() => {
     if (!open) return;
     inputRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
+
+  function close() {
+    setOpen(false);
+    triggerRef.current?.focus();
+  }
 
   async function ask(question: string) {
     const q = question.trim();
@@ -65,87 +79,101 @@ export function TutorPanel({ topicId, topicTitle }: { topicId: string; topicTitl
 
   return (
     <>
-      <motion.button className="tutor-fab" onClick={() => setOpen(true)} whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} aria-label="Ask the tutor">
-        <MessageCircleQuestion size={20} aria-hidden />
-        <span>Ask the tutor</span>
-      </motion.button>
-      <AnimatePresence>
-        {open && (
-          <>
-            <motion.div className="tutor-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)} />
-            <motion.aside
-              className="tutor-panel"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Ask the tutor"
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", stiffness: 380, damping: 38 }}
-            >
-              <header className="tutor-head">
-                <div>
-                  <strong>Ask the tutor</strong>
-                  <p className="xs muted">Answers come from your document · {topicTitle}</p>
+      <button ref={triggerRef} type="button" className="chip tutor-trigger" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-label="Ask the tutor">
+        <MessageCircleQuestion size={18} strokeWidth={2.5} aria-hidden />
+        <span className="tutor-trigger-label">Ask</span>
+      </button>
+      {/* Portalled: the trigger sits in the sticky header, whose stacking context would trap the panel. */}
+      {createPortal(
+        <AnimatePresence>
+          {open && (
+            <>
+              <motion.div className="tutor-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={close} />
+              <motion.aside
+                className="tutor-panel"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Ask the tutor"
+                initial={{ x: "100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "100%" }}
+                transition={{ type: "spring", stiffness: 380, damping: 38 }}
+              >
+                <header className="tutor-head">
+                  <div>
+                    <strong>Ask the tutor</strong>
+                    <p className="xs muted break">From your document · {topicTitle}</p>
+                  </div>
+                  <IconButton label="Close" onClick={close}>
+                    <X size={20} strokeWidth={2.5} />
+                  </IconButton>
+                </header>
+                <div className="tutor-messages" ref={listRef}>
+                  {messages.length === 0 && (
+                    <div className="tutor-empty">
+                      <div className="chat-row">
+                        <Dia mood="happy" size={40} still />
+                        <div className="chat-msg chat-tutor">Asking "why" and "how" helps ideas connect. What would you like to know?</div>
+                      </div>
+                      {STARTERS.map((s) => (
+                        <button key={s} type="button" className="chip" onClick={() => void ask(s)}>
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {messages.map((m, i) => (
+                    <motion.div key={i} className={m.role === "user" ? "chat-row chat-row-user" : "chat-row"} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+                      {m.role === "tutor" && <Dia mood={m.grounded === false ? "thinking" : "happy"} size={32} still />}
+                      <div className={m.role === "user" ? "chat-msg chat-user" : "chat-msg chat-tutor"}>
+                        {m.role === "tutor" ? <Markdown>{m.text}</Markdown> : <p>{m.text}</p>}
+                        {m.role === "tutor" && m.grounded === false && (
+                          <Badge tone="warning" className="chat-badge">
+                            Not covered in your document
+                          </Badge>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                  {sending && (
+                    <div className="chat-row">
+                      <Dia mood="thinking" size={32} still />
+                      <div className="chat-msg chat-tutor chat-typing" role="status" aria-label="Tutor is typing">
+                        <span />
+                        <span />
+                        <span />
+                      </div>
+                    </div>
+                  )}
+                  {error && <Alert>{error}</Alert>}
                 </div>
-                <IconButton label="Close" onClick={() => setOpen(false)}>
-                  <X size={18} />
-                </IconButton>
-              </header>
-              <div className="tutor-messages" ref={listRef}>
-                {messages.length === 0 && (
-                  <div className="tutor-empty">
-                    <p className="muted small">Asking "why" and "how" questions helps ideas connect. Try:</p>
-                    {STARTERS.map((s) => (
-                      <button key={s} className="chip" onClick={() => void ask(s)}>
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {messages.map((m, i) => (
-                  <motion.div key={i} className={`bubble bubble-${m.role}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
-                    {m.role === "tutor" ? <Markdown>{m.text}</Markdown> : <p>{m.text}</p>}
-                    {m.role === "tutor" && m.grounded === false && (
-                      <Badge tone="warning" className="bubble-badge">
-                        Not covered in your document
-                      </Badge>
-                    )}
-                  </motion.div>
-                ))}
-                {sending && (
-                  <div className="bubble bubble-tutor typing" aria-label="Tutor is typing">
-                    <span />
-                    <span />
-                    <span />
-                  </div>
-                )}
-                {error && <p className="small" style={{ color: "var(--color-warning-text)" }}>{error}</p>}
-              </div>
-              <form className="tutor-input" onSubmit={onSubmit}>
-                <textarea
-                  ref={inputRef}
-                  className="textarea"
-                  rows={2}
-                  value={draft}
-                  maxLength={1000}
-                  placeholder="Ask anything about this topic…"
-                  onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      void ask(draft);
-                    }
-                  }}
-                />
-                <Button type="submit" variant="primary" disabled={!draft.trim()} loading={sending} aria-label="Send">
-                  <Send size={16} aria-hidden />
-                </Button>
-              </form>
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
+                <form className="tutor-input" onSubmit={onSubmit}>
+                  <textarea
+                    ref={inputRef}
+                    className="textarea"
+                    rows={2}
+                    value={draft}
+                    maxLength={1000}
+                    placeholder="Ask anything about this topic…"
+                    aria-label="Your question"
+                    onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        void ask(draft);
+                      }
+                    }}
+                  />
+                  <Button type="submit" variant="primary" disabled={!draft.trim()} loading={sending} aria-label="Send">
+                    <Send size={18} aria-hidden />
+                  </Button>
+                </form>
+              </motion.aside>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
     </>
   );
 }

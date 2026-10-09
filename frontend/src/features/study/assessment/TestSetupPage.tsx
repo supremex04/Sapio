@@ -1,20 +1,29 @@
-import { ArrowLeft, Brain, Clock, Shuffle } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { ApiError, errorMessage } from "../../../shared/api/errors";
+import { Dia } from "../../../shared/illustrations/Dia";
+import { Emoji } from "../../../shared/illustrations/Emoji";
+import type { EmojiName } from "../../../shared/illustrations/emojiNames";
 import { Alert } from "../../../shared/ui/Alert";
 import { Button } from "../../../shared/ui/Button";
-import { Card } from "../../../shared/ui/Card";
+import { Chip } from "../../../shared/ui/Chip";
 import { cx } from "../../../shared/ui/cx";
 import { PageTransition } from "../../../shared/ui/PageTransition";
-import { Segmented } from "../../../shared/ui/Segmented";
 import { Skeleton } from "../../../shared/ui/Skeleton";
+import { SpeechBubble } from "../../../shared/ui/SpeechBubble";
 import { studyApi } from "../api";
 import { GeneratingState } from "../components/GeneratingState";
+import { testMinutes } from "../nextStep";
 import type { Difficulty, Material } from "../types";
-import "../study.css";
+import "./assessment.css";
 
 const COUNTS = [5, 10, 15, 20] as const;
+const DIFFICULTIES: { value: Difficulty; label: string; emoji: EmojiName; note: string }[] = [
+  { value: "EASY", label: "Easy", emoji: "seedling", note: "Warm up" },
+  { value: "MIXED", label: "Mixed", emoji: "high-voltage", note: "Best default" },
+  { value: "HARD", label: "Hard", emoji: "fire", note: "Stretch yourself" },
+];
 
 export function TestSetupPage() {
   const { id = "" } = useParams();
@@ -56,92 +65,84 @@ export function TestSetupPage() {
   }
 
   const weak = material?.topics.filter((t) => t.mastery != null && t.mastery < 0.5) ?? [];
+  const difficultyLabel = DIFFICULTIES.find((d) => d.value === difficulty)?.label ?? "";
 
   return (
     <PageTransition>
-      <div className="setup">
-        <Link to={`/documents/${id}`} className="back-link">
-          <ArrowLeft size={16} aria-hidden /> Study guide
+      <div className="ts">
+        <Link to={`/documents/${id}`} className="ts-back">
+          <ArrowLeft size={18} strokeWidth={2.5} aria-hidden /> Study guide
         </Link>
-        <header className="page-header">
-          <div>
-            <p className="eyebrow">Test my knowledge</p>
-            <h1>Set up your test</h1>
-            <p>Recalling answers strengthens memory far more than re-reading, even when you get some wrong.</p>
+
+        <header className="ts-head">
+          <p className="eyebrow">Test my knowledge{material ? ` · ${material.title}` : ""}</p>
+          <h1>Set up your test</h1>
+          <div className="ts-dia">
+            <Dia mood="happy" size={80} />
+            <SpeechBubble>Recalling answers strengthens memory far more than re-reading, even the misses help!</SpeechBubble>
           </div>
         </header>
 
-        <Card className="stack-lg">
-          <div className="setup-row">
-            <div>
-              <h3>Questions</h3>
-              <p className="small muted">
-                <Clock size={13} aria-hidden style={{ verticalAlign: "-2px" }} /> about {Math.max(2, Math.round(count * 0.6))} minutes
-              </p>
-            </div>
-            <div className="row" role="radiogroup" aria-label="Number of questions">
-              {COUNTS.map((c) => (
-                <button key={c} type="button" role="radio" aria-checked={count === c} className={cx("count-option", count === c && "selected")} onClick={() => setCount(c)}>
-                  {c}
-                </button>
-              ))}
-            </div>
+        <section className="ts-section" aria-labelledby="ts-count">
+          <h2 id="ts-count">How many questions?</h2>
+          <div className="ts-tiles ts-tiles-4" role="radiogroup" aria-labelledby="ts-count">
+            {COUNTS.map((c) => (
+              <button key={c} type="button" role="radio" aria-checked={count === c} className={cx("ts-tile", count === c && "is-selected")} onClick={() => setCount(c)}>
+                <span className="ts-tile-big">{c}</span>
+                <span className="ts-tile-note">~{testMinutes(c)} min</span>
+              </button>
+            ))}
           </div>
+        </section>
 
-          <div className="setup-row">
-            <div>
-              <h3>Difficulty</h3>
-              <p className="small muted">Mixed is a great default: a few easy wins and some stretch.</p>
-            </div>
-            <Segmented
-              label="Difficulty"
-              value={difficulty}
-              onChange={setDifficulty}
-              options={[
-                { value: "EASY", label: "Easy" },
-                { value: "MIXED", label: "Mixed" },
-                { value: "HARD", label: "Hard" },
-              ]}
-            />
+        <section className="ts-section" aria-labelledby="ts-difficulty">
+          <h2 id="ts-difficulty">Difficulty</h2>
+          <div className="ts-tiles ts-tiles-3" role="radiogroup" aria-labelledby="ts-difficulty">
+            {DIFFICULTIES.map((d) => (
+              <button key={d.value} type="button" role="radio" aria-checked={difficulty === d.value} className={cx("ts-tile", difficulty === d.value && "is-selected")} onClick={() => setDifficulty(d.value)}>
+                <Emoji name={d.emoji} size={36} />
+                <span className="ts-tile-label">{d.label}</span>
+                <span className="ts-tile-note">{d.note}</span>
+              </button>
+            ))}
           </div>
+        </section>
 
-          <div className="stack-sm">
-            <div className="row-between">
-              <div>
-                <h3>Topics</h3>
-                <p className="small muted">
-                  <Shuffle size={13} aria-hidden style={{ verticalAlign: "-2px" }} /> {selected.size === 0 ? "All topics, interleaved" : `${selected.size} selected`}
-                </p>
-              </div>
-              {weak.length > 0 && (
-                <Button size="sm" variant="soft" onClick={() => setSelected(new Set(weak.map((t) => t.id)))}>
-                  Focus on topics that need practice
-                </Button>
-              )}
-            </div>
-            {!material ? (
-              <Skeleton height={80} />
-            ) : (
-              <div className="row">
-                <button type="button" className="chip" aria-pressed={selected.size === 0} onClick={() => setSelected(new Set())}>
-                  All topics
-                </button>
-                {material.topics.map((t) => (
-                  <button key={t.id} type="button" className="chip" aria-pressed={selected.has(t.id)} onClick={() => toggle(t.id)}>
-                    {t.title}
-                  </button>
-                ))}
-              </div>
+        <section className="ts-section" aria-labelledby="ts-topics">
+          <div className="row-between">
+            <h2 id="ts-topics">Topics</h2>
+            {weak.length > 0 && (
+              <Button size="sm" variant="soft" onClick={() => setSelected(new Set(weak.map((t) => t.id)))}>
+                Focus on weak topics
+              </Button>
             )}
           </div>
+          {!material ? (
+            <Skeleton height={80} />
+          ) : (
+            <div className="row">
+              <Chip emoji="card-index-dividers" pressed={selected.size === 0} onClick={() => setSelected(new Set())}>
+                All topics
+              </Chip>
+              {material.topics.map((t) => (
+                <Chip key={t.id} pressed={selected.has(t.id)} onClick={() => toggle(t.id)}>
+                  {t.title}
+                </Chip>
+              ))}
+            </div>
+          )}
+        </section>
 
-          {error && <Alert>{error}</Alert>}
-          <div className="row" style={{ justifyContent: "flex-end" }}>
-            <Button variant="primary" size="lg" icon={<Brain size={18} />} onClick={start} disabled={!material}>
-              Start test
-            </Button>
-          </div>
-        </Card>
+        {error && <Alert>{error}</Alert>}
+
+        <div className="ts-start">
+          <p className="ts-summary">
+            {count} questions · {difficultyLabel} · {selected.size === 0 ? "all topics, mixed together" : `${selected.size} topic${selected.size === 1 ? "" : "s"}`} · about {testMinutes(count)} min
+          </p>
+          <Button variant="mastery" size="lg" block onClick={start} disabled={!material}>
+            Start test
+          </Button>
+        </div>
       </div>
     </PageTransition>
   );

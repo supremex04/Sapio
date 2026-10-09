@@ -1,65 +1,89 @@
-import { ArrowRight, BookOpen, CheckCircle2, ChevronDown, CircleDashed, Layers, MinusCircle, RotateCcw, Sparkles, Star, Target, TrendingUp } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
-import { Link } from "react-router";
+import { useState, type CSSProperties } from "react";
+import { Dia, type DiaMood } from "../../../shared/illustrations/Dia";
+import { Emoji } from "../../../shared/illustrations/Emoji";
+import type { EmojiName } from "../../../shared/illustrations/emojiNames";
 import { formatPercent } from "../../../shared/lib/format";
-import { Badge } from "../../../shared/ui/Badge";
+import { Badge, type Tone } from "../../../shared/ui/Badge";
 import { ButtonLink } from "../../../shared/ui/Button";
-import { Card, CardHeader } from "../../../shared/ui/Card";
+import { Card } from "../../../shared/ui/Card";
 import { cx } from "../../../shared/ui/cx";
+import { FocusHeader } from "../../../shared/ui/FocusHeader";
 import { Markdown } from "../../../shared/ui/Markdown";
-import { PageTransition } from "../../../shared/ui/PageTransition";
 import { ProgressBar, ProgressRing } from "../../../shared/ui/Progress";
+import { ResultStat } from "../components/ResultStat";
 import { optionLetter } from "../feedback";
 import type { Assessment, AssessmentItem, Calibration, TopicLevel } from "../types";
+import "./assessment.css";
 
-const LEVEL_META: Record<TopicLevel, { label: string; tone: "success" | "primary" | "warning"; color: string; icon: typeof Star }> = {
-  STRONG: { label: "Strong", tone: "success", color: "var(--color-success)", icon: Star },
-  DEVELOPING: { label: "Developing", tone: "primary", color: "var(--color-primary)", icon: TrendingUp },
-  WEAK: { label: "Focus here", tone: "warning", color: "var(--color-warning)", icon: Target },
+const LEVEL_META: Record<TopicLevel, { label: string; tone: Tone; color: string }> = {
+  STRONG: { label: "Strong", tone: "success", color: "var(--green-main)" },
+  DEVELOPING: { label: "Developing", tone: "primary", color: "var(--blue-main)" },
+  WEAK: { label: "Focus here", tone: "warning", color: "var(--amber-main)" },
 };
 
-function headline(score: number): { title: string; sub: string } {
-  if (score >= 0.8) return { title: "Excellent work!", sub: "You clearly know this material. Spaced reviews will keep it fresh." };
-  if (score >= 0.5) return { title: "Solid progress", sub: "You've got the foundations. A little focused practice will take you further." };
-  return { title: "A great starting point", sub: "Every question you missed is now a review card. This is exactly how learning works." };
+/** Growth-mindset headline + Dia's mood for a score. */
+export function reportHeadline(score: number): { title: string; sub: string; mood: DiaMood } {
+  if (score >= 0.8) return { title: "Excellent work!", sub: "You clearly know this material. Spaced reviews will keep it fresh.", mood: "cheer" };
+  if (score >= 0.5) return { title: "Solid progress", sub: "You've got the foundations. A little focused practice will take you further.", mood: "happy" };
+  return { title: "A great starting point", sub: "Every question you missed is now a review card. This is exactly how learning works.", mood: "encourage" };
+}
+
+function scoreColor(score: number): string {
+  return score >= 0.8 ? "var(--green-main)" : score >= 0.5 ? "var(--amber-main)" : "var(--blue-main)";
 }
 
 /** Report order follows the peak-end rule: celebrate, strengths, then what to work on. */
 export function AssessmentReportView({ assessment, fresh }: { assessment: Assessment; fresh: boolean }) {
   const report = assessment.report!;
-  const { title, sub } = headline(report.score);
+  const { title, sub, mood } = reportHeadline(report.score);
   const docId = assessment.documentId;
+  const toReview = report.incorrectCount + report.skippedCount;
 
   return (
-    <PageTransition>
-      <div className="report stack-lg">
-        <Link to={`/documents/${docId}`} className="back-link" style={{ marginBottom: 0 }}>
-          ← {assessment.documentTitle}
-        </Link>
-
-        <Card className="report-hero">
-          <ProgressRing value={report.score} size={150} stroke={12} label="Score" color={report.score >= 0.8 ? "var(--color-success)" : undefined}>
-            <span className="report-score">{formatPercent(report.score)}</span>
-            <span className="xs muted">score</span>
-          </ProgressRing>
-          <div className="stack-sm" style={{ flex: 1, minWidth: 240 }}>
-            {fresh && <p className="eyebrow">Test complete</p>}
+    <>
+      <FocusHeader exitTo={`/documents/${docId}`} exitLabel="Back to course" progress={1} progressLabel="Test complete" />
+      <div className="rp">
+        <motion.section className="rp-hero" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: "spring", stiffness: 300, damping: 24 }}>
+          <Dia mood={mood} size={128} />
+          <div className="rp-hero-text">
+            {fresh && <p className="eyebrow">Test complete · {assessment.documentTitle}</p>}
             <h1>{title}</h1>
             <p className="text-2">{sub}</p>
-            <div className="report-counts">
-              <Count icon={<CheckCircle2 size={16} />} tone="success" n={report.correctCount} label="correct" />
-              <Count icon={<CircleDashed size={16} />} tone="warning" n={report.partialCount} label="partly" />
-              <Count icon={<RotateCcw size={16} />} tone="neutral" n={report.incorrectCount} label="to review" />
-              {report.skippedCount > 0 && <Count icon={<MinusCircle size={16} />} tone="neutral" n={report.skippedCount} label="skipped" />}
-            </div>
           </div>
-        </Card>
+          <ProgressRing value={report.score} size={136} stroke={14} label="Score" color={scoreColor(report.score)}>
+            <span className="rp-score">{formatPercent(report.score)}</span>
+          </ProgressRing>
+        </motion.section>
+
+        <div className="result-stats">
+          <ResultStat tone="green" label="Correct" emoji="check-mark-button" value={report.correctCount} />
+          <ResultStat tone="amber" label="Partly" emoji="thinking-face" value={report.partialCount} />
+          <ResultStat tone="teal" label="To review" emoji="repeat-button" value={toReview} />
+        </div>
+
+        <div className="rp-actions">
+          {toReview + report.partialCount > 0 && (
+            <ButtonLink to={`/review?documentId=${docId}`} variant="review" size="lg">
+              Review mistakes
+            </ButtonLink>
+          )}
+          <ButtonLink to={`/documents/${docId}`} size="lg">
+            Back to course
+          </ButtonLink>
+        </div>
+
+        {report.summary && (
+          <Card>
+            <Markdown>{report.summary}</Markdown>
+          </Card>
+        )}
 
         {report.strengths.length > 0 && (
-          <Card>
-            <CardHeader icon={<Sparkles size={18} />} title="What you did well" />
-            <ul className="bullet-list">
+          <Card tone="green">
+            <SectionTitle emoji="flexed-biceps" title="What you did well" />
+            <ul className="rp-list">
               {report.strengths.map((s, i) => (
                 <li key={i}>
                   <Markdown>{s}</Markdown>
@@ -69,63 +93,51 @@ export function AssessmentReportView({ assessment, fresh }: { assessment: Assess
           </Card>
         )}
 
-        {report.summary && (
-          <Card>
-            <Markdown>{report.summary}</Markdown>
-          </Card>
-        )}
-
-        <div className="report-grid">
-          <Card>
-            <CardHeader icon={<Layers size={18} />} title="By topic" />
-            <ul className="topic-results">
-              {report.topics.map((t) => {
-                const meta = LEVEL_META[t.level];
-                const Icon = meta.icon;
-                return (
-                  <li key={t.topicId}>
-                    <div className="row-between">
-                      <span className="small">
-                        <strong>{t.title}</strong> <span className="muted">· {t.questionCount} q</span>
-                      </span>
-                      <Badge tone={meta.tone} icon={<Icon />}>
-                        {meta.label} · {formatPercent(t.score)}
-                      </Badge>
-                    </div>
-                    <ProgressBar value={t.score} color={meta.color} size="sm" label={`${t.title} score`} />
-                  </li>
-                );
-              })}
-            </ul>
-          </Card>
-          {report.calibration && <CalibrationCard calibration={report.calibration} />}
-        </div>
+        <Card>
+          <SectionTitle emoji="card-index-dividers" title="By topic" />
+          <ul className="rp-topics">
+            {report.topics.map((t) => {
+              const meta = LEVEL_META[t.level];
+              return (
+                <li key={t.topicId}>
+                  <div className="row-between">
+                    <span>
+                      <strong>{t.title}</strong> <span className="small muted">· {t.questionCount} q</span>
+                    </span>
+                    <Badge tone={meta.tone}>
+                      {meta.label} · {formatPercent(t.score)}
+                    </Badge>
+                  </div>
+                  <ProgressBar value={t.score} color={meta.color} size="sm" label={`${t.title} score`} />
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
 
         {report.weakAreas.length > 0 && (
-          <Card>
-            <CardHeader icon={<Target size={18} />} title="Where to grow next" />
-            <div className="weak-list">
-              {report.weakAreas.map((w, i) => (
-                <div key={i} className="weak-item">
-                  <div style={{ flex: 1 }}>
-                    <strong>{w.title}</strong>
-                    <Markdown className="small">{w.advice}</Markdown>
-                  </div>
-                  {w.topicId && (
-                    <ButtonLink to={`/documents/${docId}/learn/${w.topicId}`} size="sm" variant="soft" icon={<BookOpen size={14} />}>
-                      Review in Learn
-                    </ButtonLink>
-                  )}
+          <section className="stack-sm">
+            <SectionTitle emoji="bullseye" title="Where to grow next" />
+            {report.weakAreas.map((w, i) => (
+              <Card key={i} tone="amber" tight className="rp-weak">
+                <div className="rp-weak-text">
+                  <strong>{w.title}</strong>
+                  <Markdown className="small">{w.advice}</Markdown>
                 </div>
-              ))}
-            </div>
-          </Card>
+                {w.topicId && (
+                  <ButtonLink to={`/documents/${docId}/learn/${w.topicId}`} size="sm" variant="accent">
+                    Review lesson
+                  </ButtonLink>
+                )}
+              </Card>
+            ))}
+          </section>
         )}
 
         {report.nextSteps.length > 0 && (
           <Card>
-            <CardHeader icon={<ArrowRight size={18} />} title="Next steps" />
-            <ol className="bullet-list numbered">
+            <SectionTitle emoji="rocket" title="Next steps" />
+            <ol className="rp-list rp-list-numbered">
               {report.nextSteps.map((s, i) => (
                 <li key={i}>
                   <Markdown>{s}</Markdown>
@@ -133,59 +145,66 @@ export function AssessmentReportView({ assessment, fresh }: { assessment: Assess
               ))}
             </ol>
             <div className="row" style={{ marginTop: "var(--space-4)" }}>
-              <ButtonLink to={`/review?documentId=${docId}`} variant="primary" icon={<Layers size={16} />}>
-                Review my mistakes
-              </ButtonLink>
-              <ButtonLink to={`/documents/${docId}/test`} variant="secondary">
+              <ButtonLink to={`/documents/${docId}/test`} variant="mastery">
                 New test
+              </ButtonLink>
+              <ButtonLink to={`/documents/${docId}/learn`} variant="ghost">
+                Learning path
               </ButtonLink>
             </div>
           </Card>
         )}
 
+        {report.calibration && <CalibrationCard calibration={report.calibration} />}
+
         <QuestionReview items={assessment.items} />
       </div>
-    </PageTransition>
+    </>
   );
 }
 
-function Count({ icon, n, label, tone }: { icon: React.ReactNode; n: number; label: string; tone: "success" | "warning" | "neutral" }) {
+function SectionTitle({ emoji, title }: { emoji: EmojiName; title: string }) {
   return (
-    <span className={cx("count", `count-${tone}`)}>
-      {icon}
-      <strong className="tabular">{n}</strong> {label}
-    </span>
+    <h2 className="rp-section-title">
+      <Emoji name={emoji} size={28} /> {title}
+    </h2>
   );
 }
 
 /** "How well did you know what you knew?" Metacognition, framed positively. */
 function CalibrationCard({ calibration }: { calibration: Calibration }) {
   const total = calibration.confidentCorrect + calibration.confidentIncorrect + calibration.unsureCorrect + calibration.unsureIncorrect;
-  const cells = [
-    { id: "cc", n: calibration.confidentCorrect, title: "Knew it, and knew you knew", tone: "success" },
-    { id: "uc", n: calibration.unsureCorrect, title: "Knew more than you thought", tone: "primary" },
-    { id: "ci", n: calibration.confidentIncorrect, title: "Confident misses: your best learning moments", tone: "accent" },
-    { id: "ui", n: calibration.unsureIncorrect, title: "Honest gaps, now on your review list", tone: "neutral" },
-  ];
   return (
     <Card>
-      <CardHeader icon={<Target size={18} />} title="How well did you know what you knew?" />
+      <SectionTitle emoji="brain" title="How well did you know what you knew?" />
       {total === 0 ? (
         <p className="small muted">Rate your confidence before answering next time to see this.</p>
       ) : (
         <>
-          <div className="calibration" role="table" aria-label="Confidence versus correctness">
-            <span className="cal-axis" />
-            <span className="cal-axis xs muted">Correct</span>
-            <span className="cal-axis xs muted">Missed</span>
-            <span className="cal-axis xs muted">Sure</span>
-            {cells.slice(0, 1).concat(cells.slice(2, 3)).map((c) => (
-              <CalCell key={c.id} n={c.n} title={c.title} tone={c.tone} total={total} />
-            ))}
-            <span className="cal-axis xs muted">Unsure</span>
-            {cells.slice(1, 2).concat(cells.slice(3, 4)).map((c) => (
-              <CalCell key={c.id} n={c.n} title={c.title} tone={c.tone} total={total} />
-            ))}
+          <div className="cal" role="table" aria-label="Confidence versus correctness">
+            <div role="row" className="cal-row">
+              <span role="columnheader" />
+              <span role="columnheader" className="cal-axis">
+                Correct
+              </span>
+              <span role="columnheader" className="cal-axis">
+                Missed
+              </span>
+            </div>
+            <div role="row" className="cal-row">
+              <span role="rowheader" className="cal-axis">
+                Sure
+              </span>
+              <CalCell n={calibration.confidentCorrect} title="Knew it, and knew you knew" tone="green" total={total} />
+              <CalCell n={calibration.confidentIncorrect} title="Confident misses: your best learning moments" tone="amber" total={total} />
+            </div>
+            <div role="row" className="cal-row">
+              <span role="rowheader" className="cal-axis">
+                Unsure
+              </span>
+              <CalCell n={calibration.unsureCorrect} title="Knew more than you thought" tone="teal" total={total} />
+              <CalCell n={calibration.unsureIncorrect} title="Honest gaps, now on your review list" tone="red" total={total} />
+            </div>
           </div>
           <p className="xs muted" style={{ marginTop: "var(--space-3)" }}>
             Noticing what you're unsure about is a skill, and it gets sharper every time you rate yourself.
@@ -196,40 +215,45 @@ function CalibrationCard({ calibration }: { calibration: Calibration }) {
   );
 }
 
-function CalCell({ n, title, tone, total }: { n: number; title: string; tone: string; total: number }) {
+function CalCell({ n, title, tone, total }: { n: number; title: string; tone: "green" | "amber" | "teal" | "red"; total: number }) {
   return (
-    <motion.div className={`cal-cell cal-${tone}`} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} role="cell" title={title} style={{ "--cal-strength": total ? 0.15 + (0.85 * n) / total : 0 } as React.CSSProperties}>
+    <motion.div className={`cal-cell cal-${tone}`} role="cell" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} style={{ "--cal-share": total ? n / total : 0 } as CSSProperties}>
       <strong className="tabular">{n}</strong>
       <span className="xs">{title}</span>
     </motion.div>
   );
 }
 
+const VERDICT_EMOJI: Record<string, EmojiName> = {
+  CORRECT: "check-mark-button",
+  PARTIAL: "thinking-face",
+  INCORRECT: "cross-mark",
+  SKIPPED: "hourglass-not-done",
+};
+
 function QuestionReview({ items }: { items: AssessmentItem[] }) {
   const [open, setOpen] = useState<number | null>(null);
   return (
     <Card>
-      <CardHeader icon={<Layers size={18} />} title="Review every question" />
-      <ul className="qreview">
+      <SectionTitle emoji="magnifying-glass-tilted-left" title="Review every question" />
+      <ul className="qr">
         {items.map((it) => {
           const a = it.answer;
           const isOpen = open === it.position;
           const verdict = a?.verdict ?? "SKIPPED";
           return (
-            <li key={it.position} className={`qreview-item qv-${verdict.toLowerCase()}`}>
-              <button className="qreview-head" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : it.position)}>
-                <span className="qreview-mark" aria-hidden>
-                  {verdict === "CORRECT" ? <CheckCircle2 size={16} /> : verdict === "PARTIAL" ? <CircleDashed size={16} /> : verdict === "SKIPPED" ? <MinusCircle size={16} /> : <RotateCcw size={16} />}
+            <li key={it.position} className="qr-item">
+              <button type="button" className="qr-head" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : it.position)}>
+                <Emoji name={VERDICT_EMOJI[verdict] ?? "cross-mark"} size={22} label={verdict.toLowerCase()} />
+                <span className="qr-prompt">
+                  {it.position}. <Markdown className="qr-md">{it.question.prompt}</Markdown>
                 </span>
-                <span className="qreview-prompt">
-                  {it.position}. <Markdown className="inline-md">{it.question.prompt}</Markdown>
-                </span>
-                <ChevronDown size={16} className={cx("chev", isOpen && "open")} aria-hidden />
+                <ChevronDown size={18} strokeWidth={2.5} className={cx("qr-chev", isOpen && "is-open")} aria-hidden />
               </button>
               <AnimatePresence initial={false}>
                 {isOpen && (
-                  <motion.div className="qreview-body" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
-                    <div className="stack-sm">
+                  <motion.div className="qr-body" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
+                    <div className="stack-sm qr-body-inner">
                       {!a ? (
                         <p className="small muted">Skipped. It's in your reviews.</p>
                       ) : (

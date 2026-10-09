@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildLessonSteps, initialRevealCount, masteryLabel, nextTopicAfter, nodeState } from "./path";
+import { buildLessonSteps, initialRevealCount, masteryLabel, nextTopicAfter, nodeState, pathWave, startLabel } from "./path";
 import type { AnswerResult, Lesson, LessonCheck, Topic } from "./types";
 
 const topic = (over: Partial<Topic>): Topic => ({
@@ -95,5 +95,22 @@ describe("masteryLabel", () => {
     expect(masteryLabel(0.9)).toBe("Mastered");
     expect(masteryLabel(0.6)).toBe("Getting there");
     expect(masteryLabel(0.2)).toBe("Needs practice");
+  });
+});
+
+describe("pathWave", () => {
+  it("starts centred and winds within [-1, 1]", () => {
+    expect(pathWave(0)).toBe(0);
+    const waves = Array.from({ length: 12 }, (_, i) => pathWave(i));
+    expect(waves.every((w) => w >= -1 && w <= 1)).toBe(true);
+    expect(waves.some((w) => w > 0.5) && waves.some((w) => w < -0.5)).toBe(true);
+  });
+});
+
+describe("startLabel", () => {
+  it("says what the learner is about to do", () => {
+    expect(startLabel({ status: "NOT_STARTED" })).toBe("Start");
+    expect(startLabel({ status: "IN_PROGRESS" })).toBe("Continue");
+    expect(startLabel({ status: "COMPLETED" })).toBe("Strengthen");
   });
 });

@@ -1,0 +1,133 @@
+/* Shared study components: mastery meter, generating state. */
+
+/* ---------- Mastery meter (5 segments, purple = mastery) ---------- */
+.mastery {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.mastery-bars {
+  display: inline-grid;
+  grid-template-columns: repeat(5, 0.6rem);
+  gap: 3px;
+}
+.mastery-bars span {
+  height: 0.6rem;
+  border-radius: 3px;
+  background: var(--surface-3);
+}
+.mastery-bars span.on {
+  background: var(--purple-main);
+}
+.mastery-low span.on {
+  background: var(--amber-main);
+}
+.mastery-high span.on {
+  background: var(--green-main);
+}
+
+/* ---------- Generating (lesson / test / report being written) ---------- */
+.generating {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-4);
+  max-width: 30rem;
+  margin: var(--space-10) auto 0;
+  padding: 0 var(--space-2);
+}
+.generating-dia {
+  display: grid;
+  place-items: center;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .generating-dia {
+    animation: generating-float 2.6s ease-in-out infinite;
+  }
+}
+@keyframes generating-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+.generating h2 {
+  font-size: var(--text-h2);
+}
+.generating-bar {
+  width: 100%;
+  max-width: 22rem;
+}
+.generating-tip {
+  width: 100%;
+  margin-top: var(--space-3);
+  text-align: left;
+}
+.generating-tip .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+  color: var(--amber-ink);
+}
+.generating-tip p {
+  font-weight: var(--weight-strong);
+}
+
+/* ---------- Result stat cards (shared look with review / report): coloured header, big number ---------- */
+.result-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  width: 100%;
+}
+.result-stat {
+  --stat: var(--blue-main);
+  --stat-edge: var(--blue-edge);
+  border: var(--border-width) solid var(--stat);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  overflow: hidden;
+  text-align: center;
+}
+.result-stat-head {
+  padding: var(--space-1) var(--space-2);
+  background: var(--stat);
+  color: var(--text-on-fill);
+  font-size: var(--text-label);
+  font-weight: var(--weight-black);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.result-stat-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-2);
+  font-size: var(--text-h2);
+  font-weight: var(--weight-black);
+  color: var(--stat);
+  font-variant-numeric: tabular-nums;
+}
+.result-stat-amber {
+  --stat: var(--amber-main);
+}
+.result-stat-green {
+  --stat: var(--green-main);
+}
+.result-stat-teal {
+  --stat: var(--teal-main);
+}
+.result-stat-purple {
+  --stat: var(--purple-main);
+}
+@media (max-width: 420px) {
+  .result-stat-body {
+    font-size: var(--text-h3);
+  }
+}

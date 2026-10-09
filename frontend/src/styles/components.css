@@ -963,3 +963,19 @@ button.chip {
   border-top: var(--border-width) dashed var(--border);
   margin: 1.5em 0;
 }
+
+/* ======================================================== Back link */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-small);
+  font-weight: var(--weight-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.back-link:hover {
+  color: var(--color-primary);
+  text-decoration: none;
+}

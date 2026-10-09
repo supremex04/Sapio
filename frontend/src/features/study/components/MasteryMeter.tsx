@@ -1,4 +1,5 @@
 import { masteryLabel } from "../path";
+import "./study-components.css";
 
 /** Five-segment mastery meter; empty until the learner has practised the topic. */
 export function MasteryMeter({ mastery, showLabel = true }: { mastery: number | null; showLabel?: boolean }) {

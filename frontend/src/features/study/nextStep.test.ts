@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextStepHref, reviewMinutes } from "./nextStep";
+import { nextStepHref, reviewMinutes, testMinutes } from "./nextStep";
 import type { NextStep } from "./types";
 
 const step = (over: Partial<NextStep>): NextStep => ({ kind: "UPLOAD", documentId: null, topicId: null, title: "", reason: "", estimatedMinutes: null, ...over });
@@ -18,5 +18,13 @@ describe("reviewMinutes", () => {
     expect(reviewMinutes(1)).toBe(1);
     expect(reviewMinutes(6)).toBe(2);
     expect(reviewMinutes(10)).toBe(4);
+  });
+});
+
+describe("testMinutes", () => {
+  it("estimates ~0.6 min per question with a 2-minute floor", () => {
+    expect(testMinutes(1)).toBe(2);
+    expect(testMinutes(10)).toBe(6);
+    expect(testMinutes(20)).toBe(12);
   });
 });

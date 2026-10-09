@@ -23,3 +23,8 @@ export function nextStepCta(step: NextStep): string {
 export function reviewMinutes(count: number): number {
   return Math.max(1, Math.ceil((count * 20) / 60));
 }
+
+/** Minutes a test takes, roughly (~0.6 min per question). */
+export function testMinutes(count: number): number {
+  return Math.max(2, Math.round(count * 0.6));
+}

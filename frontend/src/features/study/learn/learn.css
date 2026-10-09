@@ -1,0 +1,505 @@
+/* Learn mode: learning path, lesson (focus mode), tutor. Tokens only; see docs/specs/design-system.md. */
+
+/* ======================================================== Learning path */
+.lp {
+  --path-amp: 96px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+@media (max-width: 480px) {
+  .lp {
+    --path-amp: 64px;
+  }
+}
+.lp-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  align-self: flex-start;
+  color: var(--text-muted);
+  font-weight: var(--weight-heading);
+  text-decoration: none !important;
+}
+.lp-back:hover {
+  color: var(--text);
+}
+
+/* Unit banner: solid blue, the unit's colour (Learn = blue). */
+.lp-banner {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-xl);
+  background: var(--blue-main);
+  box-shadow: 0 var(--edge) 0 var(--blue-edge);
+  color: var(--text-on-fill);
+}
+.lp-banner-text {
+  flex: 1;
+  min-width: 14rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.lp-banner h1 {
+  color: var(--text-on-fill);
+  font-size: var(--text-h1);
+}
+.lp-eyebrow {
+  font-size: var(--text-label);
+  font-weight: var(--weight-black);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.85;
+}
+.lp-banner-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 22rem;
+  font-weight: var(--weight-heading);
+  font-size: var(--text-small);
+}
+.lp-banner-progress .progress {
+  flex: 1;
+  background: rgb(255 255 255 / 0.25);
+}
+.lp-banner .lp-banner-btn {
+  --btn-bg: var(--surface);
+  --btn-fg: var(--blue-ink);
+  --btn-border: var(--surface);
+  --btn-edge: color-mix(in srgb, var(--blue-edge) 70%, black);
+}
+
+/* The winding path */
+.lp-path {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-8) 0 var(--space-6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+}
+.lp-node {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+/* The winding offset lives on an inner element (the <li> itself is animated by motion). */
+.lp-shift {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 12rem;
+  text-align: center;
+  transform: translateX(calc(var(--wave, 0) * var(--path-amp)));
+}
+.lp-slot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 94px;
+  height: 94px;
+}
+.lp-btn {
+  --node-bg: var(--surface-3);
+  --node-edge: var(--border-strong);
+  --node-fg: var(--text-muted);
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  margin-bottom: 6px;
+  border-radius: 50%;
+  background: var(--node-bg);
+  color: var(--node-fg);
+  box-shadow: 0 6px 0 var(--node-edge);
+  text-decoration: none !important;
+  transition: transform var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out),
+    filter var(--duration-fast) var(--ease-out);
+}
+.lp-btn:hover {
+  filter: brightness(1.05);
+}
+.lp-btn:active {
+  transform: translateY(6px);
+  box-shadow: 0 0 0 var(--node-edge);
+}
+.lp-btn-completed {
+  --node-bg: var(--amber-main);
+  --node-edge: var(--amber-edge);
+  --node-fg: var(--text-on-fill);
+}
+.lp-btn-recommended {
+  --node-bg: var(--blue-main);
+  --node-edge: var(--blue-edge);
+  --node-fg: var(--text-on-fill);
+}
+.lp-btn-in-progress {
+  --node-bg: var(--blue-soft);
+  --node-edge: color-mix(in srgb, var(--blue-main) 45%, var(--blue-soft));
+  --node-fg: var(--blue-ink);
+}
+.lp-btn-trophy {
+  --node-bg: var(--purple-main);
+  --node-edge: var(--purple-edge);
+}
+.lp-ring {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  transform: rotate(-90deg) translateY(-3px);
+  pointer-events: none;
+}
+.lp-ring-track {
+  stroke: var(--surface-3);
+}
+.lp-ring-fill {
+  stroke: var(--purple-main);
+}
+.lp-title {
+  margin-top: var(--space-1);
+  font-weight: var(--weight-heading);
+  line-height: 1.25;
+  color: var(--text);
+}
+.lp-upcoming .lp-title {
+  color: var(--text-2);
+}
+.lp-meta {
+  font-size: var(--text-label);
+  font-weight: var(--weight-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+/* "START" bubble above the recommended node */
+.lp-start {
+  position: absolute;
+  z-index: 2;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  padding: 0.35rem 0.8rem;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--blue-ink);
+  font-size: var(--text-small);
+  font-weight: var(--weight-black);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+.lp-start::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  margin-top: -6px;
+  border-right: var(--border-width) solid var(--border);
+  border-bottom: var(--border-width) solid var(--border);
+  background: var(--surface);
+  transform: translateX(-50%) rotate(45deg);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .lp-start {
+    animation: lp-bob 1.4s ease-in-out infinite;
+  }
+}
+@keyframes lp-bob {
+  0%,
+  100% {
+    transform: translate(-50%, 0);
+  }
+  50% {
+    transform: translate(-50%, -6px);
+  }
+}
+.lp-dia {
+  position: absolute;
+  bottom: 0;
+}
+.lp-dia-left {
+  right: calc(100% + var(--space-2));
+}
+.lp-dia-right {
+  left: calc(100% + var(--space-2));
+}
+@media (max-width: 480px) {
+  .lp-dia .dia {
+    width: 64px;
+    height: 66px;
+  }
+}
+
+/* ======================================================== Lesson (focus mode) */
+.ls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding-top: var(--space-2);
+}
+.ls-title {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.ls-title h1 {
+  font-size: var(--text-h2);
+}
+.ls-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.ls-sheet-space {
+  height: 7.5rem;
+}
+
+/* Section cards: the kind decides the accent colour and emoji (dual coding). */
+.ls-section {
+  --kind: var(--kind-concept);
+  --kind-soft: var(--kind-concept-soft);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 var(--edge) 0 var(--border);
+  background: var(--surface);
+  overflow: hidden;
+}
+.ls-kind-example {
+  --kind: var(--kind-example);
+  --kind-soft: var(--kind-example-soft);
+}
+.ls-kind-analogy {
+  --kind: var(--kind-analogy);
+  --kind-soft: var(--kind-analogy-soft);
+}
+.ls-kind-summary {
+  --kind: var(--kind-summary);
+  --kind-soft: var(--kind-summary-soft);
+}
+.ls-section-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  background: var(--kind-soft);
+  border-bottom: var(--border-width) solid var(--border);
+}
+.ls-kind-label {
+  font-size: var(--text-label);
+  font-weight: var(--weight-black);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--kind);
+}
+.ls-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+}
+.ls-section-body h2 {
+  font-size: var(--text-h2);
+}
+
+/* Warm-up intro: Dia + speech bubble */
+.ls-warmup-intro {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.ls-warmup-intro .bubble {
+  flex: 1;
+}
+
+/* Key takeaways */
+.ls-takeaways {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.ls-takeaways li {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+.ls-takeaways .markdown {
+  font-size: var(--text-body);
+  font-weight: var(--weight-strong);
+}
+.ls-takeaways .markdown p {
+  margin: 0;
+}
+
+/* Lesson complete */
+.ls-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-5);
+  padding-top: var(--space-6);
+}
+.ls-done h1 {
+  font-size: var(--text-display);
+  font-weight: var(--weight-black);
+  color: var(--amber-main);
+}
+.ls-done .ls-takeaways {
+  text-align: left;
+}
+
+/* ======================================================== Tutor (slide-over) */
+.tutor-trigger {
+  cursor: pointer;
+}
+@media (max-width: 480px) {
+  .tutor-trigger-label {
+    display: none;
+  }
+}
+.tutor-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: var(--overlay);
+}
+.tutor-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 71;
+  display: flex;
+  flex-direction: column;
+  width: min(26rem, 100%);
+  border-left: var(--border-width) solid var(--border);
+  background: var(--surface);
+}
+.tutor-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-bottom: var(--border-width) solid var(--border);
+}
+.tutor-head > div {
+  flex: 1;
+  min-width: 0;
+}
+.tutor-messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--bg);
+}
+.tutor-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+.chat-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+.chat-row-user {
+  justify-content: flex-end;
+}
+.chat-msg {
+  max-width: 85%;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  font-weight: var(--weight-strong);
+}
+.chat-msg .markdown {
+  font-size: var(--text-body);
+  font-weight: var(--weight-body);
+}
+.chat-user {
+  border-bottom-right-radius: 6px;
+  background: var(--blue-main);
+  color: var(--text-on-fill);
+}
+.chat-tutor {
+  border: var(--border-width) solid var(--border);
+  border-bottom-left-radius: 6px;
+  background: var(--surface);
+}
+.chat-badge {
+  margin-top: var(--space-2);
+}
+.chat-typing {
+  display: inline-flex;
+  gap: 5px;
+  padding: var(--space-4);
+}
+.chat-typing span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .chat-typing span {
+    animation: chat-dot 1s ease-in-out infinite;
+  }
+  .chat-typing span:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+  .chat-typing span:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+}
+@keyframes chat-dot {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+.tutor-input {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+  border-top: var(--border-width) solid var(--border);
+}
+.tutor-input .textarea {
+  min-height: 3rem;
+  max-height: 8rem;
+  resize: none;
+}
+.tutor-input .btn {
+  min-width: 3rem;
+  padding: 0 var(--space-3);
+}
+
+/* The recommended node carries a bubble above it: reserve its height so it never covers the topic above. */
+.lp-recommended {
+  margin-top: 2.5rem;
+}

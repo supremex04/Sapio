@@ -121,6 +121,17 @@ on wide screens (≥ 1200 px), top stat bar + bottom tab bar on mobile.
   confidence picker, sticky bottom bar with **Check**, which becomes the **FeedbackSheet**.
 - **Celebration screens**: Dia cheering + three stat cards (XP, accuracy, time) + one primary button.
 
+## Screens (learn, test, review)
+
+| Screen | Pattern details |
+|---|---|
+| Learning path | Unit banner in blue with an amber progress bar and "Test yourself". Nodes wind on a sine (`pathWave`, amplitude 78 px, 54 px on phones). States: done = amber + ✓ (crown at mastery ≥ 0.8), recommended = blue + glowing star + bobbing "START / CONTINUE / STRENGTHEN" bubble + Dia beside it, in progress = blue-soft, not started = grey + open book. Purple ring = mastery. Ends in a purple trophy node. |
+| Lesson | Focus mode. One step at a time; the action is always in the bottom sheet (Continue / Check / Complete topic). Section kinds: CONCEPT 💡 blue, EXAMPLE 🧪 green, ANALOGY 🧩 pink, SUMMARY 📝 purple (tinted header + kind label). Warm-up shows Dia + bubble until answered. Enter continues. "Ask" chip in the header opens the tutor slide-over (portalled; chat rows with Dia as the tutor's avatar). |
+| Results | `ResultStat` cards (coloured header label, emoji + big number) on lesson complete (XP, accuracy, time), review complete (recalled, back soon, cards) and the test report (correct, partly, to review). |
+| Test | Purple is Test's hue: setup tiles, Start button, runner badges. Runner: focus mode, counter + Finish in the header, verdict dots below. Report: Dia mood by score (≥ 80% cheer, ≥ 50% happy, else encourage). |
+| Review | Teal throughout; sleepy Dia when nothing is due. |
+| Generating | Dia thinking (floating), estimated progress bar easing to 92%, rotating learning-science tips in a speech bubble. |
+
 ## Copy
 
 Short, warm, second person. Praise strategy, not ability. Never shame. Errors say what to do next.
@@ -149,3 +160,11 @@ Short, warm, second person. Praise strategy, not ability. Never shame. Errors sa
 | Report: celebrate → strengths → weak areas → next steps; growth-mindset copy | Peak-end rule, growth mindset |
 | Choose mode, difficulty, topics, goal | Autonomy (self-determination theory) |
 | Time estimates on actions | Lower perceived effort |
+
+## Screens: home, library, hub, auth
+
+- **Auth**: centered column (wordmark, Dia + speech bubble, one form card). Role picker = two selectable 3D tiles with emoji.
+- **Welcome (goal)**: Dia asks "How much time can you give each day?"; five 3D goal tiles (emoji · minutes · label); live implementation-intention line; ghost "Maybe later".
+- **Home**: time-of-day emoji greeting → the ONE next-step card (white, 3D edge in the step's hue: review teal, learn blue, test purple, upload amber) → inline progress panel (< 1200 px) → continue-learning cards (topics bar + mastery/review chips) → 14-day active-minutes chart (dataviz rules; lighter step for past days, full hue today, green goal line; dark uses the validated `edge` steps) → recent activity (emoji per event, XP chips).
+- **Library**: header with Upload; dashed dropzone with Dia; card grid; chunky 4-dot pipeline (✓ → reading → building → ready, active dot pulses); failed cards are red-tinted with Retry.
+- **Study hub**: header (emoji tile, title, summary, chips) → two big mode cards (Learn blue, Test purple) → teal reviews strip → tabs Topics / Extracted text / Tests (3D rows, mastery chips, score badges).

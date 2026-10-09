@@ -10,6 +10,21 @@ export function nodeState(topic: Topic): NodeState {
   return "upcoming";
 }
 
+/**
+ * Horizontal offset of the n-th path node, in [-1, 1]: a smooth sine so the path winds left and
+ * right (CSS multiplies it by the amplitude for the screen size). Starts centred.
+ */
+export function pathWave(index: number): number {
+  return Math.round(Math.sin(index * 0.9) * 1000) / 1000;
+}
+
+/** Label of the bouncing bubble above the recommended node. */
+export function startLabel(topic: Pick<Topic, "status">): string {
+  if (topic.status === "IN_PROGRESS") return "Continue";
+  if (topic.status === "COMPLETED") return "Strengthen";
+  return "Start";
+}
+
 /** The recommended topic, falling back to the first unfinished one (server normally marks it). */
 export function recommendedTopic(topics: Topic[]): Topic | undefined {
   return topics.find((t) => t.recommended) ?? topics.find((t) => t.status !== "COMPLETED");
