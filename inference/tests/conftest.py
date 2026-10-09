@@ -35,3 +35,17 @@ def make_text_image(lines: list[str]) -> bytes:
     buffer = io.BytesIO()
     image.save(buffer, format="PNG")
     return buffer.getvalue()
+
+
+def make_mixed_pdf() -> bytes:
+    """Page 1 has a text layer; page 2 is an image only (a 'scan')."""
+    doc = pymupdf.open()
+    page = doc.new_page()
+    page.insert_text(
+        (72, 100), "Photosynthesis converts light energy into chemical energy in plants.", fontsize=12
+    )
+    scan = doc.new_page()
+    scan.insert_image(scan.rect, stream=make_text_image(["Scanned page"]))
+    data = doc.tobytes()
+    doc.close()
+    return data

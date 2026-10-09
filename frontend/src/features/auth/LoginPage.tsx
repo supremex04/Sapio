@@ -1,8 +1,11 @@
+import { ArrowRight } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { errorMessage } from "../../shared/api/errors";
 import { Alert } from "../../shared/ui/Alert";
+import { Button } from "../../shared/ui/Button";
 import { FormField } from "../../shared/ui/FormField";
+import { isOnboarded } from "../progress/onboarding";
 import { useAuth } from "./AuthContext";
 import { AuthLayout } from "./AuthLayout";
 
@@ -19,9 +22,9 @@ export function LoginPage() {
     setSubmitting(true);
     setError(null);
     try {
-      await login({ email: String(form.get("email")), password: String(form.get("password")) });
+      const user = await login({ email: String(form.get("email")), password: String(form.get("password")) });
       const from = (location.state as { from?: string } | null)?.from;
-      navigate(from ?? "/", { replace: true });
+      navigate(isOnboarded(user.id) ? (from ?? "/") : "/welcome", { replace: true });
     } catch (e) {
       setError(errorMessage(e));
       setSubmitting(false);
@@ -29,17 +32,17 @@ export function LoginPage() {
   }
 
   return (
-    <AuthLayout title="Sign in" subtitle="Welcome back to Ved.">
+    <AuthLayout title="Welcome back" subtitle="Pick up right where you left off.">
       <form onSubmit={onSubmit} className="stack" noValidate>
         {error && <Alert>{error}</Alert>}
         <FormField label="Email" name="email" type="email" autoComplete="email" required autoFocus />
         <FormField label="Password" name="password" type="password" autoComplete="current-password" required />
-        <button className="btn btn-primary" type="submit" disabled={submitting}>
-          {submitting ? "Signing in…" : "Sign in"}
-        </button>
+        <Button variant="primary" size="lg" type="submit" loading={submitting} iconRight={<ArrowRight size={18} />} block>
+          Sign in
+        </Button>
       </form>
-      <p className="muted center">
-        New here? <Link to="/register">Create an account</Link>
+      <p className="muted small center">
+        New to Ved? <Link to="/register">Create a free account</Link>
       </p>
     </AuthLayout>
   );

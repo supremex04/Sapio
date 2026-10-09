@@ -17,3 +17,6 @@ inference/.venv/
 .idea/
 .vscode/
 *.iml
+
+# Local dev runner state (logs, pids, install stamps)
+.dev/

@@ -50,7 +50,7 @@ public class DocumentService {
         }
         deleteFileOnRollback(key);
         Document document = documents.save(new Document(ownerId, filename, type.mediaType(), file.getSize(), key));
-        events.publishEvent(new DocumentUploadedEvent(document.getId()));
+        events.publishEvent(new DocumentQueuedEvent(document.getId()));
         return document;
     }
 
@@ -68,11 +68,22 @@ public class DocumentService {
     @Transactional(readOnly = true)
     public String getResult(UUID ownerId, UUID documentId) {
         Document document = get(ownerId, documentId);
-        if (document.getStatus() != DocumentStatus.COMPLETED) {
+        if (!document.isTextExtracted()) {
             throw new ApplicationException(ErrorCode.RESULT_NOT_READY,
-                    "Result not available, document is " + document.getStatus());
+                    "Text not available yet, document is " + document.getStatus());
         }
         return document.getResultMarkdown();
+    }
+
+    @Transactional
+    public Document retry(UUID ownerId, UUID documentId) {
+        Document document = get(ownerId, documentId);
+        if (document.getStatus() != DocumentStatus.FAILED) {
+            throw new ApplicationException(ErrorCode.INVALID_STATE, "Only failed documents can be retried");
+        }
+        document.retry();
+        events.publishEvent(new DocumentQueuedEvent(document.getId()));
+        return document;
     }
 
     @Transactional

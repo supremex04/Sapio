@@ -7,6 +7,7 @@ from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 EngineName = Literal["rapid", "unlimited-remote", "unlimited-local"]
+LlmProviderName = Literal["gemini"]
 
 
 class Settings(BaseSettings):
@@ -23,6 +24,22 @@ class Settings(BaseSettings):
     pdf_render_dpi: int = Field(default=200, ge=72, le=400)
     # Concurrent engine runs. Keep at 1 for a single local GPU.
     max_concurrency: int = Field(default=1, ge=1)
+    # A PDF page with at least this many letters/digits in its text layer is read natively (no OCR).
+    native_text_min_chars: int = Field(default=50, ge=1)
+
+    # LLM used for study features (outline, lessons, questions, grading, tutor)
+    llm_provider: LlmProviderName = "gemini"
+    llm_timeout_seconds: float = 180.0
+    # Retries per model on rate limits / overload (HTTP 429/500/503), with exponential backoff.
+    llm_max_retries: int = Field(default=2, ge=0)
+    gemini_api_key: SecretStr = SecretStr("")
+    gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
+    gemini_model: str = "gemini-3.5-flash"
+    # Tried in order when the primary model stays unavailable.
+    gemini_fallback_models: list[str] = Field(
+        default_factory=lambda: ["gemini-3.8-flash", "gemini-3.5-flash-lite"]
+    )
+    gemini_thinking_level: Literal["minimal", "low", "medium", "high"] = "low"
 
     # unlimited-remote: an OpenAI-compatible server (vLLM / SGLang) serving baidu/Unlimited-OCR
     remote_base_url: str = "http://localhost:10000/v1"

@@ -1,33 +1,42 @@
 # Roadmap & known limitations
 
-## Done: M1, foundation + OCR
+## Done
 
+**M1: foundation + OCR**
 - [x] Registration (student/teacher), login, refresh-token sessions, logout
-- [x] Document upload → async OCR → Markdown view / copy / download
+- [x] Document upload → async extraction → Markdown view / copy / download
 - [x] Pluggable OCR engines (RapidOCR CPU, Unlimited-OCR remote/local)
-- [x] Docs, specs, ADRs; unit + integration tests in all three services
 
-## Next: hardening M1
+**M2: study a document (Learn & Test)**
+- [x] Hybrid extraction (native PDF text + OCR for scans), retry of failed documents
+- [x] Study material: chunks + topics shared by both modes (ADR-0007)
+- [x] Learn: grounded lessons with warm-up pretest, CONCEPT/EXAMPLE/ANALOGY sections, checks, explain-back, tutor
+- [x] Test: interleaved, grounded questions (choice + AI-graded short answer), confidence, report with calibration
+- [x] Spaced review (Leitner), mastery per topic, single "next best step"
+- [x] XP, levels, forgiving streaks, daily goal, heartbeat active time, logins/day, learning-event log
+- [x] Design system (light/dark/system), learning-science-driven UX ([learning-science.md](architecture/learning-science.md))
 
-- [ ] Run `unlimited-remote` against a real GPU server; tune DPI, batch size and the n-gram logit processor
-- [ ] Retry a failed document (`POST /api/documents/{id}/retry`)
-- [ ] Periodic sweeper for `PENDING` jobs (today only restart re-queues after a full queue)
-- [ ] Login rate limiting / lockout; refresh-token reuse detection
-- [ ] Password reset and email verification (needs an email port)
-- [ ] Per-user upload quotas
-- [ ] Containerise backend/inference/frontend; CI pipeline running the three test suites
-- [ ] Structured logging + request ids across backend → inference
-- [ ] OpenAPI generation (springdoc) and a typed TS client generated from it
+## Next: hardening M2
+
+- [ ] Rate limits / quotas on AI endpoints per user (cost control); per-request cost logging
+- [ ] Generate the first lesson right after analysis (removes the first-open wait)
+- [ ] Stream lesson generation (SSE) instead of a 10–30 s spinner
+- [ ] Prompt/eval harness: golden documents + automatic checks for grounding, answer validity and difficulty
+- [ ] Unlimited-OCR on a GPU server; compare extraction quality on real scans
+- [ ] Material versioning (re-analysis currently replaces the material and its question history)
+- [ ] Login rate limiting / lockout; refresh-token reuse detection; password reset (email port)
+- [ ] Periodic sweeper for `PENDING` jobs; move to a DB-backed queue before running > 1 backend instance
+- [ ] OpenAPI generation (springdoc) + generated TS client; CI running all three suites; containers
 
 ## Later: learning platform
 
-- **Classes**: teachers create classes, students join with a code (`classroom` feature)
-- **Assignments & homework**: teacher creates tasks, possibly by importing an OCR'd worksheet
-- **Submissions**: students submit text or photos (OCR turns handwriting into text)
-- **Exams**: timed assessments, question bank
-- **Progress & analytics**: per-student/per-class dashboards (event tracking → analytics store)
-- **AI**: generated practice tasks, feedback on submissions, personalised assignment suggestions
-  (new inference endpoints; prompts and models behind engine-style interfaces)
+- **Classes & sharing**: teachers share materials with classes (extend `MaterialAccess`)
+- **Teacher analytics**: per-student mastery, weak topics, active time (data already in `learning_events`)
+- **Personalised assignments**: teacher or AI assigns review sets / tests targeting weak topics
+- **Exams**: timed, proctoring-light assessments; question bank curation
+- **Gamified flows**: achievements tied to learning behaviours (e.g. "10 spaced reviews on time"),
+  gentle streak protection, class challenges (relatedness), always within the ethos in learning-science.md
+- **Learning-effectiveness dashboard**: retention on spaced reviews vs first attempts, calibration over time
 - **Real-time**: SSE/WebSocket notifications instead of polling
 
 ## Known limitations
@@ -35,7 +44,10 @@
 | Limitation | Impact | Where it's tracked |
 |---|---|---|
 | Single backend instance assumed for job processing | can't scale out yet | ADR-0004 |
+| Progress listeners run in the learner's transaction | a progress bug fails the action | ADR-0008 |
+| Lesson/test generation is synchronous (10–40 s) | waiting UI | above: SSE / pre-generation |
+| No per-user AI quotas | cost exposure | above |
+| Onboarding "goal set" is tracked per device (localStorage) | may re-show on a new device | frontend `/welcome` |
 | Access tokens stay valid up to 15 min after logout/ban | short window | ADR-0002 |
-| RapidOCR output is plain text | no tables/headings in dev | ocr-engines guide |
-| `unlimited-local` not run on suitable hardware yet | may need adjustments | ADR-0003 |
+| RapidOCR output is plain text | weaker structure on scans | ocr-engines guide |
 | Files on local disk | not shared between hosts | `DocumentStorage` port: add S3/MinIO adapter |

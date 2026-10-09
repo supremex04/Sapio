@@ -10,8 +10,7 @@ from statistics import median
 import numpy as np
 
 from ved_inference.documents.models import PageImage
-from ved_inference.engines.base import EngineOutput, OcrEngine
-from ved_inference.engines.markdown import join_pages
+from ved_inference.engines.base import EngineOutput, OcrEngine, OcrSegment
 from ved_inference.errors import EngineError
 
 
@@ -34,7 +33,12 @@ class RapidOcrEngine(OcrEngine):
         self._ocr = RapidOCR()
 
     def extract(self, pages: list[PageImage]) -> EngineOutput:
-        return EngineOutput(markdown=join_pages([self._page_to_text(p) for p in pages]))
+        return EngineOutput(
+            segments=[
+                OcrSegment(page_from=p.number, page_to=p.number, markdown=self._page_to_text(p))
+                for p in pages
+            ]
+        )
 
     def _page_to_text(self, page: PageImage) -> str:
         result, _ = self._ocr(np.asarray(page.image))

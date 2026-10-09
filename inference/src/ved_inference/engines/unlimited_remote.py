@@ -11,8 +11,8 @@ import httpx
 
 from ved_inference.config import Settings
 from ved_inference.documents.models import PageImage
-from ved_inference.engines.base import EngineOutput, OcrEngine
-from ved_inference.engines.markdown import join_pages, remove_detection_markup
+from ved_inference.engines.base import EngineOutput, OcrEngine, OcrSegment
+from ved_inference.engines.markdown import remove_detection_markup
 from ved_inference.errors import EngineError
 
 SINGLE_PAGE_PROMPT = "document parsing."
@@ -39,7 +39,12 @@ class UnlimitedOcrRemoteEngine(OcrEngine):
 
     def extract(self, pages: list[PageImage]) -> EngineOutput:
         batches = [pages[i : i + self._batch_size] for i in range(0, len(pages), self._batch_size)]
-        return EngineOutput(markdown=join_pages([self._run(batch) for batch in batches]))
+        return EngineOutput(
+            segments=[
+                OcrSegment(page_from=batch[0].number, page_to=batch[-1].number, markdown=self._run(batch))
+                for batch in batches
+            ]
+        )
 
     def close(self) -> None:
         self._client.close()

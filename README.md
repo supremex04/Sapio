@@ -3,26 +3,28 @@
 An interactive learning platform. Students learn and practise; teachers track progress and
 assign personalised tasks, homework and exams, powered by analytics and AI.
 
-**Status:** M1. Accounts and sessions, plus a document-to-Markdown OCR tool.
+**Status:** M2. Upload any educational document and Ved turns it into a guided course:
+**Learn** with an AI tutor, **Test my knowledge** with grounded questions and a report, spaced review,
+XP, streaks and learning analytics. Every design decision is grounded in learning science
+([docs/architecture/learning-science.md](docs/architecture/learning-science.md)).
 
 | Folder | What | Stack |
 |---|---|---|
 | [`backend/`](backend) | Public REST API, auth, data, job orchestration | Java 21, Spring Boot 4, PostgreSQL, Flyway |
-| [`inference/`](inference) | Internal AI/ML service (OCR) | Python 3.12, FastAPI, PyMuPDF, RapidOCR / Unlimited-OCR |
-| [`frontend/`](frontend) | Web UI | TypeScript, React 19, Vite |
+| [`inference/`](inference) | Internal AI/ML service (extraction + LLM study content) | Python 3.12, FastAPI, PyMuPDF, RapidOCR / Unlimited-OCR, Gemini |
+| [`frontend/`](frontend) | Web UI | TypeScript, React 19, Vite, Motion, Lucide |
 | [`docs/`](docs) | Architecture, specs, ADRs, guides | Markdown + Mermaid |
 
 ## Quick start
 
 ```bash
-docker compose up -d                                                    # PostgreSQL on :5433
-(cd inference && python3.12 -m venv .venv && .venv/bin/pip install -e '.[rapid,dev]')
-(cd frontend && npm install)
-
-cd inference && .venv/bin/uvicorn ved_inference.main:app --port 8000    # terminal 1
-cd backend && mvn spring-boot:run                                       # terminal 2
-cd frontend && npm run dev                                              # terminal 3 → http://localhost:5173
+./dev.sh          # installs what's missing or changed, starts everything → http://localhost:5173
 ```
+
+The first run installs all dependencies and creates `inference/.env`: put your Gemini key in it
+(`VED_INFERENCE_GEMINI_API_KEY`) and run again. Later runs only start the services, and reinstall a
+service's dependencies only when its manifest changed. `./dev.sh help` lists the other commands
+(`-d`, `stop`, `status`, `logs`, `setup`, `test`).
 
 Full guide: [docs/guides/local-development.md](docs/guides/local-development.md).
 Start reading at [docs/README.md](docs/README.md).

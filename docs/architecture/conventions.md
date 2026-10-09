@@ -43,6 +43,11 @@ implementation appears.
   (`findByIdAndOwnerId`). Someone else's resource returns **404**, not 403, so ids aren't confirmed.
   Role-based checks use `@PreAuthorize("hasRole('TEACHER')")`.
 - **Database**: Flyway migration per schema change; UUID primary keys; `timestamptz` everywhere.
+- **Cross-feature side effects go through domain events** (`LearningActivityEvent`,
+  `UserLoggedInEvent`), not direct calls into the consuming feature (ADR-0008).
+- **Never call AI/OCR inside a DB transaction.** Load → call outside → persist in a short
+  `TransactionTemplate` block (see `LessonService`, `AssessmentService`, `DocumentProcessor`).
+- **Never send answer keys before the learner answers.** Use `QuestionView` before, `AnswerResult` after.
 
 ## Inference service (Python)
 
@@ -53,6 +58,10 @@ implementation appears.
 - Raise `DocumentError` for bad input (→ HTTP 422) and `EngineError` for engine/infra failures
   (→ HTTP 503). Messages must be safe to show to end users.
 - JSON is **camelCase** on the wire (via `ApiModel`), snake_case in Python.
+- **LLM output is untrusted input**: request it with a JSON schema (`LlmClient.generate`) and validate
+  every field in the service (references, indices, structure) before returning it.
+- Prompts live in `study/prompts.py` and encode the pedagogy in
+  [learning-science.md](learning-science.md); change both together.
 
 ## Frontend (TypeScript / React)
 
@@ -77,6 +86,12 @@ See [specs/api-conventions.md](../specs/api-conventions.md).
 
 Rule of thumb: every new endpoint gets an integration test covering the happy path, validation,
 and "another user cannot access it".
+
+## Design principle check
+
+Before shipping a learner-facing feature, check it against
+[learning-science.md](learning-science.md): which principle it uses, and whether it is a nudge or a
+manipulation (no shame, fake urgency or punishing loss mechanics).
 
 ## Adding a new feature (checklist)
 

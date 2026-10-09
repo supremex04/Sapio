@@ -1,11 +1,20 @@
+import { ArrowRight, GraduationCap, Presentation } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { ApiError, errorMessage } from "../../shared/api/errors";
+import { browserTimeZone } from "../../shared/lib/timezone";
 import { Alert } from "../../shared/ui/Alert";
+import { Button } from "../../shared/ui/Button";
+import { cx } from "../../shared/ui/cx";
 import { FormField } from "../../shared/ui/FormField";
 import { useAuth } from "./AuthContext";
 import { AuthLayout } from "./AuthLayout";
 import type { RegisterInput } from "./types";
+
+const ROLES = [
+  { value: "STUDENT", label: "I'm learning", icon: GraduationCap },
+  { value: "TEACHER", label: "I'm teaching", icon: Presentation },
+] as const;
 
 export function RegisterPage() {
   const { register } = useAuth();
@@ -27,8 +36,9 @@ export function RegisterPage() {
         email: String(form.get("email")),
         password: String(form.get("password")),
         role,
+        timeZone: browserTimeZone(),
       });
-      navigate("/", { replace: true });
+      navigate("/welcome", { replace: true });
     } catch (e) {
       if (e instanceof ApiError && Object.keys(e.fieldErrors).length > 0) setFieldErrors(e.fieldErrors);
       else setError(errorMessage(e));
@@ -37,15 +47,16 @@ export function RegisterPage() {
   }
 
   return (
-    <AuthLayout title="Create your account" subtitle="Start learning with Ved.">
+    <AuthLayout title="Create your account" subtitle="Two minutes from now you'll be learning from your own material.">
       <form onSubmit={onSubmit} className="stack" noValidate>
         {error && <Alert>{error}</Alert>}
         <fieldset className="role-picker">
-          <legend>I am a</legend>
-          {(["STUDENT", "TEACHER"] as const).map((r) => (
-            <label key={r} className={role === r ? "selected" : undefined}>
-              <input type="radio" name="role" value={r} checked={role === r} onChange={() => setRole(r)} />
-              {r === "STUDENT" ? "Student" : "Teacher"}
+          <legend>How will you use Ved?</legend>
+          {ROLES.map(({ value, label, icon: Icon }) => (
+            <label key={value} className={cx("role-option", role === value && "selected")}>
+              <input type="radio" name="role" value={value} checked={role === value} onChange={() => setRole(value)} />
+              <Icon size={18} aria-hidden />
+              {label}
             </label>
           ))}
         </fieldset>
@@ -61,11 +72,11 @@ export function RegisterPage() {
           placeholder="At least 8 characters"
           error={fieldErrors.password}
         />
-        <button className="btn btn-primary" type="submit" disabled={submitting}>
-          {submitting ? "Creating account…" : "Create account"}
-        </button>
+        <Button variant="primary" size="lg" type="submit" loading={submitting} iconRight={<ArrowRight size={18} />} block>
+          Create account
+        </Button>
       </form>
-      <p className="muted center">
+      <p className="muted small center">
         Already have an account? <Link to="/login">Sign in</Link>
       </p>
     </AuthLayout>

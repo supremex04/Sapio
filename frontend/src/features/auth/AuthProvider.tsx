@@ -44,8 +44,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       status,
       user,
-      login: async (input) => accept(await authApi.login(input)),
-      register: async (input) => accept(await authApi.register(input)),
+      login: async (input) => {
+        const auth = await authApi.login(input);
+        accept(auth);
+        return auth.user;
+      },
+      register: async (input) => {
+        const auth = await authApi.register(input);
+        accept(auth);
+        return auth.user;
+      },
       logout: async () => {
         try {
           await authApi.logout();

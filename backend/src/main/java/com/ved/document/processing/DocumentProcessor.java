@@ -1,16 +1,21 @@
 package com.ved.document.processing;
 
 import java.time.Clock;
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 
 import com.ved.document.Document;
+import com.ved.document.DocumentAnalyzer;
+import com.ved.document.DocumentAnalyzer.AnalysisException;
 import com.ved.document.DocumentRepository;
+import com.ved.document.DocumentSegment;
+import com.ved.document.DocumentSegmentRepository;
 import com.ved.document.DocumentStatus;
-import com.ved.document.ocr.OcrException;
-import com.ved.document.ocr.OcrGateway;
-import com.ved.document.ocr.OcrRequest;
-import com.ved.document.ocr.OcrResult;
+import com.ved.document.extraction.ExtractionException;
+import com.ved.document.extraction.ExtractionGateway;
+import com.ved.document.extraction.ExtractionRequest;
+import com.ved.document.extraction.ExtractionResult;
 import com.ved.document.storage.DocumentStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,8 +24,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Runs one document through OCR. State changes happen in short transactions; the (slow) OCR call runs
- * outside any transaction so no DB connection is held while waiting on the model.
+ * Runs one document through the pipeline: extraction (skipped if text already exists), then analysis.
+ * State changes happen in short transactions; slow calls (OCR, LLM) run outside any transaction.
  */
 @Component
 public class DocumentProcessor {
@@ -28,39 +33,50 @@ public class DocumentProcessor {
     private static final Logger log = LoggerFactory.getLogger(DocumentProcessor.class);
 
     private final DocumentRepository documents;
+    private final DocumentSegmentRepository segments;
     private final DocumentStorage storage;
-    private final OcrGateway ocr;
+    private final ExtractionGateway extraction;
+    private final DocumentAnalyzer analyzer;
     private final TransactionTemplate tx;
     private final Clock clock;
 
-    DocumentProcessor(DocumentRepository documents, DocumentStorage storage, OcrGateway ocr,
-                      TransactionTemplate tx, Clock clock) {
+    DocumentProcessor(DocumentRepository documents, DocumentSegmentRepository segments, DocumentStorage storage,
+                      ExtractionGateway extraction, DocumentAnalyzer analyzer, TransactionTemplate tx, Clock clock) {
         this.documents = documents;
+        this.segments = segments;
         this.storage = storage;
-        this.ocr = ocr;
+        this.extraction = extraction;
+        this.analyzer = analyzer;
         this.tx = tx;
         this.clock = clock;
     }
 
+    private record Claim(UUID ownerId, String filename, String contentType, String storageKey, boolean extract) {
+    }
+
     @Async(ProcessingConfig.EXECUTOR)
     public void process(UUID documentId) {
-        OcrRequest request = tx.execute(status -> claim(documentId));
-        if (request == null) {
+        Claim claim = tx.execute(status -> claim(documentId));
+        if (claim == null) {
             return; // deleted, or already picked up
         }
         boolean settled = false;
         try {
-            OcrResult result = ocr.extract(request);
-            update(documentId, d -> d.markCompleted(result.markdown(), result.engine(), result.pageCount(),
-                    clock.instant()));
+            if (claim.extract()) {
+                extract(documentId, claim);
+            }
+            DocumentAnalyzer.Input input = new DocumentAnalyzer.Input(documentId, claim.ownerId(), claim.filename(),
+                    loadPages(documentId));
+            DocumentAnalyzer.Result result = analyzer.analyze(input);
+            update(documentId, d -> d.markReady(result.title(), clock.instant()));
             settled = true;
-            log.info("Document {} converted by {}", documentId, result.engine());
-        } catch (OcrException e) {
+            log.info("Document {} is ready", documentId);
+        } catch (ExtractionException | AnalysisException e) {
             log.info("Document {} failed: {}", documentId, e.getMessage());
             update(documentId, d -> d.markFailed(e.getMessage(), clock.instant()));
             settled = true;
         } finally {
-            // Anything unexpected (including Errors) must not leave the document stuck in PROCESSING.
+            // Anything unexpected (including Errors) must not leave the document stuck mid-pipeline.
             if (!settled) {
                 log.error("Unexpected error while processing document {}", documentId);
                 update(documentId, d -> d.markFailed("Unexpected processing error", clock.instant()));
@@ -68,13 +84,40 @@ public class DocumentProcessor {
         }
     }
 
-    private OcrRequest claim(UUID documentId) {
+    private Claim claim(UUID documentId) {
         Document doc = documents.findById(documentId).orElse(null);
         if (doc == null || doc.getStatus() != DocumentStatus.PENDING) {
             return null;
         }
-        doc.markProcessing(clock.instant());
-        return new OcrRequest(storage.load(doc.getStorageKey()), doc.getOriginalFilename(), doc.getContentType());
+        doc.startProcessing(clock.instant());
+        return new Claim(doc.getOwnerId(), doc.getOriginalFilename(), doc.getContentType(), doc.getStorageKey(),
+                doc.getStatus() == DocumentStatus.EXTRACTING);
+    }
+
+    private void extract(UUID documentId, Claim claim) throws ExtractionException {
+        ExtractionResult result = extraction.extract(
+                new ExtractionRequest(storage.load(claim.storageKey()), claim.filename(), claim.contentType()));
+        if (result.segments().stream().allMatch(s -> s.markdown() == null || s.markdown().isBlank())) {
+            throw new ExtractionException("No readable text was found in this document");
+        }
+        tx.executeWithoutResult(status -> {
+            segments.deleteByDocumentId(documentId);
+            int position = 0;
+            for (ExtractionResult.Segment s : result.segments()) {
+                segments.save(new DocumentSegment(documentId, position++, s.pageFrom(), s.pageTo(), s.method(),
+                        s.markdown() == null ? "" : s.markdown()));
+            }
+            documents.findById(documentId).ifPresent(d -> d.markExtracted(result.markdown(), result.engine(),
+                    result.pageCount(), result.textPages(), result.ocrPages()));
+        });
+    }
+
+    private List<DocumentAnalyzer.Page> loadPages(UUID documentId) {
+        List<DocumentAnalyzer.Page> pages = tx.execute(status -> segments.findByDocumentIdOrderByPosition(documentId)
+                .stream()
+                .map(s -> new DocumentAnalyzer.Page(s.getPageFrom(), s.getPageTo(), s.getContent()))
+                .toList());
+        return pages == null ? List.of() : pages;
     }
 
     private void update(UUID documentId, Consumer<Document> change) {

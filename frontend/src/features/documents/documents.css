@@ -1,0 +1,206 @@
+.dropzone {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-8);
+  border: 1.5px dashed var(--color-border-strong);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: border-color var(--duration-base), background var(--duration-base), transform var(--duration-base);
+}
+.dropzone:hover,
+.dropzone:focus-visible,
+.dropzone.dragging {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary-soft) 55%, var(--color-surface));
+}
+.dropzone.dragging {
+  transform: scale(1.01);
+}
+.dropzone.disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.dropzone-icon {
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--radius-lg);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  flex-shrink: 0;
+  font-size: 1.4rem;
+}
+.dropzone-title {
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-md);
+}
+.dropzone-link {
+  color: var(--color-primary-text);
+  font-weight: var(--weight-medium);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.doc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+}
+.doc-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  height: 100%;
+  padding: var(--space-5);
+}
+.doc-type {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+}
+.doc-title {
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-base);
+  color: var(--color-text);
+  line-height: 1.35;
+}
+.doc-error {
+  color: var(--color-warning-text);
+}
+.doc-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: auto;
+  padding-top: var(--space-2);
+}
+.doc-actions a.btn:hover {
+  text-decoration: none;
+}
+
+/* Pipeline stepper */
+.pipeline {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.pipeline-step {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+.pipeline-dot {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--color-surface-3);
+  color: #fff;
+  transition: background var(--duration-slow);
+}
+.pipeline-step.done .pipeline-dot {
+  background: var(--color-success);
+}
+.pipeline-step.active .pipeline-dot {
+  background: var(--color-primary);
+  box-shadow: 0 0 0 5px var(--color-primary-soft);
+}
+.pipeline-step.failed .pipeline-dot {
+  background: var(--color-warning);
+  box-shadow: 0 0 0 5px var(--color-warning-soft);
+}
+.pipeline-step.active .pipeline-label,
+.pipeline-step.done .pipeline-label {
+  color: var(--color-text);
+  font-weight: var(--weight-medium);
+}
+.pipeline-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(0.7);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+.pipeline-line {
+  position: absolute;
+  top: 0.875rem;
+  left: calc(50% + 0.875rem);
+  right: calc(-50% + 0.875rem);
+  height: 2px;
+  background: var(--color-surface-3);
+  overflow: hidden;
+}
+.pipeline-line span {
+  display: block;
+  height: 100%;
+  background: var(--color-success);
+  transform-origin: left;
+}
+.pipeline-compact .pipeline-dot {
+  width: 1rem;
+  height: 1rem;
+}
+.pipeline-compact .pipeline-step.active .pipeline-dot {
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+.pipeline-compact .pipeline-line {
+  top: 0.5rem;
+  left: calc(50% + 0.5rem);
+  right: calc(-50% + 0.5rem);
+}
+.pipeline-compact .pipeline-pulse {
+  width: 5px;
+  height: 5px;
+}
+
+.reading {
+  max-width: var(--reading-width);
+}
+.markdown-source {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  background: var(--color-surface-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  max-height: 70vh;
+  overflow: auto;
+}
+
+@media (max-width: 640px) {
+  .dropzone {
+    flex-direction: column;
+    text-align: center;
+    padding: var(--space-6) var(--space-4);
+  }
+}

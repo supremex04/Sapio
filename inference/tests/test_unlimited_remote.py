@@ -31,7 +31,7 @@ def reply(text: str):
 
 def test_single_page_uses_gundam_mode_and_strips_markup():
     engine, requests = engine_with(reply("<|det|>text [1, 2, 3, 4]<|/det|>Hello"))
-    assert engine.extract(pages(1)).markdown == "Hello"
+    assert engine.extract(pages(1)).segments[0].markdown == "Hello"
     body = requests[0]
     assert body["messages"][0]["content"][0] == {"type": "text", "text": "document parsing."}
     assert body["images_config"] == {"image_mode": "gundam"}
@@ -45,7 +45,11 @@ def test_long_documents_are_batched_in_multi_page_mode():
     assert requests[0]["messages"][0]["content"][0]["text"] == "Multi page parsing."
     assert requests[0]["images_config"] == {"image_mode": "base"}
     assert len(requests[0]["messages"][0]["content"]) == 3  # prompt + 2 images
-    assert result.markdown == "part\n\n---\n\npart\n\n---\n\npart"
+    assert [(s.page_from, s.page_to, s.markdown) for s in result.segments] == [
+        (1, 2, "part"),
+        (3, 4, "part"),
+        (5, 5, "part"),
+    ]
 
 
 def test_vllm_flavor_omits_sglang_fields_and_merges_extra_body():

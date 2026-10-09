@@ -11,5 +11,6 @@ public record RegisterRequest(
         @NotBlank @Email @Size(max = 320) String email,
         @NotBlank @Size(min = 8, max = 128) String password,
         @NotBlank @Size(max = 120) String fullName,
-        @NotNull Role role) {
+        @NotNull Role role,
+        @Size(max = 64) String timeZone) {
 }

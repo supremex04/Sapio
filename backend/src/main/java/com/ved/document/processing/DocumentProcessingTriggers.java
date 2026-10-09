@@ -7,7 +7,7 @@ import java.util.UUID;
 import com.ved.document.Document;
 import com.ved.document.DocumentRepository;
 import com.ved.document.DocumentStatus;
-import com.ved.document.DocumentUploadedEvent;
+import com.ved.document.DocumentQueuedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -37,7 +37,7 @@ class DocumentProcessingTriggers {
     }
 
     @TransactionalEventListener
-    void onUploaded(DocumentUploadedEvent event) {
+    void onQueued(DocumentQueuedEvent event) {
         submit(event.documentId());
     }
 
@@ -46,7 +46,7 @@ class DocumentProcessingTriggers {
         // Requeue in its own committed transaction first, so workers see the PENDING state.
         List<UUID> unfinished = tx.execute(status -> {
             List<Document> docs = documents.findByStatusIn(
-                    EnumSet.of(DocumentStatus.PENDING, DocumentStatus.PROCESSING));
+                    EnumSet.of(DocumentStatus.PENDING, DocumentStatus.EXTRACTING, DocumentStatus.ANALYZING));
             docs.forEach(Document::requeue);
             return docs.stream().map(Document::getId).toList();
         });

@@ -6,8 +6,8 @@ export type AuthStatus = "loading" | "authenticated" | "anonymous";
 export interface AuthContextValue {
   status: AuthStatus;
   user: User | null;
-  login: (input: LoginInput) => Promise<void>;
-  register: (input: RegisterInput) => Promise<void>;
+  login: (input: LoginInput) => Promise<User>;
+  register: (input: RegisterInput) => Promise<User>;
   logout: () => Promise<void>;
 }
 

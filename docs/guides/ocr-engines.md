@@ -1,5 +1,9 @@
 # OCR engines
 
+Extraction is **hybrid**: PDF pages with a text layer are read natively (PyMuPDF/pymupdf4llm,
+with headings and tables kept as Markdown) and never OCR'd. The OCR engine below only handles scanned
+pages and images.
+
 Pick the engine with `VED_INFERENCE_ENGINE` (in `inference/.env` or the environment). Restart the service after changing it.
 
 | Engine | Quality | Hardware | Install |

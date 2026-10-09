@@ -71,6 +71,12 @@ class DocumentController {
                 .body(markdown.getBytes(StandardCharsets.UTF_8));
     }
 
+    @PostMapping("/{id}/retry")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    DocumentResponse retry(@CurrentUserId UUID userId, @PathVariable UUID id) {
+        return DocumentResponse.from(documentService.retry(userId, id));
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void delete(@CurrentUserId UUID userId, @PathVariable UUID id) {

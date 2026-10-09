@@ -1,5 +1,6 @@
 package com.ved.auth;
 
+import java.time.Clock;
 import java.time.Instant;
 
 import com.ved.auth.session.ClientInfo;
@@ -12,6 +13,7 @@ import com.ved.security.AccessTokenService.AccessToken;
 import com.ved.user.User;
 import com.ved.user.UserRepository;
 import com.ved.user.UserResponse;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,15 +29,19 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AccessTokenService accessTokens;
     private final SessionService sessions;
+    private final ApplicationEventPublisher events;
+    private final Clock clock;
     /** Compared against when the email is unknown, so response timing doesn't reveal registered emails. */
     private final String dummyPasswordHash;
 
     AuthService(UserRepository users, PasswordEncoder passwordEncoder, AccessTokenService accessTokens,
-                SessionService sessions) {
+                SessionService sessions, ApplicationEventPublisher events, Clock clock) {
         this.users = users;
         this.passwordEncoder = passwordEncoder;
         this.accessTokens = accessTokens;
         this.sessions = sessions;
+        this.events = events;
+        this.clock = clock;
         this.dummyPasswordHash = passwordEncoder.encode("timing-equalizer-password");
     }
 
@@ -52,8 +58,10 @@ public class AuthService {
         if (users.existsByEmail(email)) {
             throw new ApplicationException(ErrorCode.EMAIL_ALREADY_REGISTERED, "Email is already registered");
         }
-        User user = users.save(new User(email, passwordEncoder.encode(request.password()),
-                request.fullName(), request.role()));
+        User user = new User(email, passwordEncoder.encode(request.password()), request.fullName(), request.role());
+        user.updateTimeZone(request.timeZone());
+        user = users.save(user);
+        events.publishEvent(new UserLoggedInEvent(user.getId(), clock.instant()));
         return startSession(user, client);
     }
 
@@ -65,6 +73,7 @@ public class AuthService {
         if (user == null || !matches || !user.isEnabled()) {
             throw new ApplicationException(ErrorCode.INVALID_CREDENTIALS, "Invalid email or password");
         }
+        events.publishEvent(new UserLoggedInEvent(user.getId(), clock.instant()));
         return startSession(user, client);
     }
 

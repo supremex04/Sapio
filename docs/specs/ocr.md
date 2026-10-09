@@ -1,6 +1,6 @@
 # Spec: Document to text (OCR)
 
-Status: **implemented (M1)** · Code: `backend/.../document`, `inference/`, `frontend/src/features/documents`
+Status: **implemented (M1, extended in M2)** · Code: `backend/.../document`, `inference/`, `frontend/src/features/documents`
 
 ## Purpose
 
@@ -15,25 +15,21 @@ homework, importing worksheets into assignments, grading support.
 | OCR-1 | Accept PDF, PNG, JPEG, WEBP, TIFF (multi-page) and BMP up to **25 MB**. |
 | OCR-2 | The file type comes from the extension and must match the file's magic bytes; the client's Content-Type is ignored. |
 | OCR-3 | Upload returns immediately (202); conversion runs in the background. |
-| OCR-4 | The user can see status: `PENDING → PROCESSING → COMPLETED / FAILED`, with a readable reason on failure. |
+| OCR-4 | The user can see status: `PENDING → EXTRACTING → ANALYZING → READY / FAILED`, with a readable reason on failure. |
 | OCR-5 | The result can be viewed (rendered and raw), copied, and downloaded as `<original-name>.md`. |
 | OCR-6 | Users only ever see and delete their own documents. |
 | OCR-7 | Documents interrupted by a backend restart are resumed automatically. |
 | OCR-8 | PDFs up to **200 pages** (inference `VED_INFERENCE_MAX_PAGES`). |
 | OCR-9 | The OCR engine can be changed by configuration, without changing the backend or UI. |
+| OCR-10 | (M2) PDF pages with a text layer are read natively; only scanned pages/images are OCR'd. |
+| OCR-11 | (M2) After extraction the document is analysed into a study material, see [study.md](study.md). |
+| OCR-12 | (M2) A failed document can be retried; extracted text is reused, so only the failed stage re-runs. |
 
 ## Status lifecycle
 
-```mermaid
-stateDiagram-v2
-    [*] --> PENDING: upload accepted
-    PENDING --> PROCESSING: worker claims it
-    PROCESSING --> COMPLETED: Markdown stored
-    PROCESSING --> FAILED: bad document / engine error
-    PROCESSING --> PENDING: backend restarted mid-job
-    COMPLETED --> [*]
-    FAILED --> [*]
-```
+`PENDING → EXTRACTING → ANALYZING → READY`, or `FAILED` from either working state (retryable).
+Full diagram in [study.md](study.md#document-pipeline). The extracted text (`/result`) is available
+from `ANALYZING` on.
 
 ## Endpoints
 
@@ -42,9 +38,10 @@ stateDiagram-v2
 | `POST /api/documents` (multipart, field `file`) | **202** `DocumentResponse` | `UNSUPPORTED_FILE_TYPE` 415, `FILE_TOO_LARGE` 413, `VALIDATION_FAILED` 400 (empty file) |
 | `GET /api/documents?page=&size=` | **200** page of `DocumentResponse` | newest first |
 | `GET /api/documents/{id}` | **200** `DocumentResponse` | poll this every ~2 s while not terminal |
-| `GET /api/documents/{id}/result` | **200** `{id, format: "markdown", content}` | `RESULT_NOT_READY` 409 before completion |
+| `GET /api/documents/{id}/result` | **200** `{id, format: "markdown", content}` | `RESULT_NOT_READY` 409 until text is extracted |
 | `GET /api/documents/{id}/result/download` | **200** `text/markdown`, `Content-Disposition: attachment` | |
-| `DELETE /api/documents/{id}` | **204** | deletes record and stored file |
+| `POST /api/documents/{id}/retry` | **202** `DocumentResponse` | only when `FAILED` (else 409 `INVALID_STATE`) |
+| `DELETE /api/documents/{id}` | **204** | deletes record, study material and stored file |
 
 ```jsonc
 // DocumentResponse
@@ -53,9 +50,12 @@ stateDiagram-v2
   "filename": "chapter-3.pdf",
   "contentType": "application/pdf",
   "sizeBytes": 183422,
-  "status": "COMPLETED",
-  "engine": "unlimited-ocr",   // null until completed
-  "pageCount": 12,              // null until completed
+  "title": "Introduction to Cell Biology", // AI-derived, null until READY
+  "status": "READY",
+  "engine": "pymupdf+rapidocr", // null until extracted
+  "pageCount": 12,              // null until extracted
+  "textPages": 11,              // pages read natively
+  "ocrPages": 1,                // pages OCR'd
   "errorMessage": null,         // set when FAILED
   "createdAt": "…",
   "completedAt": "…"
@@ -81,5 +81,5 @@ stateDiagram-v2
 
 ## Not yet implemented (see roadmap)
 
-Retry button for failed documents, per-user quotas, page-range selection, DOCX export,
+Per-user quotas, page-range selection, DOCX export,
 streaming partial results, editing the result, original-file preview next to the text.

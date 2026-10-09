@@ -23,6 +23,6 @@ def test_recognises_rendered_text_end_to_end():
     doc = DocumentLoader(max_pages=1, pdf_dpi=72).load(
         make_text_image(["Photosynthesis", "uses sunlight"]), "a.png"
     )
-    markdown = RapidOcrEngine().extract(doc.pages).markdown
+    markdown = RapidOcrEngine().extract(doc.pages).segments[0].markdown
     assert "Photosynthesis" in markdown
     assert "sunlight" in markdown

@@ -52,6 +52,15 @@ public class Document {
 
     private String engine;
 
+    /** Title derived from the content during analysis. */
+    private String title;
+
+    @Column(name = "text_pages")
+    private Integer textPages;
+
+    @Column(name = "ocr_pages")
+    private Integer ocrPages;
+
     @Column(name = "page_count")
     private Integer pageCount;
 
@@ -89,17 +98,33 @@ public class Document {
         this.status = DocumentStatus.PENDING;
     }
 
-    public void markProcessing(Instant now) {
-        this.status = DocumentStatus.PROCESSING;
+    /** Text has been extracted before (a retry or restart then only re-runs analysis). */
+    public boolean isTextExtracted() {
+        return resultMarkdown != null;
+    }
+
+    /** Moves a PENDING document into its next working state. */
+    public void startProcessing(Instant now) {
+        requireStatus(DocumentStatus.PENDING);
+        this.status = isTextExtracted() ? DocumentStatus.ANALYZING : DocumentStatus.EXTRACTING;
         this.processingStartedAt = now;
         this.errorMessage = null;
     }
 
-    public void markCompleted(String markdown, String engine, Integer pageCount, Instant now) {
-        this.status = DocumentStatus.COMPLETED;
+    public void markExtracted(String markdown, String engine, int pageCount, int textPages, int ocrPages) {
+        requireStatus(DocumentStatus.EXTRACTING);
         this.resultMarkdown = markdown;
         this.engine = engine;
         this.pageCount = pageCount;
+        this.textPages = textPages;
+        this.ocrPages = ocrPages;
+        this.status = DocumentStatus.ANALYZING;
+    }
+
+    public void markReady(String title, Instant now) {
+        requireStatus(DocumentStatus.ANALYZING);
+        this.title = title;
+        this.status = DocumentStatus.READY;
         this.completedAt = now;
     }
 
@@ -114,6 +139,21 @@ public class Document {
     public void requeue() {
         this.status = DocumentStatus.PENDING;
         this.processingStartedAt = null;
+    }
+
+    /** User-initiated retry of a failed document. */
+    public void retry() {
+        requireStatus(DocumentStatus.FAILED);
+        this.status = DocumentStatus.PENDING;
+        this.errorMessage = null;
+        this.completedAt = null;
+        this.processingStartedAt = null;
+    }
+
+    private void requireStatus(DocumentStatus expected) {
+        if (status != expected) {
+            throw new IllegalStateException("Document " + id + " is " + status + ", expected " + expected);
+        }
     }
 
     public UUID getId() {
@@ -150,6 +190,18 @@ public class Document {
 
     public Integer getPageCount() {
         return pageCount;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public Integer getTextPages() {
+        return textPages;
+    }
+
+    public Integer getOcrPages() {
+        return ocrPages;
     }
 
     public String getResultMarkdown() {

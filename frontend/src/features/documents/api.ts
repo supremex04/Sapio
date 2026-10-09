@@ -11,6 +11,7 @@ export const documentsApi = {
   },
   list: (page = 0, size = 20) => apiJson<PageResponse<DocumentDto>>(`/documents?page=${page}&size=${size}`),
   get: (id: string) => apiJson<DocumentDto>(`/documents/${id}`),
+  retry: (id: string) => apiJson<DocumentDto>(`/documents/${id}/retry`, { method: "POST" }),
   result: (id: string) => apiJson<DocumentResult>(`/documents/${id}/result`),
   async download(id: string, fallbackName: string): Promise<{ blob: Blob; filename: string }> {
     const response = await apiRequest(`/documents/${id}/result/download`);

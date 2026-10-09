@@ -1,5 +1,9 @@
 # Architecture overview
 
+Ved turns any educational document into a guided course: Learn mode (AI tutor), Test mode
+(grounded assessments), spaced review, progress and analytics. Product and UI decisions follow
+[learning-science.md](learning-science.md).
+
 ## System context
 
 ```mermaid
@@ -9,14 +13,15 @@ flowchart LR
     BE -->|JDBC| DB[(PostgreSQL)]
     BE -->|files| FS[(Document storage<br/>local disk today)]
     BE -->|internal REST<br/>X-Internal-Api-Key| INF[Inference service<br/>Python · FastAPI]
-    INF -->|OpenAI-compatible API| GPU[GPU model server<br/>SGLang / vLLM<br/>Unlimited-OCR]
+    INF -->|generateContent| LLM[LLM<br/>Google Gemini]
+    INF -->|OpenAI-compatible API| GPU[OCR model server<br/>SGLang / vLLM<br/>Unlimited-OCR]
 ```
 
 | Component | Folder | Responsibility | Talks to |
 |---|---|---|---|
 | Frontend | `frontend/` | UI only. No business rules beyond input hints. | Backend (`/api`) |
-| Core backend | `backend/` | **The single source of truth**: identity, authorisation, domain data, job orchestration. | PostgreSQL, storage, inference |
-| Inference service | `inference/` | Stateless AI/ML computations (OCR today; grading, recommendations, analytics later). No database, no user concept. | Model servers / local models |
+| Core backend | `backend/` | **The single source of truth**: identity, authorisation, domain data, grading rules, job orchestration, analytics. | PostgreSQL, storage, inference |
+| Inference service | `inference/` | Stateless AI/ML: text extraction (native PDF text + OCR) and LLM-written study content. No database, no user concept. | LLM provider, OCR model servers |
 
 Ground rules:
 
@@ -24,7 +29,10 @@ Ground rules:
    (shared API key). Browsers never call it.
 2. **Only the backend owns data.** The inference service receives inputs and returns outputs; it
    never stores user data.
-3. **Language per job:** Java for business logic, Python for ML, TypeScript for the UI
+3. **The backend owns the rules, the AI writes content.** Answer keys, grading of choice questions,
+   XP, scheduling and access control are deterministic backend code; the LLM only drafts lessons,
+   questions, short-answer grades and report narratives, which the inference service validates.
+4. **Language per job:** Java for business logic, Python for ML, TypeScript for the UI
    ([ADR-0001](../adr/0001-polyglot-three-service-architecture.md)).
 
 ## Backend internals
@@ -33,20 +41,33 @@ Package-by-feature (`com.ved.<feature>`), with a thin layered structure inside e
 
 ```
 com.ved
-├── common/        cross-cutting: error model, time, pagination
-├── security/      JWT issuing/validation, CORS, @CurrentUserId
-├── user/          User aggregate, /api/users
-├── auth/          register/login/refresh/logout use-cases
-│   └── session/   refresh-token sessions (open / rotate / revoke)
-└── document/      upload + OCR conversion
-    ├── storage/   DocumentStorage port + local filesystem adapter
-    ├── ocr/       OcrGateway port + inference-service HTTP adapter
-    └── processing/ async worker, triggers (after-commit, startup recovery)
+├── common/          error model, time, pagination, inference HTTP client
+├── security/        JWT issuing/validation, CORS, @CurrentUserId
+├── user/            User aggregate (time zone, daily goal), /api/users
+├── auth/            register/login/refresh/logout; publishes UserLoggedInEvent
+│   └── session/     refresh-token sessions (open / rotate / revoke)
+├── document/        upload + processing pipeline (extract → analyze)
+│   ├── storage/     DocumentStorage port + local filesystem adapter
+│   ├── extraction/  ExtractionGateway port + inference adapter
+│   └── processing/  async worker, triggers (after-commit, startup recovery)
+├── study/           Learn & Test on top of a shared study material
+│   ├── ai/          StudyAi port + inference adapter
+│   ├── material/    StudyMaterial / chunks / topics, MaterialAnalyzer (implements DocumentAnalyzer),
+│   │                MaterialAccess (authorisation + grounded sources), mastery, recommender
+│   ├── question/    question bank, grading, attempts, Leitner review cards
+│   ├── learn/       lessons, checks, topic progress, tutor
+│   ├── assess/      assessments, interleaving, reports
+│   ├── review/      spaced-review sessions
+│   └── overview/    study hub read model, "next best step"
+└── progress/        XP, levels, streaks, daily goal, heartbeats, analytics (event consumer)
 ```
+
+Dependency direction: `study → document → (DocumentAnalyzer port, implemented by study)`;
+`progress → study, auth` (events only); nothing depends on `progress`.
 
 Inside a feature: `Controller → Service → Repository / Port`. Controllers handle HTTP only;
 services hold the use-cases and transactions; **ports** (interfaces) wrap anything external
-(storage, OCR, token format) so it can be swapped without touching the use-cases. See
+(storage, extraction, AI, token format) so it can be swapped without touching the use-cases. See
 [conventions.md](conventions.md).
 
 ## Key flows
@@ -71,7 +92,7 @@ sequenceDiagram
 
 Details: [specs/auth.md](../specs/auth.md), [ADR-0002](../adr/0002-jwt-access-tokens-with-rotating-refresh-sessions.md).
 
-### Document conversion (OCR)
+### Document pipeline: upload → study material
 
 ```mermaid
 sequenceDiagram
@@ -79,56 +100,60 @@ sequenceDiagram
     participant API as Backend
     participant W as Worker pool (in backend)
     participant INF as Inference service
+    participant LLM as Gemini
     B->>API: POST /api/documents (multipart)
     API->>API: validate type (extension + magic bytes) & size, store file
     API-->>B: 202 {id, status: PENDING}
     API--)W: after commit: process(id)
-    W->>W: status PROCESSING
-    W->>INF: POST /v1/ocr (file)
-    INF->>INF: PDF → page images → engine → Markdown
-    INF-->>W: {markdown, engine, pageCount}
-    W->>W: status COMPLETED (or FAILED + reason)
+    W->>INF: EXTRACTING: POST /v1/extract
+    INF->>INF: per page: native PDF text, or OCR for scans
+    INF-->>W: segments {pageFrom, pageTo, method, markdown}
+    W->>INF: ANALYZING: POST /v1/study/material
+    INF->>LLM: outline: topics ↔ chunk references
+    INF-->>W: chunks + topics (validated)
+    W->>W: store study material, status READY
     loop every 2 s while not terminal
         B->>API: GET /api/documents/{id}
     end
-    B->>API: GET /api/documents/{id}/result
 ```
 
-Details: [specs/ocr.md](../specs/ocr.md), [ADR-0003](../adr/0003-pluggable-ocr-engines-in-a-python-service.md),
-[ADR-0004](../adr/0004-in-process-async-document-processing.md).
-
-## Data model (M1)
+### Learning loop
 
 ```mermaid
-erDiagram
-    users ||--o{ user_sessions : has
-    users ||--o{ documents : owns
-    users {
-        uuid id PK
-        varchar email UK "lower-cased"
-        varchar password_hash "bcrypt (delegating encoder)"
-        varchar full_name
-        varchar role "STUDENT | TEACHER | ADMIN"
-        bool enabled
-    }
-    user_sessions {
-        uuid id PK
-        uuid user_id FK
-        varchar refresh_token_hash UK "sha256 hex"
-        timestamptz expires_at
-        timestamptz revoked_at
-    }
-    documents {
-        uuid id PK
-        uuid owner_id FK
-        varchar original_filename
-        varchar content_type
-        varchar storage_key
-        varchar status "PENDING | PROCESSING | COMPLETED | FAILED"
-        text result_markdown
-        varchar error_message
-    }
+sequenceDiagram
+    participant B as Browser
+    participant API as Backend
+    participant INF as Inference + LLM
+    B->>API: GET /api/topics/{id}/lesson
+    API->>INF: (first time) /v1/study/lesson with the topic's chunks
+    API-->>B: sections + checks (no answer keys)
+    B->>API: POST /api/questions/{id}/answer {optionIndex, confidence}
+    API->>API: grade, store attempt, schedule review card, publish event
+    API-->>B: verdict + explanation + nextReviewAt
+    Note over API: progress module (same transaction): XP, daily counters
+    B->>API: POST /api/documents/{id}/assessments
+    API->>INF: /v1/study/questions (grounded, interleaved by backend)
+    B->>API: POST …/items/{n}/answer, then …/complete
+    API->>INF: /v1/study/grade (short answers), /assessment-feedback (narrative)
+    API-->>B: report: score, topics, calibration, weak areas
 ```
+
+Details: [specs/study.md](../specs/study.md), [specs/progress.md](../specs/progress.md),
+[ADR-0003](../adr/0003-pluggable-ocr-engines-in-a-python-service.md),
+[ADR-0004](../adr/0004-in-process-async-document-processing.md),
+[ADR-0006](../adr/0006-llm-behind-a-provider-agnostic-port.md),
+[ADR-0007](../adr/0007-shared-study-material-content-vs-learner-state.md),
+[ADR-0008](../adr/0008-progress-via-in-transaction-domain-events.md).
+
+## Data model
+
+| Area | Tables | Spec |
+|---|---|---|
+| Identity | `users` (+ `time_zone`, `daily_goal_minutes`), `user_sessions` | [auth.md](../specs/auth.md) |
+| Documents | `documents`, `document_segments` | [ocr.md](../specs/ocr.md) |
+| Study content (shareable) | `study_materials`, `study_chunks`, `study_topics`, `study_lessons`, `study_questions` | [study.md](../specs/study.md) |
+| Learner state | `topic_progress`, `question_attempts`, `assessments`, `assessment_items`, `review_cards` | [study.md](../specs/study.md) |
+| Analytics | `learning_events`, `user_daily_activity`, `user_presence` | [progress.md](../specs/progress.md) |
 
 Schema changes are **Flyway migrations** in `backend/src/main/resources/db/migration`
 (`V<n>__<description>.sql`). Never edit a migration that has run in a shared environment; add a new one.
@@ -136,30 +161,66 @@ Hibernate only *validates* the schema (`ddl-auto: validate`).
 
 ## Frontend internals
 
+React 19 + TypeScript (strict) + Vite. Plain CSS on design tokens (no CSS framework), `lucide-react`
+icons, `motion` for animation, `canvas-confetti` for achievements, `react-markdown` + KaTeX for
+AI/OCR content. Design rules: [specs/design-system.md](../specs/design-system.md).
+
 ```
 src/
-├── app/            routing + authenticated layout
-├── shared/         feature-agnostic code
-│   ├── api/        fetch wrapper (token, single-flight refresh), ApiError
-│   ├── lib/        formatting, downloads
-│   └── ui/         small presentational components
+├── main.tsx          fonts + global styles (tokens → base → components), then <App/>
+├── styles/           tokens.css (light + [data-theme=dark]), base.css, components.css
+├── app/              route table (lazy-loaded pages), shell: top bar, bottom nav (mobile), logo
+├── shared/           feature-agnostic; never imports from features/
+│   ├── api/          fetch wrapper (token, single-flight refresh), ApiError
+│   ├── hooks/        usePolling
+│   ├── lib/          formatting, downloads, time zone, celebrate (confetti)
+│   └── ui/           component kit: Button, Card, Badge, Progress(Bar|Ring), Skeleton, Tabs,
+│                     Segmented, Toast, ConfirmButton, EmptyState, Markdown, PageTransition…
 └── features/
-    ├── auth/       AuthProvider (session state), pages, route guards
-    └── documents/  API client, upload, list, detail
+    ├── theme/        ThemeProvider (light/dark/system), toggle
+    ├── auth/         AuthProvider (session), login/register, route guards
+    ├── progress/     ProgressProvider (summary + XP/level/goal toasts), heartbeat hook,
+    │                 dashboard (next best step, goal ring, activity chart, feed), goal onboarding
+    ├── documents/    library (upload, pipeline stepper, retry), extracted-text view
+    └── study/        hub (Learn / Test), learn path, lesson (progressive steps, checks, tutor),
+                      test setup, assessment runner + report, spaced review; shared QuestionCard
 ```
 
-A feature owns its API calls, types and pages. `shared/` must not import from `features/`.
-The access token lives in memory only; on reload the session is restored with the HttpOnly
-refresh cookie.
+| Route | Page |
+|---|---|
+| `/` | Dashboard: one "next best step", daily goal, streak, level, reviews due, 14-day activity |
+| `/welcome` | One-time, skippable daily-goal step (after registration / first login on a device) |
+| `/library` | Upload + documents with processing status |
+| `/documents/:id` | Study hub: Learn / Test my knowledge, topics, tests, extracted text |
+| `/documents/:id/learn` | Topic path with mastery and the recommended node |
+| `/documents/:id/learn/:topicId` | Lesson: warm-up → sections + checks → explain-it-back → takeaways |
+| `/documents/:id/test` | Test setup (count, difficulty, topics) |
+| `/assessments/:id` | Runner (one question at a time) or report when completed |
+| `/review?documentId=` | Spaced-review session |
+
+Conventions:
+
+- A feature owns its API calls (`api.ts`), types (`types.ts`, mirroring the spec exactly) and pages.
+- Pure logic (path state, lesson step ordering, level math, pipeline mapping, feedback copy) lives in
+  plain `.ts` modules with Vitest tests; components stay thin.
+- One `QuestionCard` serves lesson checks, assessments and reviews, so answering always feels the same
+  (answer → confidence → check → elaborative feedback).
+- After any learning action, call `useProgress().refresh()`: the provider diffs the summary and
+  announces XP, level-ups and goal completion.
+- The access token lives in memory only; on reload the session is restored with the HttpOnly
+  refresh cookie. The theme is applied before first paint by an inline script in `index.html`.
 
 ## Inference service internals
 
 ```
 ved_inference/
-├── api/          FastAPI routes, schemas (camelCase JSON), API-key check
-├── service.py    OcrService use-case (load → engine → result), concurrency limit
-├── documents/    loader: PDF/image bytes → page images (PyMuPDF, Pillow)
-└── engines/      OcrEngine ABC + implementations + registry
+├── api/          FastAPI routes + wire schemas (camelCase), API-key check
+├── extraction/   DocumentExtractor: native PDF text (PyMuPDF/pymupdf4llm) or OCR per page
+├── documents/    loader: image/PDF bytes → page images
+├── engines/      OcrEngine ABC + implementations (RapidOCR, Unlimited-OCR remote/local) + registry
+├── llm/          LlmClient ABC + Gemini client (JSON-schema output, retries, model fallback)
+└── study/        chunking, prompts (pedagogy), StudyService (validates and post-processes all LLM output)
 ```
 
-Engines are chosen by `VED_INFERENCE_ENGINE`; see [guides/ocr-engines.md](../guides/ocr-engines.md).
+OCR engine: `VED_INFERENCE_ENGINE` ([guides/ocr-engines.md](../guides/ocr-engines.md)).
+LLM: `VED_INFERENCE_LLM_PROVIDER` + `VED_INFERENCE_GEMINI_*` ([ADR-0006](../adr/0006-llm-behind-a-provider-agnostic-port.md)).

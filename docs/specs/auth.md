@@ -15,6 +15,7 @@ Status: **implemented (M1)** · Code: `backend/.../auth`, `backend/.../security`
 | AUTH-7 | Each login creates a separate **session** (device); logout ends only that session. |
 | AUTH-8 | A stolen refresh token stops working once the legitimate client has used it (rotation). |
 | AUTH-9 | Disabled users cannot log in or refresh. |
+| AUTH-10 | (M2) Registration stores the browser's IANA time zone (invalid ids fall back to UTC); heartbeats keep it current. Registration and logins count toward "logins per day". |
 
 ## Tokens
 
@@ -30,7 +31,7 @@ Status: **implemented (M1)** · Code: `backend/.../auth`, `backend/.../security`
 
 | Method & path | Auth | Request | Success |
 |---|---|---|---|
-| `POST /api/auth/register` | public | `{email, password, fullName, role}` | **201** `AuthResponse` + `Set-Cookie` |
+| `POST /api/auth/register` | public | `{email, password, fullName, role, timeZone?}` | **201** `AuthResponse` + `Set-Cookie` |
 | `POST /api/auth/login` | public | `{email, password}` | **200** `AuthResponse` + `Set-Cookie` |
 | `POST /api/auth/refresh` | refresh cookie | — | **200** `AuthResponse` + rotated `Set-Cookie` |
 | `POST /api/auth/logout` | refresh cookie (optional) | — | **204**, cookie cleared; idempotent |
@@ -42,7 +43,8 @@ Status: **implemented (M1)** · Code: `backend/.../auth`, `backend/.../security`
   "accessToken": "eyJ...",
   "tokenType": "Bearer",
   "expiresIn": 900,           // seconds
-  "user": { "id": "uuid", "email": "a@b.c", "fullName": "…", "role": "STUDENT", "createdAt": "…" }
+  "user": { "id": "uuid", "email": "a@b.c", "fullName": "…", "role": "STUDENT",
+            "timeZone": "Asia/Kathmandu", "dailyGoalMinutes": 10, "createdAt": "…" }
 }
 ```
 
