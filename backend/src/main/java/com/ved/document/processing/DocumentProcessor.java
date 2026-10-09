@@ -48,17 +48,23 @@ public class DocumentProcessor {
         if (request == null) {
             return; // deleted, or already picked up
         }
+        boolean settled = false;
         try {
             OcrResult result = ocr.extract(request);
             update(documentId, d -> d.markCompleted(result.markdown(), result.engine(), result.pageCount(),
                     clock.instant()));
+            settled = true;
             log.info("Document {} converted by {}", documentId, result.engine());
         } catch (OcrException e) {
             log.info("Document {} failed: {}", documentId, e.getMessage());
             update(documentId, d -> d.markFailed(e.getMessage(), clock.instant()));
-        } catch (RuntimeException e) {
-            log.error("Unexpected error while processing document {}", documentId, e);
-            update(documentId, d -> d.markFailed("Unexpected processing error", clock.instant()));
+            settled = true;
+        } finally {
+            // Anything unexpected (including Errors) must not leave the document stuck in PROCESSING.
+            if (!settled) {
+                log.error("Unexpected error while processing document {}", documentId);
+                update(documentId, d -> d.markFailed("Unexpected processing error", clock.instant()));
+            }
         }
     }
 

@@ -1,0 +1,3 @@
+ved:
+  documents:
+    storage-dir: ${java.io.tmpdir}/ved-test-storage

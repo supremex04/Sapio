@@ -17,7 +17,7 @@ CREATE TABLE user_sessions
     id                 UUID PRIMARY KEY,
     user_id            UUID        NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     -- SHA-256 hex of the opaque refresh token; the raw token is never stored.
-    refresh_token_hash CHAR(64)    NOT NULL UNIQUE,
+    refresh_token_hash VARCHAR(64) NOT NULL UNIQUE,
     user_agent         VARCHAR(512),
     ip_address         VARCHAR(64),
     created_at         TIMESTAMPTZ NOT NULL,

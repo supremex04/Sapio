@@ -1,13 +1,18 @@
 package com.ved.document.ocr;
 
 import java.net.http.HttpClient;
+import java.nio.charset.StandardCharsets;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
-import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Component;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -48,15 +53,19 @@ class InferenceServiceOcrGateway implements OcrGateway {
 
     @Override
     public OcrResult extract(OcrRequest request) throws OcrException {
-        MultipartBodyBuilder body = new MultipartBodyBuilder();
-        body.part("file", request.content())
-                .filename(request.filename())
-                .contentType(MediaType.parseMediaType(request.contentType()));
+        HttpHeaders partHeaders = new HttpHeaders();
+        partHeaders.setContentType(MediaType.parseMediaType(request.contentType()));
+        partHeaders.setContentDisposition(ContentDisposition.formData()
+                .name("file")
+                .filename(request.filename(), StandardCharsets.UTF_8)
+                .build());
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", new HttpEntity<>(request.content(), partHeaders));
         try {
             InferenceOcrResponse response = client.post()
                     .uri("/v1/ocr")
                     .contentType(MediaType.MULTIPART_FORM_DATA)
-                    .body(body.build())
+                    .body(body)
                     .retrieve()
                     .body(InferenceOcrResponse.class);
             if (response == null || response.markdown() == null) {
