@@ -32,12 +32,12 @@ export function LoginPage() {
   }
 
   return (
-    <AuthLayout title="Welcome back" subtitle="Pick up right where you left off.">
+    <AuthLayout title="Welcome back" subtitle="Pick up right where you left off." mood="happy" greeting="Hi again! Ready for a few minutes of learning?">
       <form onSubmit={onSubmit} className="stack" noValidate>
         {error && <Alert>{error}</Alert>}
         <FormField label="Email" name="email" type="email" autoComplete="email" required autoFocus />
         <FormField label="Password" name="password" type="password" autoComplete="current-password" required />
-        <Button variant="primary" size="lg" type="submit" loading={submitting} iconRight={<ArrowRight size={18} />} block>
+        <Button variant="primary" size="lg" type="submit" loading={submitting} iconRight={<ArrowRight size={20} />} block>
           Sign in
         </Button>
       </form>

@@ -1,8 +1,10 @@
-import { ArrowRight, GraduationCap, Presentation } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { ApiError, errorMessage } from "../../shared/api/errors";
 import { browserTimeZone } from "../../shared/lib/timezone";
+import { Emoji } from "../../shared/illustrations/Emoji";
+import type { EmojiName } from "../../shared/illustrations/emojiNames";
 import { Alert } from "../../shared/ui/Alert";
 import { Button } from "../../shared/ui/Button";
 import { cx } from "../../shared/ui/cx";
@@ -11,10 +13,10 @@ import { useAuth } from "./AuthContext";
 import { AuthLayout } from "./AuthLayout";
 import type { RegisterInput } from "./types";
 
-const ROLES = [
-  { value: "STUDENT", label: "I'm learning", icon: GraduationCap },
-  { value: "TEACHER", label: "I'm teaching", icon: Presentation },
-] as const;
+const ROLES: { value: RegisterInput["role"]; label: string; hint: string; emoji: EmojiName }[] = [
+  { value: "STUDENT", label: "I'm learning", hint: "Study my own material", emoji: "graduation-cap" },
+  { value: "TEACHER", label: "I'm teaching", hint: "Build courses for a class", emoji: "books" },
+];
 
 export function RegisterPage() {
   const { register } = useAuth();
@@ -47,18 +49,26 @@ export function RegisterPage() {
   }
 
   return (
-    <AuthLayout title="Create your account" subtitle="Two minutes from now you'll be learning from your own material.">
+    <AuthLayout
+      title="Create your account"
+      subtitle="Two minutes from now you'll be learning from your own material."
+      mood="cheer"
+      greeting="Hi! I'm Dia. Let's turn your notes into a course."
+    >
       <form onSubmit={onSubmit} className="stack" noValidate>
         {error && <Alert>{error}</Alert>}
         <fieldset className="role-picker">
           <legend>How will you use Ved?</legend>
-          {ROLES.map(({ value, label, icon: Icon }) => (
-            <label key={value} className={cx("role-option", role === value && "selected")}>
-              <input type="radio" name="role" value={value} checked={role === value} onChange={() => setRole(value)} />
-              <Icon size={18} aria-hidden />
-              {label}
-            </label>
-          ))}
+          <div className="role-options">
+            {ROLES.map(({ value, label, hint, emoji }) => (
+              <label key={value} className={cx("role-option", role === value && "is-selected")}>
+                <input type="radio" name="role" value={value} checked={role === value} onChange={() => setRole(value)} />
+                <Emoji name={emoji} size={44} />
+                <span className="role-label">{label}</span>
+                <span className="role-hint">{hint}</span>
+              </label>
+            ))}
+          </div>
         </fieldset>
         <FormField label="Full name" name="fullName" autoComplete="name" required error={fieldErrors.fullName} />
         <FormField label="Email" name="email" type="email" autoComplete="email" required error={fieldErrors.email} />
@@ -72,7 +82,7 @@ export function RegisterPage() {
           placeholder="At least 8 characters"
           error={fieldErrors.password}
         />
-        <Button variant="primary" size="lg" type="submit" loading={submitting} iconRight={<ArrowRight size={18} />} block>
+        <Button variant="primary" size="lg" type="submit" loading={submitting} iconRight={<ArrowRight size={20} />} block>
           Create account
         </Button>
       </form>

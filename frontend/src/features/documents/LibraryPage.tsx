@@ -1,13 +1,14 @@
-import { BookOpen, FileText, RotateCcw, Trash2 } from "lucide-react";
+import { ArrowRight, RotateCcw, Trash2, Upload } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { errorMessage } from "../../shared/api/errors";
 import { usePolling } from "../../shared/hooks/usePolling";
 import { formatBytes, formatRelative } from "../../shared/lib/format";
+import { Emoji } from "../../shared/illustrations/Emoji";
 import { Alert } from "../../shared/ui/Alert";
 import { Badge } from "../../shared/ui/Badge";
-import { Button } from "../../shared/ui/Button";
+import { Button, ButtonLink } from "../../shared/ui/Button";
 import { Card } from "../../shared/ui/Card";
 import { ConfirmButton } from "../../shared/ui/ConfirmButton";
 import { EmptyState } from "../../shared/ui/EmptyState";
@@ -26,6 +27,7 @@ export function LibraryPage() {
   const [documents, setDocuments] = useState<DocumentDto[] | null>(null);
   const [uploading, setUploading] = useState(0);
   const [errors, setErrors] = useState<string[]>([]);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     try {
@@ -87,14 +89,17 @@ export function LibraryPage() {
   return (
     <PageTransition>
       <div className="stack-lg">
-        <header className="page-header" style={{ marginBottom: 0 }}>
-          <div>
+        <header className="lib-header">
+          <div className="lib-header-text">
             <h1>Your library</h1>
-            <p>Everything you upload becomes a study guide with lessons, practice and reviews.</p>
+            <p className="muted">Everything you upload becomes a course with lessons, practice and reviews.</p>
           </div>
+          <Button variant="primary" icon={<Upload size={18} />} loading={uploading > 0} onClick={() => fileInput.current?.click()}>
+            Upload
+          </Button>
         </header>
 
-        <UploadDropzone onFiles={upload} busy={uploading > 0} />
+        <UploadDropzone onFiles={upload} busy={uploading > 0} inputRef={fileInput} />
         {errors.length > 0 && (
           <Alert>
             {errors.map((e) => (
@@ -111,8 +116,8 @@ export function LibraryPage() {
           </div>
         ) : documents.length === 0 ? (
           <Card>
-            <EmptyState icon={<BookOpen size={24} />} title="Your shelf is empty">
-              Upload a document above. Most study guides are ready in under two minutes.
+            <EmptyState icon={<Emoji name="books" size={64} />} title="Your shelf is empty">
+              Upload a document above. Most courses are ready in under two minutes.
             </EmptyState>
           </Card>
         ) : (
@@ -134,25 +139,27 @@ export function LibraryPage() {
 function DocumentCard({ doc, onRetry, onDelete }: { doc: DocumentDto; onRetry: () => void; onDelete: () => Promise<void> }) {
   const state = pipelineState(doc);
   return (
-    <Card className="doc-card">
+    <Card tone={state.failed ? "red" : undefined} className="doc-card">
       <div className="row-between">
-        <span className="doc-type" aria-hidden>
-          <FileText size={18} />
-        </span>
+        <Emoji name={state.done ? "books" : "page-facing-up"} size={40} />
         {state.done ? (
           <Badge tone="success">Ready</Badge>
         ) : state.failed ? (
-          <Badge tone="warning">Needs another try</Badge>
+          <Badge tone="danger">Needs another try</Badge>
         ) : (
           <Badge tone="primary" icon={<span className="spinner" />}>
-            {state.label}
+            Working
           </Badge>
         )}
       </div>
-      <Link to={`/documents/${doc.id}`} className="doc-title break">
-        {displayTitle(doc)}
-      </Link>
-      <p className="xs muted">
+      {state.done ? (
+        <Link to={`/documents/${doc.id}`} className="doc-title break">
+          {displayTitle(doc)}
+        </Link>
+      ) : (
+        <h3 className="doc-title break">{displayTitle(doc)}</h3>
+      )}
+      <p className="small muted">
         {doc.title && <span className="break">{doc.filename} · </span>}
         {doc.pageCount != null && `${doc.pageCount} page${doc.pageCount === 1 ? "" : "s"} · `}
         {formatRelative(doc.createdAt)}
@@ -161,17 +168,17 @@ function DocumentCard({ doc, onRetry, onDelete }: { doc: DocumentDto; onRetry: (
       {state.failed && doc.errorMessage && <p className="small doc-error">{doc.errorMessage}</p>}
       <div className="doc-actions">
         {state.done && (
-          <Link to={`/documents/${doc.id}`} className="btn btn-soft btn-sm">
-            Open study guide
-          </Link>
+          <ButtonLink to={`/documents/${doc.id}`} variant="soft" size="sm" iconRight={<ArrowRight size={16} />}>
+            Open
+          </ButtonLink>
         )}
         {state.failed && (
-          <Button size="sm" variant="soft" icon={<RotateCcw size={14} />} onClick={onRetry}>
-            Try again
+          <Button size="sm" variant="danger" icon={<RotateCcw size={16} />} onClick={onRetry}>
+            Retry
           </Button>
         )}
         <span style={{ marginLeft: "auto" }}>
-          <ConfirmButton onConfirm={onDelete} icon={<Trash2 size={14} />} prompt="Delete?" confirmLabel="Delete" ariaLabel={`Delete ${displayTitle(doc)}`}>
+          <ConfirmButton onConfirm={onDelete} icon={<Trash2 size={16} />} prompt="Delete?" confirmLabel="Delete" ariaLabel={`Delete ${displayTitle(doc)}`}>
             <span className="visually-hidden">Delete</span>
           </ConfirmButton>
         </span>

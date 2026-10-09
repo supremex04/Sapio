@@ -56,7 +56,7 @@ export function ActivityChart({ days, goalMinutes }: { days: DailyActivity[]; go
       <div className="row-between" style={{ marginBottom: "var(--space-3)" }}>
         <div>
           <h2 className="card-title">Active minutes</h2>
-          <p className="muted xs">Last {days.length} days</p>
+          <p className="muted small">Last {days.length} days</p>
         </div>
         <Segmented
           label="Display"
@@ -107,7 +107,7 @@ export function ActivityChart({ days, goalMinutes }: { days: DailyActivity[]; go
             ))}
             {goalMinutes != null && goalMinutes <= top && (
               <g>
-                <line x1={PAD.left} x2={width - PAD.right} y1={y(goalMinutes)} y2={y(goalMinutes)} stroke="var(--color-accent)" strokeWidth={1} shapeRendering="crispEdges" />
+                <line x1={PAD.left} x2={width - PAD.right} y1={y(goalMinutes)} y2={y(goalMinutes)} className="chart-goal" strokeWidth={2} />
                 <text x={width - PAD.right} y={y(goalMinutes) - 6} textAnchor="end" className="chart-tick chart-goal-label">
                   Goal {goalMinutes}m
                 </text>
@@ -130,10 +130,10 @@ export function ActivityChart({ days, goalMinutes }: { days: DailyActivity[]; go
                   className="chart-col"
                 >
                   <rect x={cx - band / 2} y={PAD.top} width={band} height={plotH} fill="transparent" />
-                  {hover === i && <rect x={cx - band / 2 + 2} y={PAD.top} width={band - 4} height={plotH} rx={6} className="chart-hover-band" />}
+                  {hover === i && <rect x={cx - band / 2 + 2} y={PAD.top} width={band - 4} height={plotH} rx={8} className="chart-hover-band" />}
                   <motion.path
                     d={barPath(cx - barW / 2, y(v), barW, PAD.top + plotH - y(v))}
-                    fill="var(--chart-bar)"
+                    className={isToday ? "chart-bar chart-bar-today" : "chart-bar"}
                     initial={{ opacity: 0, scaleY: 0 }}
                     animate={{ opacity: 1, scaleY: 1 }}
                     style={{ transformOrigin: `${cx}px ${PAD.top + plotH}px` }}
@@ -161,8 +161,8 @@ export function ActivityChart({ days, goalMinutes }: { days: DailyActivity[]; go
                   top: Math.max(y(minutes[hover] ?? 0) - 12, 0),
                 }}
               >
-                <strong>{longDate.format(parseDay(hovered.date))}</strong>
-                <span>{formatDuration(hovered.activeSeconds)} active</span>
+                <strong className="chart-tooltip-value">{formatDuration(hovered.activeSeconds)} active</strong>
+                <span>{longDate.format(parseDay(hovered.date))}</span>
                 <span className="muted">
                   {hovered.questionsAnswered} questions · {hovered.xpEarned} XP
                 </span>

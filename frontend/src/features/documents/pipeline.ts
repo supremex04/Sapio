@@ -1,6 +1,6 @@
 import type { DocumentDto } from "./types";
 
-export const PIPELINE_STEPS = ["Uploaded", "Reading the text", "Building your study guide", "Ready to learn"] as const;
+export const PIPELINE_STEPS = ["Uploaded", "Reading text", "Building your course", "Ready"] as const;
 
 export interface PipelineState {
   /** Index of the step currently running (or failed), 0..3. 3 + done = ready. */
@@ -16,11 +16,11 @@ export function pipelineState(doc: Pick<DocumentDto, "status" | "textPages">): P
     case "PENDING":
       return { current: 1, failed: false, done: false, label: "Queued" };
     case "EXTRACTING":
-      return { current: 1, failed: false, done: false, label: "Reading the text" };
+      return { current: 1, failed: false, done: false, label: "Reading text" };
     case "ANALYZING":
-      return { current: 2, failed: false, done: false, label: "Building your study guide" };
+      return { current: 2, failed: false, done: false, label: "Building your course" };
     case "READY":
-      return { current: 3, failed: false, done: true, label: "Ready to learn" };
+      return { current: 3, failed: false, done: true, label: "Ready" };
     case "FAILED":
       return { current: doc.textPages != null ? 2 : 1, failed: true, done: false, label: "Needs another try" };
   }

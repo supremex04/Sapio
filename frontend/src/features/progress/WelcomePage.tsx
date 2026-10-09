@@ -1,12 +1,13 @@
-import { ArrowRight, Target } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { errorMessage } from "../../shared/api/errors";
 import { firstName } from "../../shared/lib/format";
+import { Dia } from "../../shared/illustrations/Dia";
 import { Alert } from "../../shared/ui/Alert";
 import { Button } from "../../shared/ui/Button";
-import { Card } from "../../shared/ui/Card";
 import { PageTransition } from "../../shared/ui/PageTransition";
+import { SpeechBubble } from "../../shared/ui/SpeechBubble";
 import { useAuth } from "../auth/AuthContext";
 import { progressApi } from "./api";
 import { GoalPicker } from "./GoalPicker";
@@ -49,28 +50,28 @@ export function WelcomePage() {
   return (
     <PageTransition>
       <div className="welcome">
-        <Card className="welcome-card">
-          <div className="welcome-icon" aria-hidden>
-            <Target size={28} />
-          </div>
-          <h1>{user ? `Hi ${firstName(user.fullName)}, let's set a rhythm` : "Set your daily rhythm"}</h1>
-          <p className="muted">
-            Small, regular sessions beat long cramming. Pick an amount that feels easy; you can change it any time.
-          </p>
-          <p className="welcome-intention">
-            I'll study <strong>{current} minutes</strong> a day.
-          </p>
-          <GoalPicker value={current} onChange={setGoal} />
-          {error && <Alert>{error}</Alert>}
-          <div className="row" style={{ justifyContent: "center" }}>
-            <Button variant="primary" size="lg" loading={saving} onClick={save} iconRight={<ArrowRight size={18} />}>
-              Save my goal
-            </Button>
-            <Button variant="ghost" size="lg" onClick={finish}>
-              Skip for now
-            </Button>
-          </div>
-        </Card>
+        <div className="welcome-hello">
+          <Dia mood="happy" size={104} />
+          <SpeechBubble>
+            {user ? `Hi ${firstName(user.fullName)}! ` : ""}How much time can you give each day?
+          </SpeechBubble>
+        </div>
+        <p className="muted welcome-note">
+          Small, regular sessions beat long cramming. Pick something that feels easy; you can change it any time.
+        </p>
+        <GoalPicker value={current} onChange={setGoal} />
+        <p className="welcome-intention" aria-live="polite">
+          I'll study <strong>{current} minutes</strong> a day.
+        </p>
+        {error && <Alert>{error}</Alert>}
+        <div className="welcome-actions">
+          <Button variant="ghost" onClick={finish}>
+            Maybe later
+          </Button>
+          <Button variant="primary" size="lg" loading={saving} onClick={save} iconRight={<ArrowRight size={20} />}>
+            Continue
+          </Button>
+        </div>
       </div>
     </PageTransition>
   );

@@ -1,50 +1,44 @@
-import { Brain, Repeat, Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
-import { Logo } from "../../app/Logo";
+import { Link } from "react-router";
+import { Wordmark } from "../../app/Logo";
+import { Dia, type DiaMood } from "../../shared/illustrations/Dia";
 import { PageTransition } from "../../shared/ui/PageTransition";
+import { SpeechBubble } from "../../shared/ui/SpeechBubble";
 import "./auth.css";
 
-export function AuthLayout({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
+interface Props {
+  title: string;
+  subtitle: string;
+  mood: DiaMood;
+  greeting: ReactNode;
+  children: ReactNode;
+}
+
+/** Centered, airy auth screen: Dia says hello, then one clean form card. */
+export function AuthLayout({ title, subtitle, mood, greeting, children }: Props) {
   return (
     <main className="auth-screen">
-      <aside className="auth-showcase" aria-hidden>
-        <div className="auth-orbit" />
-        <span className="brand">
-          <Logo />
-          <span>Ved</span>
-        </span>
-        <div>
-          <h2>Turn any document into a course that teaches you.</h2>
-          <p>Upload a syllabus, a textbook or your lecture notes. Ved builds lessons, checks your understanding and helps you remember it.</p>
-          <ul className="auth-features">
-            <li>
-              <Sparkles size={18} /> Lessons built only from your material
-            </li>
-            <li>
-              <Brain size={18} /> Questions that show what you really know
-            </li>
-            <li>
-              <Repeat size={18} /> Spaced reviews so it sticks
-            </li>
-          </ul>
-        </div>
-        <span className="auth-foot">Ved: from Sanskrit veda, "knowledge".</span>
-      </aside>
-      <section className="auth-panel">
-        <PageTransition>
+      <header className="auth-top">
+        <Link to="/login" aria-label="Ved home" className="auth-brand">
+          <Wordmark />
+        </Link>
+      </header>
+      <PageTransition>
+        <div className="auth-column">
+          <div className="auth-hello">
+            <Dia mood={mood} size={104} />
+            <SpeechBubble>{greeting}</SpeechBubble>
+          </div>
           <div className="auth-card">
-            <span className="brand brand-mobile">
-              <Logo />
-              <span>Ved</span>
-            </span>
-            <div className="stack-sm">
+            <div className="auth-heading">
               <h1>{title}</h1>
               <p className="muted">{subtitle}</p>
             </div>
             {children}
           </div>
-        </PageTransition>
-      </section>
+          <p className="auth-foot xs muted center">Ved, from Sanskrit veda: "knowledge".</p>
+        </div>
+      </PageTransition>
     </main>
   );
 }

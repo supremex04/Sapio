@@ -1,17 +1,22 @@
-import { FileUp } from "lucide-react";
-import { useRef, useState, type DragEvent } from "react";
+import { useRef, useState, type DragEvent, type RefObject } from "react";
+import { Dia } from "../../shared/illustrations/Dia";
 import { formatBytes } from "../../shared/lib/format";
 import { cx } from "../../shared/ui/cx";
+import { SpeechBubble } from "../../shared/ui/SpeechBubble";
 import { ACCEPTED_FILE_TYPES, MAX_FILE_BYTES } from "./types";
 
 interface Props {
   onFiles: (files: File[]) => void;
   disabled?: boolean;
   busy?: boolean;
+  /** Lets another control (e.g. the page's Upload button) open the same file picker. */
+  inputRef?: RefObject<HTMLInputElement | null>;
 }
 
-export function UploadDropzone({ onFiles, disabled, busy }: Props) {
-  const input = useRef<HTMLInputElement>(null);
+/** Chunky dashed drop target with Dia asking for material. */
+export function UploadDropzone({ onFiles, disabled, busy, inputRef }: Props) {
+  const ownInput = useRef<HTMLInputElement>(null);
+  const input = inputRef ?? ownInput;
   const [dragging, setDragging] = useState(false);
 
   function onDrop(event: DragEvent) {
@@ -22,10 +27,11 @@ export function UploadDropzone({ onFiles, disabled, busy }: Props) {
 
   return (
     <div
-      className={cx("dropzone", dragging && "dragging", disabled && "disabled")}
+      className={cx("dropzone", dragging && "is-dragging", disabled && "is-disabled")}
       role="button"
       tabIndex={0}
       aria-label="Upload a document"
+      aria-busy={busy || undefined}
       onClick={() => !disabled && input.current?.click()}
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && !disabled && (e.preventDefault(), input.current?.click())}
       onDragOver={(e) => {
@@ -46,16 +52,11 @@ export function UploadDropzone({ onFiles, disabled, busy }: Props) {
           e.target.value = "";
         }}
       />
-      <div className="dropzone-icon" aria-hidden>
-        {busy ? <span className="spinner" /> : <FileUp size={26} />}
-      </div>
-      <div>
-        <p className="dropzone-title">{busy ? "Uploading…" : "Drop your study material here"}</p>
-        <p className="muted small">
-          or <span className="dropzone-link">browse files</span>. Syllabus, textbook, lecture notes or a photo of a page.
-        </p>
-        <p className="muted xs" style={{ marginTop: 4 }}>
-          PDF, PNG, JPEG, WEBP, TIFF, BMP · up to {formatBytes(MAX_FILE_BYTES)}
+      <Dia mood={busy ? "thinking" : dragging ? "cheer" : "happy"} size={80} />
+      <div className="dropzone-text">
+        <SpeechBubble>{busy ? "Uploading… I'll read it in a moment!" : dragging ? "Yes! Drop it here!" : "Feed me a PDF, a scan or your notes!"}</SpeechBubble>
+        <p className="small muted">
+          Drag files here or <span className="dropzone-link">browse</span>. PDF, PNG, JPEG, WEBP, TIFF, BMP · up to {formatBytes(MAX_FILE_BYTES)}
         </p>
       </div>
     </div>

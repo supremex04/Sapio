@@ -1,140 +1,107 @@
+/* Auth: centered column, Dia greeting, one clean form card. */
 .auth-screen {
   min-height: 100vh;
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-}
-
-.auth-showcase {
-  position: relative;
-  overflow: hidden;
-  padding: var(--space-12);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  color: #fff;
-  background:
-    radial-gradient(800px 500px at 0% 0%, rgb(255 255 255 / 0.18), transparent 60%),
-    radial-gradient(600px 400px at 100% 100%, rgb(255 185 56 / 0.35), transparent 60%),
-    linear-gradient(150deg, #3b2db0 0%, #5b4bdb 45%, #8a5cf6 100%);
-}
-.auth-showcase .brand {
-  color: #fff;
-}
-.auth-showcase h2 {
-  color: #fff;
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 3.2vw, 2.8rem);
-  font-weight: 500;
-  line-height: 1.12;
-  max-width: 16ch;
-  font-variation-settings: "opsz" 144, "SOFT" 100;
-}
-.auth-showcase p {
-  color: rgb(255 255 255 / 0.82);
-  max-width: 42ch;
-  margin-top: var(--space-4);
-}
-.auth-features {
-  display: grid;
-  gap: var(--space-3);
-  margin: var(--space-8) 0 0;
-  padding: 0;
-  list-style: none;
-}
-.auth-features li {
-  display: flex;
-  gap: var(--space-3);
   align-items: center;
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
-  background: rgb(255 255 255 / 0.1);
-  border: 1px solid rgb(255 255 255 / 0.16);
-  backdrop-filter: blur(6px);
-  font-size: var(--text-sm);
+  padding: var(--space-4) var(--space-4) var(--space-12);
+  background: var(--bg);
 }
-.auth-features svg {
-  flex-shrink: 0;
-  color: #ffd27a;
-}
-.auth-orbit {
-  position: absolute;
-  right: -120px;
-  top: 18%;
-  width: 420px;
-  height: 420px;
-  border-radius: 50%;
-  border: 1px dashed rgb(255 255 255 / 0.25);
-  pointer-events: none;
-}
-.auth-orbit::after {
-  content: "";
-  position: absolute;
-  inset: 70px;
-  border-radius: 50%;
-  border: 1px solid rgb(255 255 255 / 0.15);
-}
-.auth-foot {
-  font-size: var(--text-xs);
-  color: rgb(255 255 255 / 0.7);
-}
-
-.auth-panel {
-  display: grid;
-  place-items: center;
-  padding: var(--space-8) var(--space-4);
-}
-.auth-card {
+.auth-top {
   width: 100%;
-  max-width: 400px;
+  max-width: var(--content-width);
+  display: flex;
+  justify-content: center;
+  padding: var(--space-2) 0 var(--space-6);
+}
+.auth-brand,
+.auth-brand:hover {
+  text-decoration: none;
+}
+.auth-column {
+  width: min(28rem, 100%);
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
 }
-.auth-card .brand-mobile {
-  display: none;
+.auth-hello {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
 }
-.auth-card h1 {
-  font-size: var(--text-xl);
+.auth-hello .bubble {
+  flex: 1;
+  font-size: var(--text-h3);
+  font-weight: var(--weight-heading);
+  line-height: 1.35;
+}
+.auth-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 var(--edge) 0 var(--border);
+  background: var(--surface);
+}
+.auth-heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.auth-heading h1 {
+  font-size: var(--text-h1);
+}
+.auth-foot {
+  margin-top: var(--space-2);
 }
 
+/* Role picker: two big selectable 3D tiles */
 .role-picker {
   border: 0;
   padding: 0;
   margin: 0;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-2);
 }
 .role-picker legend {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  color: var(--color-text-2);
+  padding: 0;
   margin-bottom: var(--space-2);
+  font-size: var(--text-small);
+  font-weight: var(--weight-heading);
+  color: var(--text-2);
+}
+.role-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
 }
 .role-option {
+  --tile-border: var(--border);
   position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border-strong);
-  background: var(--color-surface);
+  text-align: center;
+  gap: var(--space-1);
+  padding: var(--space-4) var(--space-3);
+  margin-bottom: var(--edge);
+  border: var(--border-width) solid var(--tile-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 var(--edge) 0 var(--tile-border);
+  background: var(--surface);
   cursor: pointer;
-  font-weight: var(--weight-medium);
-  font-size: var(--text-sm);
-  transition: all var(--duration-fast);
+  transition: transform var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
 }
-.role-option svg {
-  color: var(--color-text-muted);
+.role-option:hover {
+  background: var(--surface-2);
 }
-.role-option.selected {
-  border-color: var(--color-primary);
-  background: var(--color-primary-soft);
-  color: var(--color-primary-text);
-}
-.role-option.selected svg {
-  color: var(--color-primary);
+.role-option:active {
+  transform: translateY(var(--edge));
+  box-shadow: 0 0 0 var(--tile-border);
 }
 .role-option input {
   position: absolute;
@@ -142,17 +109,33 @@
   pointer-events: none;
 }
 .role-option:has(input:focus-visible) {
-  box-shadow: var(--focus-ring);
+  box-shadow: 0 var(--edge) 0 var(--tile-border), var(--focus-ring);
+}
+.role-option.is-selected {
+  --tile-border: var(--blue-main);
+  background: var(--blue-soft);
+  box-shadow: 0 var(--edge) 0 var(--blue-edge);
+}
+.role-label {
+  margin-top: var(--space-1);
+  font-weight: var(--weight-heading);
+  color: var(--text);
+}
+.role-option.is-selected .role-label {
+  color: var(--blue-ink);
+}
+.role-hint {
+  font-size: var(--text-label);
+  font-weight: var(--weight-strong);
+  color: var(--text-muted);
+  line-height: 1.3;
 }
 
-@media (max-width: 900px) {
-  .auth-screen {
-    grid-template-columns: 1fr;
+@media (max-width: 480px) {
+  .auth-hello .bubble {
+    font-size: var(--text-body);
   }
-  .auth-showcase {
-    display: none;
-  }
-  .auth-card .brand-mobile {
-    display: inline-flex;
+  .auth-card {
+    padding: var(--space-5) var(--space-4);
   }
 }
