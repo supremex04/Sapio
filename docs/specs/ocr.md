@@ -15,11 +15,11 @@ homework, importing worksheets into assignments, grading support.
 | OCR-1 | Accept PDF, PNG, JPEG, WEBP, TIFF (multi-page) and BMP up to **25 MB**. |
 | OCR-2 | The file type comes from the extension and must match the file's magic bytes; the client's Content-Type is ignored. |
 | OCR-3 | Upload returns immediately (202); conversion runs in the background. |
-| OCR-4 | The user can see status: `PENDING → EXTRACTING → ANALYZING → READY / FAILED`, with a readable reason on failure. |
+| OCR-4 | The user can see status: `PENDING → EXTRACTING → INDEXING → ANALYZING → READY / FAILED`, with a readable reason on failure. |
 | OCR-5 | The result can be viewed (rendered and raw), copied, and downloaded as `<original-name>.md`. |
 | OCR-6 | Users only ever see and delete their own documents. |
 | OCR-7 | Documents interrupted by a backend restart are resumed automatically. |
-| OCR-8 | PDFs up to **200 pages** (inference `VED_INFERENCE_MAX_PAGES`). |
+| OCR-8 | PDFs up to **200 pages** (inference `parsing.max_pages`). |
 | OCR-9 | The OCR engine can be changed by configuration, without changing the backend or UI. |
 | OCR-10 | (M2) PDF pages with a text layer are read natively; only scanned pages/images are OCR'd. |
 | OCR-11 | (M2) After extraction the document is analysed into a study material, see [study.md](study.md). |
@@ -27,7 +27,7 @@ homework, importing worksheets into assignments, grading support.
 
 ## Status lifecycle
 
-`PENDING → EXTRACTING → ANALYZING → READY`, or `FAILED` from either working state (retryable).
+`PENDING → EXTRACTING → INDEXING → ANALYZING → READY`, or `FAILED` from any working state (retryable).
 Full diagram in [study.md](study.md#document-pipeline). The extracted text (`/result`) is available
 from `ANALYZING` on.
 
@@ -75,7 +75,9 @@ from `ANALYZING` on.
 - Backend worker pool: 2–4 threads, queue 200 (`ved.documents.processing.*`). When the queue is
   full a document stays `PENDING` and is picked up on the next restart (see roadmap).
 - Backend → inference read timeout: 20 min (`ved.inference.read-timeout`).
-- Inference runs `VED_INFERENCE_MAX_CONCURRENCY` (default 1) conversions at a time.
+- Inference runs `parsing.max_concurrency` (default 1) conversions at a time; pages render at
+  `parsing.dpi` (default 200), and a PDF page is read natively when it has ≥ `parsing.native_min_chars`
+  (default 50) letters/digits. Keys and env overrides: [configuration.md](../guides/configuration.md).
 - Files are stored at `ved.documents.storage-dir/yyyy/MM/dd/<uuid>.<ext>`; results in
   `documents.result_markdown`.
 

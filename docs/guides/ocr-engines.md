@@ -4,7 +4,9 @@ Extraction is **hybrid**: PDF pages with a text layer are read natively (PyMuPDF
 with headings and tables kept as Markdown) and never OCR'd. The OCR engine below only handles scanned
 pages and images.
 
-Pick the engine with `VED_INFERENCE_ENGINE` (in `inference/.env` or the environment). Restart the service after changing it.
+Pick the engine with `ocr.engine` in `inference/settings.yaml`, or override it with `VED_INFERENCE_OCR__ENGINE`
+(in `inference/.env` or the environment). Restart the service after changing it. All OCR keys:
+[configuration.md](configuration.md#ocr-engine).
 
 | Engine | Quality | Hardware | Install |
 |---|---|---|---|
@@ -14,6 +16,8 @@ Pick the engine with `VED_INFERENCE_ENGINE` (in `inference/.env` or the environm
 
 > The dev laptop's RTX 3050 has 4 GB of VRAM. That is not enough for Unlimited-OCR (3B params,
 > BF16), so use `rapid` locally and `unlimited-remote` against a GPU server.
+
+`unlimited-local` loads `ocr.local.model_id` (default `baidu/Unlimited-OCR`) on `ocr.local.device` (default `cuda`).
 
 ## Unlimited-OCR via SGLang (recommended)
 
@@ -29,38 +33,50 @@ python -m sglang.launch_server \
 
 (The model card says to install a specific SGLang wheel. Follow it: https://huggingface.co/baidu/Unlimited-OCR)
 
-Then in `inference/.env`:
+Then in `inference/settings.yaml`:
+
+```yaml
+ocr:
+  engine: unlimited-remote
+  remote:
+    base_url: http://<gpu-host>:10000/v1
+    flavor: sglang
+    model: Unlimited-OCR
+```
+
+or, as overrides in `inference/.env`:
 
 ```env
-VED_INFERENCE_ENGINE=unlimited-remote
-VED_INFERENCE_REMOTE_BASE_URL=http://<gpu-host>:10000/v1
-VED_INFERENCE_REMOTE_FLAVOR=sglang
-VED_INFERENCE_REMOTE_MODEL=Unlimited-OCR
+VED_INFERENCE_OCR__ENGINE=unlimited-remote
+VED_INFERENCE_OCR__REMOTE__BASE_URL=http://<gpu-host>:10000/v1
 ```
 
 ## Unlimited-OCR via vLLM
 
 Use the `vllm/vllm-openai:unlimited-ocr` image and the recipe at https://recipes.vllm.ai/baidu/Unlimited-OCR.
-Set `VED_INFERENCE_REMOTE_FLAVOR=vllm` (drops SGLang-only request fields). Pass any
-server-specific request fields with `VED_INFERENCE_REMOTE_EXTRA_BODY='{"key": "value"}'`.
+Set `ocr.remote.flavor: vllm` (drops SGLang-only request fields). Pass any
+server-specific request fields with `ocr.remote.extra_body: {key: value}`
+(env: `VED_INFERENCE_OCR__REMOTE__EXTRA_BODY='{"key": "value"}'`). A key-protected server: name the
+variable holding the key in `ocr.remote.api_key_env`.
 
 ## How the remote engine calls the model
 
 - One page → prompt `document parsing.`, SGLang `image_mode: gundam`.
 - Several pages → prompt `Multi page parsing.`, `image_mode: base`. PDFs are sent in batches of
-  `VED_INFERENCE_REMOTE_PAGES_PER_REQUEST` (default 8) pages to stay within the 32k-token context;
+  `ocr.remote.pages_per_request` (default 8) pages to stay within the 32k-token context;
   batch outputs are joined with `---`.
 - `temperature: 0`, `skip_special_tokens: false`. Layout markers (`<|det|>…<|/det|>`) are stripped
   by `engines/markdown.py`.
 - Not yet used: SGLang's `DeepseekOCRNoRepeatNGramLogitProcessor`. It needs the `sglang`
   package on the client side to serialise. If you see repetition loops on long pages, add it
-  through `REMOTE_EXTRA_BODY`.
+  through `ocr.remote.extra_body`.
 
 ## Adding a new engine
 
 1. Create `inference/src/ved_inference/engines/<name>.py` with a subclass of `OcrEngine`
    (`name`, `extract(pages) -> EngineOutput`, optional `close()`). Import heavy dependencies inside the module.
-2. Register a factory in `engines/registry.py` and add the name to `EngineName` in `config.py`.
+2. Register a factory in `engines/registry.py`, add the name to `EngineName` in `config.py`, and any
+   engine settings as a sub-model of `OcrConfig` (so they get `settings.yaml` + env overrides for free).
 3. Add any optional dependencies as a new extra in `pyproject.toml`.
 4. Add tests (mock the model/HTTP; see `tests/test_unlimited_remote.py`).
 5. Update this guide.

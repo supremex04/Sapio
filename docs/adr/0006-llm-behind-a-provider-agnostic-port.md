@@ -30,3 +30,8 @@ validated output, not free text.
 - Costs and latency depend on the vendor; lessons are cached per topic and questions are stored,
   so each piece of content is generated once.
 - The API key lives only in the inference service's environment (`inference/.env`, gitignored).
+
+> **Note (2026-10-10):** models are no longer configured with `VED_INFERENCE_LLM_PROVIDER` /
+> `VED_INFERENCE_GEMINI_*`; providers, per-task routes and cross-vendor fallbacks live in
+> `inference/settings.yaml` ([ADR-0010](0010-vendor-neutral-model-configuration.md),
+> [configuration.md](../guides/configuration.md)). Only the key, `VED_INFERENCE_GEMINI_API_KEY`, kept its name.

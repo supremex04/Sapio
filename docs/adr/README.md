@@ -13,5 +13,7 @@ immutable once accepted; to change a decision, add a new ADR that supersedes the
 | [0006](0006-llm-behind-a-provider-agnostic-port.md) | LLM behind a provider-agnostic port; Gemini first | Accepted |
 | [0007](0007-shared-study-material-content-vs-learner-state.md) | One study material for both modes; content separate from learner state | Accepted |
 | [0008](0008-progress-via-in-transaction-domain-events.md) | Progress and analytics via in-transaction domain events | Accepted |
+| [0009](0009-knowledge-store-tree-hybrid-index-figures.md) | Knowledge store: document tree + hybrid index + linked figures, in PostgreSQL | Accepted |
+| [0010](0010-vendor-neutral-model-configuration.md) | Vendor-neutral model configuration: providers, per-task routes, fallbacks; tunings in properties | Accepted |
 
 New ADR: copy [template.md](template.md) to `NNNN-short-title.md`.

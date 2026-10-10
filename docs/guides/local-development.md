@@ -126,7 +126,8 @@ Frontend: `VITE_BACKEND_URL` (dev proxy target, default `http://localhost:8080`)
 - **Document stuck in "Queued"/"Processing"**: check that the inference service is running
   (`curl localhost:8000/health`). Restarting the backend re-queues unfinished documents.
 - **"The AI service is busy right now"**: Gemini returned 429/5xx after retries and all fallback
-  models. Wait a moment and retry; check `VED_INFERENCE_GEMINI_*` in `inference/.env`.
+  models. Wait a moment and retry; check the provider key in `inference/.env` and the model routes in
+  `inference/settings.yaml` ([configuration.md](configuration.md)).
 - **Document FAILED during "Building study guide"**: use *Retry* in the library. Extraction is not repeated.
 - **Logged out after every reload**: the refresh cookie is `Secure` only if
   `VED_COOKIE_SECURE=true`. Over plain http://localhost it must stay `false`.

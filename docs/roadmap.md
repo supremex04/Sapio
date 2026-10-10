@@ -16,8 +16,18 @@
 - [x] XP, levels, forgiving streaks, daily goal, heartbeat active time, logins/day, learning-event log
 - [x] Design system (light/dark/system), learning-science-driven UX ([learning-science.md](architecture/learning-science.md))
 
+**M3: knowledge store & configurability**
+- [x] Knowledge store: document tree, leaf chunks, figures, term index, hybrid retrieval ([ADR-0009](adr/0009-knowledge-store-tree-hybrid-index-figures.md)); notes & ask-your-document API
+- [x] Vendor-neutral AI: providers (Gemini, OpenAI-compatible), per-task model routes, cross-vendor fallbacks, quota-aware switching ([ADR-0010](adr/0010-vendor-neutral-model-configuration.md))
+- [x] Backend tunings in validated `@ConfigurationProperties` (retrieval, context budgets, indexing batches, auto-retry delays) ([configuration.md](guides/configuration.md))
+- [x] Embedding model tracked per vector; background re-embed on the next search after a model switch; startup dimension check
+- [x] Figure similarity threshold for semantic figure matches (`ved.knowledge.retrieval.figure-min-similarity`)
+- [x] Automatic retries of transiently failed documents (AI busy / out of quota)
+- [x] Architecture docs: document parsing, knowledge storage, retrieval, backend ↔ inference integration; [capabilities.md](capabilities.md)
+
 ## Next: hardening M2
 
+- [ ] Frontend **Read mode**: tree navigation, search, term index, notes, ask-your-document (API exists), and figures in lessons
 - [ ] Rate limits / quotas on AI endpoints per user (cost control); per-request cost logging
 - [ ] Generate the first lesson right after analysis (removes the first-open wait)
 - [ ] Stream lesson generation (SSE) instead of a 10–30 s spinner
@@ -50,4 +60,5 @@
 | Onboarding "goal set" is tracked per device (localStorage) | may re-show on a new device | frontend `/welcome` |
 | Access tokens stay valid up to 15 min after logout/ban | short window | ADR-0002 |
 | RapidOCR output is plain text | weaker structure on scans | ocr-engines guide |
+| Lesson figure embeds (`figure:<id>`) and the `figures` map are not rendered by the frontend yet | figures missing in lessons | above: frontend Read mode |
 | Files on local disk | not shared between hosts | `DocumentStorage` port: add S3/MinIO adapter |

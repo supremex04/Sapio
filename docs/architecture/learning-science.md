@@ -20,7 +20,7 @@ finding. When a feature or design choice is debated, check it against this page.
 | **Concrete examples & dual coding** | Abstract ideas stick better with concrete examples and complementary representations (Weinstein et al., 2018). | Lessons mix CONCEPT / EXAMPLE / ANALOGY sections, each visually distinct. |
 | **Immediate, elaborative feedback** | Feedback that explains *why* beats right/wrong alone; it corrects misconceptions before they consolidate (Hattie & Timperley, 2007). | Every answer immediately shows verdict, explanation, and personal feedback grounded in the source. |
 | **Hypercorrection & metacognition** | High-confidence errors, once corrected, are remembered especially well (Butterfield & Metcalfe, 2001). Rating confidence improves calibration. | Learners tap a **confidence** level (unsure / fairly sure / certain) before submitting. Confident misses are highlighted gently; the report shows calibration. |
-| **Cognitive load theory** | Working memory is small; split information and remove distractions (Sweller, 1988). | One section or one question at a time, progressive reveal, ~3.5k-character source chunks, calm reading layouts. |
+| **Cognitive load theory** | Working memory is small; split information and remove distractions (Sweller, 1988). | One section or one question at a time, progressive reveal, compact structured section context (summaries + passages within a per-use budget, never the whole document), calm reading layouts. |
 | **Mastery learning** | Advance when a concept is mastered, not after a fixed time (Bloom, 1968). | Per-topic **mastery** (recency-weighted accuracy) drives "recommended next" and weak-area advice. |
 
 ## 2. Why people keep going → how Ved motivates

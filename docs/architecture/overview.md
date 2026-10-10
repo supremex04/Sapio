@@ -214,13 +214,17 @@ Conventions:
 
 ```
 ved_inference/
-├── api/          FastAPI routes + wire schemas (camelCase), API-key check
-├── extraction/   DocumentExtractor: native PDF text (PyMuPDF/pymupdf4llm) or OCR per page
-├── documents/    loader: image/PDF bytes → page images
-├── engines/      OcrEngine ABC + implementations (RapidOCR, Unlimited-OCR remote/local) + registry
-├── llm/          LlmClient ABC + Gemini client (JSON-schema output, retries, model fallback)
-└── study/        chunking, prompts (pedagogy), StudyService (validates and post-processes all LLM output)
+├── config.py     Settings: settings.yaml + VED_INFERENCE_* env overrides (providers, routes, tunings)
+├── api/          FastAPI routes + wire schemas (camelCase), API-key check: extract, /v1/index/*, /v1/study/*
+├── parsing/      DocumentParser: layout blocks, native PDF text or OCR per page, tree, chunks, figures
+├── documents/    page/document models
+├── engines/      OcrEngine ABC + Unlimited-OCR remote/local + registry (rapid = built into the layout model)
+├── llm/          LlmClient/Embedder ports, router (per-task routes + cross-provider fallbacks), retry policy,
+│                 providers/ (Gemini, OpenAI-compatible)
+├── indexing/     IndexingService: figure descriptions, node summaries + key terms, embeddings
+└── study/        prompts (pedagogy), StudyService (validates and post-processes all LLM output)
 ```
 
-OCR engine: `VED_INFERENCE_ENGINE` ([guides/ocr-engines.md](../guides/ocr-engines.md)).
-LLM: `VED_INFERENCE_LLM_PROVIDER` + `VED_INFERENCE_GEMINI_*` ([ADR-0006](../adr/0006-llm-behind-a-provider-agnostic-port.md)).
+Configuration (OCR engine, providers, model routes per task, embeddings, tunings): `inference/settings.yaml`
+with `VED_INFERENCE_*` overrides, e.g. `VED_INFERENCE_OCR__ENGINE` ([guides/configuration.md](../guides/configuration.md),
+[guides/ocr-engines.md](../guides/ocr-engines.md), [ADR-0010](../adr/0010-vendor-neutral-model-configuration.md)).

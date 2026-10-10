@@ -45,9 +45,11 @@ were derived from, and lessons and questions are generated only from those chunk
 stateDiagram-v2
     [*] --> PENDING: upload
     PENDING --> EXTRACTING
-    EXTRACTING --> ANALYZING: pages stored
+    EXTRACTING --> INDEXING: tree, chunks, figures stored
+    INDEXING --> ANALYZING: summaries, term index, embeddings stored
     ANALYZING --> READY: study material stored
     EXTRACTING --> FAILED
+    INDEXING --> FAILED
     ANALYZING --> FAILED
     FAILED --> PENDING: POST /retry
     READY --> [*]
@@ -68,7 +70,7 @@ New error codes: `MATERIAL_NOT_READY` (409), `ALREADY_ANSWERED` (409), `ASSESSME
 
 ```jsonc
 {
-  "status": "PENDING | EXTRACTING | ANALYZING | READY | FAILED",
+  "status": "PENDING | EXTRACTING | INDEXING | ANALYZING | READY | FAILED",
   "title": "Introduction to Microeconomics",  // AI-derived, null until READY
   "textPages": 10,                             // pages using native text, null until extracted
   "ocrPages": 2                                // pages that were OCR'd, null until extracted
@@ -295,12 +297,17 @@ Content (`study_*`) is separate from per-learner state (`topic_progress`, `quest
 
 ## Generation rules (inference)
 
-- Chunks: ~3,500 characters, split on headings and paragraphs, never mid-paragraph unless one
-  paragraph is too long, with page ranges.
-- Outline: the LLM sees all chunks (`[C12] (p. 4–5) heading…`); for very long documents each chunk is
-  truncated to fit a ~300k-character budget. Topic→chunk references are validated; topics left
-  without valid chunks are dropped.
-- Lesson: ≤ 40k characters of source. 3–6 sections mixing CONCEPT / EXAMPLE / ANALOGY, ending with
+- Source structure comes from the knowledge store ([knowledge.md](knowledge.md)): a document tree with
+  small leaf chunks (~900 characters), node summaries and key terms.
+- Outline: the LLM sees only the **tree** (label, title, level, pages, summary truncated to
+  `study.outline_summary_chars`, key terms) plus a ~1,500-character text sample for language/kind
+  detection, never the raw text. Topics reference node ids (validated; topics without valid nodes are
+  dropped); at most `study.max_topics` (12).
+- Context: lessons, questions and grading receive **structured sections** (`§id`, breadcrumb, pages,
+  summary, passages) and figures assembled from the topic's subtrees in document order, up to the
+  per-use budget in `ved.study.context.*` (lesson 24k characters / 6 figures, questions 12k, grade 6k,
+  tutor 10k / 2 figures; see [configuration.md](../guides/configuration.md)).
+- Lesson: 3–6 sections mixing CONCEPT / EXAMPLE / ANALOGY, ending with
   SUMMARY; one warm-up question (`afterSection: -1`), 2–3 multiple-choice/true-false checks after
   sections, and one SHORT_ANSWER "explain it back" check after the last section.
 - Questions: distributed across the selected topics; mix of types by difficulty; prompts already

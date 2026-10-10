@@ -29,3 +29,8 @@ Document decoding (PDF → images at 200 DPI) is shared, so engines only deal wi
 - The model server can scale independently on GPU hardware.
 - Output quality depends on the engine; the `engine` field is stored per document so results are traceable.
 - `unlimited-local` is written to the model card's API but has not been run on suitable hardware yet.
+
+> **Note (2026-10-10):** the engine is now selected with `ocr.engine` in `inference/settings.yaml`
+> (env override `VED_INFERENCE_OCR__ENGINE`); the `VED_INFERENCE_ENGINE`, `VED_INFERENCE_REMOTE_*`,
+> `VED_INFERENCE_LOCAL_*` and `PDF_RENDER_DPI` settings became `ocr.*` and `parsing.dpi`. See
+> [ADR-0010](0010-vendor-neutral-model-configuration.md) and [configuration.md](../guides/configuration.md).

@@ -1,8 +1,12 @@
 # Spec: Knowledge store (document tree, index, figures, retrieval)
 
-Status: **implemented (M3)** · Code: `inference/.../parsing`, `inference/.../indexing`,
-`backend/.../knowledge`, `backend/.../study/read`, `frontend/src/features/read`
+Status: **implemented (M3), backend + inference**; the Read mode UI (tree navigation, search, notes, ask) is
+**planned** (`frontend/src/features/read` does not exist yet) · Code: `inference/.../parsing`, `inference/.../indexing`,
+`backend/.../knowledge`, `backend/.../study/read`
 Background: [RAG Architecture for Student Learning Platforms](../../RAG%20Architecture%20for%20Student%20Learning%20Platforms.pdf), [ADR-0009](../adr/0009-knowledge-store-tree-hybrid-index-figures.md)
+Architecture (how it works, tunings, limitations): [document-parsing.md](../architecture/document-parsing.md),
+[knowledge-storage.md](../architecture/knowledge-storage.md), [retrieval.md](../architecture/retrieval.md),
+[backend-inference-integration.md](../architecture/backend-inference-integration.md)
 
 ## Problem
 
@@ -39,8 +43,11 @@ stateDiagram-v2
     FAILED --> PENDING: retry resumes the failed stage
 ```
 
-Each stage is idempotent and resumable: extraction is skipped when the tree exists; indexing only
-processes items that are still missing embeddings / descriptions / summaries.
+Each stage is idempotent and resumable: extraction is skipped when the document already has extracted text
+(stored in the same transaction as the tree); indexing only processes items that are still missing
+descriptions / summaries / embeddings and commits per batch. Transient failures (AI provider busy or out of
+quota) are retried automatically after `ved.documents.processing.auto-retry-delays`; the user can also retry.
+Details: [knowledge-storage.md](../architecture/knowledge-storage.md#pipeline-states-and-retries).
 
 ### 1. Extraction & structural parsing (inference, `POST /v1/extract`)
 
@@ -48,19 +55,22 @@ processes items that are still missing embeddings / descriptions / summaries.
 2. Per page, the layout parser (PyMuPDF 4LLM layout model) yields typed **blocks** in reading order:
    `section-header`, `text`, `list-item`, `table`, `formula`, `caption`, `picture` (with bbox and
    image bytes; vector diagrams are rasterised). Running headers/footers are dropped.
-   Pages without a text layer are OCR'd (RapidOCR in the layout path; Unlimited-OCR engines return
-   markdown). On OCR'd pages, figures are found by a **gap-with-ink** heuristic: tall regions between
-   text blocks that contain ink, or regions directly above a `Figure …` caption.
-3. **Tree building**: heading levels come from the PDF outline (bookmarks) when present, otherwise from
-   heading font hierarchy, and explicit numbering (`2.3 Title` → level 2) refines them. Documents with no
-   detectable headings get one node per ~5 pages ("Pages 1–5") so navigation still works.
+   Pages with fewer than `parsing.native_min_chars` letters/digits in their text layer are OCR'd (RapidOCR in
+   the layout path; Unlimited-OCR engines return markdown, without figures). On pages OCR'd by the layout path,
+   figures are found by a **gap-with-ink** heuristic: tall bands between text blocks that still contain ink.
+3. **Tree building**: heading levels come from the layout model's heading hierarchy, and explicit numbering
+   (`Chapter 2` → level 1, `2.3 Title` → level 2) overrides them when most headings are numbered. The PDF
+   outline (bookmarks) is not used. Documents with no detectable headings get one node per 5 pages
+   ("Pages 1–5") so navigation still works.
    Node **path** = ordinal position (`2.3.1`, an `ltree`), node **label** = the document's own numbering
    when it has one (`Unit 4`, `2.3`), else the path.
-4. **Leaf chunks**: blocks are packed per node into chunks of ~600–1,000 characters, never splitting a
-   table or formula; each chunk records its page range.
-5. **Figures**: kept when ≥ 120 px on the short side, ≥ 1.5 % of the page area, aspect ≤ 6:1, not
-   repeated on ≥ 3 pages (logos), and not a full-page background behind text. Caption = the adjacent
-   `caption` block. Images are re-encoded (PNG for line art, JPEG for photos, ≤ 1,600 px).
+4. **Leaf chunks**: blocks are packed per node into chunks of ~900 characters (max 1,400), never splitting
+   a table or formula and never separating a caption from its figure; each chunk records its page range.
+5. **Figures**: kept when ≥ 100 px on the short side, ≥ 1.2 % of the page area, aspect ≤ 6:1, not
+   repeated on ≥ 3 distinct pages (logos), not a background covering > 85 % of a text page, and at most 400
+   per document. Caption = the adjacent `caption` block. Images are re-encoded (PNG for line art, JPEG for
+   photos, ≤ 1,600 px). All thresholds are `parsing.*` settings: see
+   [document-parsing.md](../architecture/document-parsing.md#tuning-knobs-inferencesettingsyaml).
 
 Response (camelCase JSON): `tree: {nodes[], chunks[], figures[]}` with string keys, `parentKey`,
 `nodeKey`, `chunkKey`, `imageBase64`, plus the existing `markdown`, `segments`, page counts.
@@ -71,7 +81,11 @@ Response (camelCase JSON): `tree: {nodes[], chunks[], figures[]}` with string ke
 |---|---|---|
 | Figure description + educational filter | `POST /v1/index/figures` (Gemini vision, batched) | `description`, `kind`; non-educational figures deleted |
 | Node summaries + key terms, bottom-up (leaves first, parents from child summaries) | `POST /v1/index/summaries` (batched by depth) | `summary`, `key_terms`, term index |
-| Embeddings: chunks (breadcrumb + text), figures (image + caption) | `POST /v1/index/embed` (`gemini-embedding-2`, 768-d, multimodal) | `embedding vector(768)` |
+| Embeddings: chunks (breadcrumb + text), figures (image + caption + description) | `POST /v1/index/embed` (configured model, default `gemini-embedding-2`, 768-d, multimodal) | `embedding vector(768)` + `embedding_model` |
+
+Vectors are only compared with vectors of the same `embedding_model`; after a model switch a document is
+re-embedded in the background the first time it is searched
+([knowledge-storage.md](../architecture/knowledge-storage.md#embedding-model-tracking)).
 
 ### 3. Analysis
 
@@ -83,39 +97,48 @@ ranges): no raw text. Each topic references one or more node ids.
 | Table | Key columns |
 |---|---|
 | `document_nodes` | `id`, `document_id`, `parent_id`, `path ltree`, `label`, `level`, `title`, `ordinal`, `page_from/to`, `summary`, `key_terms text[]` |
-| `document_chunks` | `id`, `document_id`, `node_id`, `ordinal`, `content`, `page_from/to`, `search_config regconfig`, `tsv tsvector` (generated, **GIN**), `embedding vector(768)` (**HNSW**, cosine) |
-| `document_figures` | `id`, `document_id`, `node_id`, `chunk_id` (anchor), `ordinal`, `page`, `bbox`, `storage_key`, `mime`, `width/height`, `caption`, `description`, `kind`, `tsv` (GIN), `embedding vector(768)` |
+| `document_chunks` | `id`, `document_id`, `node_id`, `ordinal`, `content`, `page_from/to`, `search_config regconfig`, `tsv tsvector` (generated, **GIN**), `embedding vector(768)` (**HNSW**, cosine), `embedding_model` |
+| `document_figures` | `id`, `document_id`, `node_id`, `chunk_id` (anchor), `ordinal`, `page`, `bbox`, `storage_key`, `mime`, `width/height`, `caption`, `description`, `kind`, `tsv` (caption + description, GIN), `embedding vector(768)` (HNSW), `embedding_model` |
 | `document_terms` | `document_id`, `term`, `node_id`: the back-of-book term index |
-| `study_notes` | `node_id` (unique), `markdown`, `model`: cached generated notes |
+| `study_notes` | `node_id` (unique), `markdown`, `figure_ids`, `source_node_ids`, `model`, `created_at`: cached generated notes |
 
-Figure files live in `DocumentStorage` (`figures/<documentId>/<figureId>.<ext>`), never in the DB.
+Figure files live in `DocumentStorage` (local disk today, key `yyyy/mm/dd/<uuid>.png|jpg`, referenced by
+`storage_key`), never in the DB. Schema, indexes and consistency rules:
+[knowledge-storage.md](../architecture/knowledge-storage.md).
 
 ## Retrieval
 
 ```
 query ─┬─ keyword: ts_rank_cd(tsv, websearch_to_tsquery)    ─┐
        └─ vector:  embedding <=> embed(query, RETRIEVAL_QUERY) ─┴─ RRF (k=60) → top leaves
-            → small-to-big: + neighbouring chunks + parent node summary + breadcrumb
-            → figures: linked to retrieved chunks/nodes, plus vector search on figures for visual asks
+            → small-to-big: + neighbouring chunks (±1, same node) + the hit's node summary + breadcrumb
+            → figures: anchored to retrieved chunks, plus figure search (keyword + vector, cosine ≥
+              ved.knowledge.retrieval.figure-min-similarity = 0.48): always on the search endpoint (up to 4),
+              for questions only when they look visual (up to 3)
             → structured context (YAML-like) → LLM
 ```
+
+Details, budgets and tunings: [retrieval.md](../architecture/retrieval.md).
 
 Optional scope: `nodeId` restricts every query to the node's subtree (`path <@ :path`).
 
 ### Context injection format (to the LLM)
 
+Rendered by the inference service (`prompts.render_context`):
+
 ```yaml
-sections:
-  - id: "§2.3"          # cite as [§2.3]
-    path: "Chapter 2 › 2.3 Osmosis"
-    pages: "14-15"
-    summary: "…"
-    passages: ["…", "…"]
-figures:
-  - id: "fig_7f3a…"     # embed as ![caption](figure:fig_7f3a…)
-    section: "§2.3"
-    caption: "Figure 2.4: Osmosis in a plant cell"
-    description: "Diagram showing water moving…"
+SECTIONS:
+- id: "§2.3"                  # "§" + node path; cite as [§2.3]
+  path: "Chapter 2 Cells › 2.3 Osmosis"
+  pages: "14-15"
+  summary: …
+  passages:
+    - …
+FIGURES:
+- id: "7f3a0c2e-…"            # figure UUID; embed as ![caption](figure:7f3a0c2e-…)
+  section: "§2.3"
+  caption: Figure 2.4: Osmosis in a plant cell
+  description: Diagram showing water moving…
 ```
 
 The service validates the output: unknown figure ids are removed, citations must reference provided
@@ -129,10 +152,10 @@ sections.
 | `GET /api/documents/{id}/nodes/{nodeId}` | node + breadcrumb + `blocks` in reading order (`{type: text, markdown}` / `{type: figure, figureId}`) + `figures` map |
 | `GET /api/documents/{id}/search?q=&nodeId=&limit=` | hybrid hits: `{chunkId, nodeId, label, title, path, snippet (highlighted), pages, score}` + matching figures |
 | `GET /api/documents/{id}/terms` | `[{term, nodes:[{id,label,title}]}]` |
-| `GET /api/documents/{id}/nodes/{nodeId}/notes` | `{nodeId, markdown, figures, sources}`: generated once and cached |
-| `POST /api/documents/{id}/ask` `{question, nodeId?, history?}` | `{answer (markdown), sources:[{nodeId,label,title,pages}], figures}` |
-| `GET /api/figures/{figureId}/image?exp=&sig=` | the image; **signed URL** (HMAC, 6 h), so `<img>` works without auth headers |
+| `GET /api/documents/{id}/nodes/{nodeId}/notes` | `{nodeId, scope ("section" \| "overview"), markdown, figures, sources, generatedAt}`: generated once and cached |
+| `POST /api/documents/{id}/ask` `{question, nodeId?, history?}` | `{answer (markdown), grounded, sources:[{citation,nodeId,label,title,pages}], figures}`; `grounded=false` when the document does not cover the question |
+| `GET /api/figures/{figureId}/image?exp=&sig=` | the image; **signed URL** (HMAC-SHA256, expiry = next full hour + `figure-url-ttl` 6 h), so `<img>` works without auth headers and URLs are cacheable |
 
-`figures` maps (`{figureId: {url, caption, description, width, height}}`) accompany every
+`figures` maps (`{figureId: {id, url, caption, description, kind, width, height, page, nodeId}}`) accompany every
 markdown payload; markdown references figures as `figure:<id>`, and the client swaps in the signed URL.
 Lessons gain the same `figures` map.
