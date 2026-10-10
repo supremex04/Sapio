@@ -209,16 +209,18 @@ budget and style `"tutor"` (short, conversational).
 
 ## Study notes (map-reduce over the tree)
 
-`ReadService.notes` generates once per node and caches in `study_notes`:
+`ReadService.notes` generates once per node and style (`EXPAND` in depth, `REVISION` condensed; see
+[knowledge.md](../specs/knowledge.md#public-api-backend-authenticated)) and caches in `study_notes`:
 
 - **Section notes** (scope `section`): `forNodes(node, notes budget)`.
 - **Overview notes** (scope `overview`) when the node has children **and** its subtree text exceeds the notes
   budget (18,000 chars). The "map" was done at indexing (bottom-up node summaries). The "reduce" context is: the
   node's own text (up to 3,000 chars, if any) + one section per child (`childSummaries`) with the child's summary and,
-  if already generated, the child's notes truncated to 2,500 chars; up to 4 figures from the subtree. The reader
+  if already generated, the child's notes of the same style truncated to 2,500 chars; up to 4 figures from the subtree. The reader
   opens each subsection's own notes from there.
 
-Concurrent generation of the same node is resolved by the unique `node_id` (the loser re-reads the saved note).
+Concurrent generation of the same node and style is resolved by the unique `(node_id, style)` (the loser re-reads
+the saved note).
 
 ## Tunings
 

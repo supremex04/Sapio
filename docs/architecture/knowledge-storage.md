@@ -6,7 +6,7 @@ and keeps it consistent, resumable and access-controlled.
 Code: `backend/src/main/java/com/ved/knowledge/` (`KnowledgeIndexer`, `KnowledgeProperties`, `StaleEmbeddingsDetected`,
 `store/KnowledgeStore`, `store/SearchConfig`, `figure/*`, `ai/*`, `web/KnowledgeAccess`),
 `backend/src/main/java/com/ved/document/processing/` (`DocumentProcessor`, `DocumentProcessingTriggers`),
-`backend/src/main/resources/db/migration/V4__knowledge_store.sql`, `V5__document_auto_retry.sql`, `V6__embedding_model.sql`
+`backend/src/main/resources/db/migration/V4__knowledge_store.sql`, `V5__document_auto_retry.sql`, `V6__embedding_model.sql`, `V7__note_styles.sql`
 
 Requirements and public endpoints: [knowledge spec](../specs/knowledge.md). Decision record:
 [ADR-0009](../adr/0009-knowledge-store-tree-hybrid-index-figures.md). Where the tree comes from:
@@ -26,7 +26,7 @@ erDiagram
     document_nodes ||--o{ document_figures : "node_id"
     document_chunks |o--o{ document_figures : "chunk_id (anchor, SET NULL)"
     document_nodes ||--o{ document_terms : "node_id"
-    document_nodes ||--o| study_notes : "node_id (unique)"
+    document_nodes ||--o{ study_notes : "node_id (unique per style)"
     documents {
         uuid id PK
         varchar language
@@ -73,6 +73,7 @@ erDiagram
     }
     study_notes {
         uuid id PK
+        varchar style "EXPAND | REVISION"
         text markdown
         uuid_array figure_ids
         uuid_array source_node_ids

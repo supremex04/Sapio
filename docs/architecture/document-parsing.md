@@ -74,6 +74,12 @@ page's markdown) and maps classes to typed `Block`s:
 | `picture` | `figure` | embedded data-URI image decoded and re-encoded; leftover text (diagram labels) kept as a `text` block |
 | anything else (`text`, `list-item`, ...) | `text` | a single line `# ...` is promoted to a `heading` (overlong ones are demoted again by the tree builder) |
 
+Before mapping, each box's text goes through `layout.inline_html_to_markdown`: the layout model's inline HTML
+(`<mark>`/`<b>`/`<strong>` → `**…**`, `<i>`/`<em>` → `*…*`, `<u>`/`<span>`/`<font>`/`<sup>`/`<sub>` dropped, `<br>` →
+newline) becomes Markdown and enclosed-letter slide bullet glyphs (🆃…) are stripped; code spans and fences are left
+untouched. The frontend renderer (`shared/ui/markdown/inlineHtml.ts`) applies the same rules, and also hides HTML
+comments (including "picture text" blocks), so text stored before this cleanup displays cleanly too.
+
 With `embed_images=True` the layout model renders each `picture` region, so raster images and vector drawings both arrive
 as images. With `use_ocr=True` pymupdf4llm uses RapidOCR (`rapid` extra: `rapidocr_onnxruntime`) and still returns
 headings and captions, but not pictures; `figures.detect_scanned_figures` fills that gap (see below).

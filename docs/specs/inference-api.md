@@ -86,11 +86,14 @@ from the knowledge store. Generated markdown cites sections as `[§id]` and embe
 | `POST /grade` | `grade` | `{language, question:{prompt, referenceAnswer, explanation}, sections, answer}` | `{verdict, score, feedback, model}` |
 | `POST /assessment-feedback` | `feedback` | `{materialTitle, language, score, topics:[{title, questionCount, score}], missed:[{topicTitle, prompt, learnerAnswer, correctAnswer}]}` | `{summary, strengths, weakAreas:[{topicTitle, advice}], nextSteps, model}` |
 | `POST /answer` | `answer` | `{materialTitle, language, question, history:[{role: user\|tutor, text}] (≤ 20), sections, figures, style: tutor\|answer}` | `{answer, grounded, citedSectionIds, figureIds, model}` |
-| `POST /notes` | `notes` | `{materialTitle, language, kind, title, path, scope: section\|overview, sections, figures}` | `{markdown, figureIds, citedSectionIds, model}` |
+| `POST /notes` | `notes` | `{materialTitle, language, kind, title, path, scope: section\|overview, style: expand\|revision (default expand), sections, figures}` | `{markdown, figureIds, citedSectionIds, model}` |
 
 `/answer` serves both the lesson tutor (`style: tutor`, short and conversational) and
 ask-your-document (`style: answer`, long-form). `/notes` with `scope: overview` writes chapter notes
-from the child sections' notes (the reduce step).
+from the child sections' notes (the reduce step). `style` picks the prompt (`prompts.notes_prompt`): `expand` explains
+in depth (small steps, why and how, jargon in plain words, examples and analogies, "Key terms" at the end);
+`revision` writes terse key-point bullets (under a third of the source) ending with a "Quick self-test" of 3-5
+questions without answers.
 
 Guarantees the service enforces on LLM output:
 

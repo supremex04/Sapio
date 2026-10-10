@@ -11,11 +11,11 @@ frontend routes, inference endpoints) as of 2026-10-10. Details live in the link
 |---|---|
 | Accounts & sessions | ✅ |
 | Document upload & extraction (PDF, images, native text + OCR) | ✅ |
-| Knowledge store: tree, term index, figures, hybrid search | 🔌 (used internally by Learn/Test; endpoints not in the UI) |
+| Knowledge store: tree, term index, figures, hybrid search | 🔌 (used internally by Learn/Test and the document Preview; tree, search and term endpoints not in the UI) |
 | Learn mode: learning path, lessons with checks, AI tutor, figures and source chips | ✅ |
 | Test mode: assessments, grading, report | ✅ |
 | Spaced review | ✅ |
-| Study notes & ask-your-document (Read mode) | 🔌 (frontend Read mode not built yet) |
+| Study notes & ask-your-document (Read mode) | ✅ notes (Expand / Revision in the document Preview) · 🔌 ask-your-document, search |
 | Gamification & analytics | ✅ |
 | Design system (light/dark, Diya v2, `/styleguide`) | ✅ |
 | AI vendor-neutrality (providers, per-task routes, fallbacks) | ✅ (config) |
@@ -41,7 +41,8 @@ Roles are recorded but **no feature differs by role yet** (see [Not yet](#not-ye
 | Text | **Hybrid**: PDF pages with a text layer are read natively; only scanned pages and images are OCR'd |
 | OCR engines | `rapid` (RapidOCR, CPU, default), `unlimited-remote` (baidu/Unlimited-OCR on SGLang/vLLM, full Markdown), `unlimited-local` (in-process, needs ~8 GB+ VRAM) |
 | Pipeline | `PENDING → EXTRACTING → INDEXING → ANALYZING → READY`, async (upload returns 202); live stepper in the library |
-| Results | rendered / raw Markdown view, copy, download as `.md` |
+| Results | document **Preview** on the study hub: *Reading view* (sections in order, figures in place, contents list), *Original* (the uploaded PDF/image in the browser's viewer, `GET /api/documents/{id}/original`), *Raw text* (rendered / raw Markdown, copy, download as `.md`) |
+| Text cleanup | inline HTML from extraction (`<mark>`, `<b>`, `<u>`, `<br>`, comments incl. picture-text blocks) becomes Markdown emphasis or is hidden, slide bullet glyphs (🆃…) are stripped; code is left untouched |
 | Failures | readable reason; **Retry** resumes the failed stage; transient AI failures retry automatically (1, 4, 15 min) |
 
 Library UI: `/library` (upload dropzone, pipeline stepper, extracted text). Specs:
@@ -60,6 +61,7 @@ Every document is parsed **once** into a structure all features reuse
 | Summaries + key terms | every node summarised bottom-up; key terms form a back-of-book **term index** | 🔌 `GET /api/documents/{id}/terms` |
 | Figures | raster images and vector diagrams extracted, decorative ones (logos, backgrounds) dropped, described by a vision model, served via signed URLs; text-only images (terminal output, code) become searchable text transcripts instead | 🔌 `GET /api/figures/{id}/image` |
 | Hybrid search | Postgres full-text + pgvector, fused with RRF, small-to-big expansion, figure matches, optional subtree scope | 🔌 `GET /api/documents/{id}/search` |
+| Whole-document reading view | every node's text and kept figures in reading order, figures as signed URLs | ✅ `GET /api/documents/{id}/content` (Preview → Reading view) |
 | Embedding model tracking | each vector records its model; after a model switch only matching vectors are compared and the document is re-embedded in the background | ✅ (automatic) |
 
 Learn and Test already run on this store: the AI only ever sees retrieved sections and figures,
@@ -99,15 +101,17 @@ Every first answer (lesson check, test item, review) becomes a Leitner card: box
 Home shows "N reviews due". Skipped test items are scheduled like misses.
 *Why:* spacing beats massed study; reviews are questions, never re-reading (testing effect).
 
-## Notes & ask-your-document 🔌
+## Notes ✅ & ask-your-document 🔌
 
 | Capability | Endpoint | Status |
 |---|---|---|
-| Study notes per section; chapter notes by map-reduce over child notes; cite sections, embed figures; generated once and cached | `GET /api/documents/{id}/nodes/{nodeId}/notes` | 🔌 |
+| Study notes per section in two styles: **Expand** (in-depth: steps, why and how, plain-language jargon, examples and analogies) and **Revision** (terse key points + a "Quick self-test"); chapter notes by map-reduce over child notes; cite sections, embed figures; generated once per style and cached | `GET /api/documents/{id}/nodes/{nodeId}/notes?style=EXPAND\|REVISION` | ✅ |
 | Ask the whole document (or a subtree): long-form, cited answer with sources and figures | `POST /api/documents/{id}/ask` | 🔌 |
 
-The **frontend Read mode** (tree navigation, notes, search, ask) is **not built yet**; it is the next
-frontend milestone ([roadmap.md](roadmap.md)). The tutor inside lessons is the only ask-style UI today.
+Notes appear in the document **Preview** (study hub → Preview → Reading view): each section with subsections or at
+least 250 characters of text switches between *Original*, *Expand* and *Revision* once the course is `READY`. The rest
+of **Read mode** (tree navigation, search, term index, ask the document) is **not built yet**; it is the next frontend
+milestone ([roadmap.md](roadmap.md)). The tutor inside lessons is the only ask-style UI today.
 
 ## Gamification & analytics ✅
 
@@ -160,7 +164,7 @@ Guides: [guides/local-development.md](guides/local-development.md), [guides/conf
 
 | Gap | Status |
 |---|---|
-| Frontend **Read mode** (tree, notes, search, ask the document) | 🧪 next |
+| Frontend **Read mode** (tree navigation, search, term index, ask the document) | 🧪 next |
 | Teacher features: classes & sharing, teacher analytics, personalised assignments, exams | 🧪 later |
 | Role-specific behaviour (teacher vs student), admin user management | 🧪 |
 | Per-user AI quotas and cost logging; login rate limiting, password reset, refresh-token reuse detection | 🧪 |

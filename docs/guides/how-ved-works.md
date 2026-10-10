@@ -461,13 +461,19 @@ Recent success outweighs an older slip. At **0.8** a topic counts as mastered.
 
 ### 6.7 Notes and "ask your document"
 
-These already work in the backend API but don't have screens yet (the "Read mode" UI is planned):
+The document's **Preview** tab (on the study hub) has three views: **Reading view** shows the document as Ved
+understood it (sections in order, figures in place, a contents list), **Original** shows the file exactly as you
+uploaded it (the browser's own PDF/image viewer), and **Raw text** shows the extracted Markdown.
 
-- **Notes** for a section are generated from that section's full text and figures, then saved. For a big
-  chapter, Ved writes notes for its subsections first and combines them (map-reduce: summarise the parts,
-  then the whole).
-- **Ask your document** runs hybrid search across the whole document (or a chosen chapter) and writes a
-  long-form, cited answer with relevant figures.
+- **Notes**: in the Reading view, a section with subsections or a fair amount of text (250+ characters) can be
+  switched from *Original* to **Expand** (an in-depth explanation: small steps, why and how, jargon in plain words,
+  examples and analogies) or **Revision** (only the key points, ending with a short "Quick self-test"). This
+  works once the course is ready. Each style is generated from that section's full text and figures, then saved,
+  so the second visit is instant. For a big chapter, Ved writes notes for its subsections first and combines
+  them (map-reduce: summarise the parts, then the whole).
+- **Ask your document** works in the backend API but has no screen yet (planned with the rest of "Read mode":
+  tree navigation and search). It runs hybrid search across the whole document (or a chosen chapter) and writes
+  a long-form, cited answer with relevant figures.
 
 ---
 

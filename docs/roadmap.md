@@ -24,10 +24,11 @@
 - [x] Figure similarity threshold for semantic figure matches (`ved.knowledge.retrieval.figure-min-similarity`)
 - [x] Automatic retries of transiently failed documents (AI busy / out of quota)
 - [x] Architecture docs: document parsing, knowledge storage, retrieval, backend ↔ inference integration; [capabilities.md](capabilities.md)
+- [x] Document **Preview**: reading view of the whole document (sections, figures in place, contents), the original upload, raw text; per-section **Expand** / **Revision** notes; inline-HTML cleanup of extracted text
 
 ## Next: hardening M2
 
-- [ ] Frontend **Read mode**: tree navigation, search, term index, notes, ask-your-document (API exists)
+- [ ] Frontend **Read mode**: tree navigation, search, term index, ask-your-document (API exists; notes are in the Preview)
 - [ ] Rate limits / quotas on AI endpoints per user (cost control); per-request cost logging
 - [ ] Generate the first lesson right after analysis (removes the first-open wait)
 - [ ] Stream lesson generation (SSE) instead of a 10–30 s spinner

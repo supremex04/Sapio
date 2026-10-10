@@ -40,6 +40,7 @@ from `ANALYZING` on.
 | `GET /api/documents/{id}` | **200** `DocumentResponse` | poll this every ~2 s while not terminal |
 | `GET /api/documents/{id}/result` | **200** `{id, format: "markdown", content}` | `RESULT_NOT_READY` 409 until text is extracted |
 | `GET /api/documents/{id}/result/download` | **200** `text/markdown`, `Content-Disposition: attachment` | |
+| `GET /api/documents/{id}/original` | **200** the uploaded file with its own content type, `Content-Disposition: inline` | owner only (`NOT_FOUND` 404 otherwise); the Preview's "Original" mode shows it in the browser's viewer |
 | `POST /api/documents/{id}/retry` | **202** `DocumentResponse` | only when `FAILED` (else 409 `INVALID_STATE`) |
 | `DELETE /api/documents/{id}` | **204** | deletes record, study material and stored file |
 

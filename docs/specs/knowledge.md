@@ -1,7 +1,8 @@
 # Spec: Knowledge store (document tree, index, figures, retrieval)
 
-Status: **implemented (M3), backend + inference**; the Read mode UI (tree navigation, search, notes, ask) is
-**planned** (`frontend/src/features/read` does not exist yet) · Code: `inference/.../parsing`, `inference/.../indexing`,
+Status: **implemented (M3), backend + inference**; the document **Preview** (reading view of the whole document
+with per-section Expand / Revision notes) is built (`frontend/src/features/documents/DocumentPreview.tsx`); the rest of
+the Read mode UI (tree navigation, search, ask) is **planned** · Code: `inference/.../parsing`, `inference/.../indexing`,
 `backend/.../knowledge`, `backend/.../study/read`
 Background: [RAG Architecture for Student Learning Platforms](../../RAG%20Architecture%20for%20Student%20Learning%20Platforms.pdf), [ADR-0009](../adr/0009-knowledge-store-tree-hybrid-index-figures.md)
 Architecture (how it works, tunings, limitations): [document-parsing.md](../architecture/document-parsing.md),
@@ -25,7 +26,7 @@ and can't answer "where does the book talk about X?" or write long-form notes ef
 | KN-5 | Maintain an **inverted index** for exact terms (Postgres full-text, GIN) and a **dense index** for meaning (pgvector, multimodal embeddings), both filterable by subtree (`path <@ '2.3'`). |
 | KN-6 | Summarise every node bottom-up and extract **key terms**; key terms form a back-of-book **term index** (term → sections). |
 | KN-7 | Retrieval is **hybrid** (keyword + vector, fused with RRF) with **small-to-big** expansion and figure attachment, so the LLM gets compact, structured context, never the whole document. |
-| KN-8 | Generate **long-form answers** and **study notes** (per section; chapter notes via map-reduce) that cite sections and embed the right figures inline. |
+| KN-8 | Generate **long-form answers** and **study notes** (per section, in an in-depth *Expand* or a condensed *Revision* style; chapter notes via map-reduce) that cite sections and embed the right figures inline. |
 | KN-9 | Learn/Test (topics, lessons, questions) are built on the tree instead of flat chunks; lessons can show figures too. |
 
 ## Pipeline
@@ -101,7 +102,7 @@ ranges): no raw text. Each topic references one or more node ids.
 | `document_chunks` | `id`, `document_id`, `node_id`, `ordinal`, `content`, `page_from/to`, `search_config regconfig`, `tsv tsvector` (generated, **GIN**), `embedding vector(768)` (**HNSW**, cosine), `embedding_model` |
 | `document_figures` | `id`, `document_id`, `node_id`, `chunk_id` (anchor), `ordinal`, `page`, `bbox`, `storage_key`, `mime`, `width/height`, `caption`, `description`, `kind`, `tsv` (caption + description, GIN), `embedding vector(768)` (HNSW), `embedding_model` |
 | `document_terms` | `document_id`, `term`, `node_id`: the back-of-book term index |
-| `study_notes` | `node_id` (unique), `markdown`, `figure_ids`, `source_node_ids`, `model`, `created_at`: cached generated notes |
+| `study_notes` | `node_id` + `style` (`EXPAND` \| `REVISION`, unique together), `markdown`, `figure_ids`, `source_node_ids`, `model`, `created_at`: cached generated notes |
 
 Figure files live in `DocumentStorage` (local disk today, key `yyyy/mm/dd/<uuid>.png|jpg`, referenced by
 `storage_key`), never in the DB. Schema, indexes and consistency rules:
@@ -150,13 +151,21 @@ sections.
 | Endpoint | Returns |
 |---|---|
 | `GET /api/documents/{id}/tree` | flat node list (`id, parentId, path, label, title, level, pageFrom, pageTo, figureCount, hasNotes`) |
+| `GET /api/documents/{id}/content` | the whole document in reading order: `sections` (`id, parentId, path, label, title, level, pageFrom, pageTo, blocks`, blocks as below) + one `figures` map (signed URLs); figures without a description are left out |
 | `GET /api/documents/{id}/nodes/{nodeId}` | node + breadcrumb + `blocks` in reading order (`{type: text, markdown}` / `{type: figure, figureId}`) + `figures` map |
 | `GET /api/documents/{id}/search?q=&nodeId=&limit=` | hybrid hits: `{chunkId, nodeId, label, title, path, snippet (highlighted), pages, score}` + matching figures |
 | `GET /api/documents/{id}/terms` | `[{term, nodes:[{id,label,title}]}]` |
-| `GET /api/documents/{id}/nodes/{nodeId}/notes` | `{nodeId, scope ("section" \| "overview"), markdown, figures, sources, generatedAt}`: generated once and cached |
+| `GET /api/documents/{id}/nodes/{nodeId}/notes?style=EXPAND\|REVISION` | `{nodeId, style, scope ("section" \| "overview"), markdown, figures, sources, generatedAt}`: generated once per style and cached; `style` defaults to `EXPAND` |
 | `POST /api/documents/{id}/ask` `{question, nodeId?, history?}` | `{answer (markdown), grounded, sources:[{citation,nodeId,label,title,pages}], figures}`; `grounded=false` when the document does not cover the question |
 | `GET /api/figures/{figureId}/image?exp=&sig=` | the image; **signed URL** (HMAC-SHA256, expiry = next full hour + `figure-url-ttl` 6 h), so `<img>` works without auth headers and URLs are cacheable |
 
 `figures` maps (`{figureId: {id, url, caption, description, kind, width, height, page, nodeId}}`) accompany every
 markdown payload; markdown references figures as `figure:<id>`, and the client swaps in the signed URL.
 Lessons gain the same `figures` map.
+
+**Note styles.** `EXPAND` explains a section in depth, as a patient tutor would: complex ideas in small steps, why and
+how (not just what), jargon in plain words, an example or analogy per abstract idea, ending with "Key terms".
+`REVISION` condenses it to what must be remembered: terse headed bullet points, under a third of the source's length,
+ending with a "Quick self-test" (3-5 questions, answers not given). Chapter (overview) notes of a style are reduced
+from the children's notes of the same style. Notes generated before styles existed are `EXPAND`
+(`V7__note_styles.sql`).
