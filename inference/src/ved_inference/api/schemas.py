@@ -61,6 +61,7 @@ class TreeOut(ApiModel):
 class ExtractResponse(ApiModel):
     markdown: str
     engine: str
+    language: str
     page_count: int
     text_pages: int
     ocr_pages: int

@@ -40,8 +40,13 @@ class InferenceStudyAi implements StudyAi {
     }
 
     @Override
-    public TutorReply ask(AskSpec spec) {
-        return post("/v1/study/ask", spec, TutorReply.class);
+    public AnswerDraft answer(AnswerSpec spec) {
+        return post("/v1/study/answer", spec, AnswerDraft.class);
+    }
+
+    @Override
+    public NotesDraft notes(NotesSpec spec) {
+        return post("/v1/study/notes", spec, NotesDraft.class);
     }
 
     private <T> T post(String path, Object body, Class<T> type) {

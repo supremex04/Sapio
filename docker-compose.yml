@@ -1,7 +1,7 @@
 # Local development infrastructure. Application services run on the host (see docs/guides/local-development.md).
 services:
   postgres:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:pg17 # PostgreSQL 17 + pgvector for vector search (ADR-0009)
     environment:
       POSTGRES_DB: ved
       POSTGRES_USER: ved

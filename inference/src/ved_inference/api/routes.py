@@ -63,6 +63,7 @@ def to_response(parsed: ParsedDocument) -> ExtractResponse:
     return ExtractResponse(
         markdown=join_pages([p.markdown for p in parsed.pages]),
         engine=parsed.engine,
+        language=parsed.language,
         page_count=parsed.page_count,
         text_pages=parsed.text_pages,
         ocr_pages=parsed.ocr_pages,

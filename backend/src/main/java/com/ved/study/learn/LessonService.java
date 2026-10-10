@@ -9,6 +9,8 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.ved.knowledge.figure.FigureViews;
+import com.ved.knowledge.retrieval.ContextAssembler;
 import com.ved.study.LearningActivityEvent;
 import com.ved.study.ai.StudyAi;
 import com.ved.study.material.MaterialAccess;
@@ -45,6 +47,7 @@ public class LessonService {
 
     private static final TypeReference<List<LessonSection>> SECTIONS = new TypeReference<>() {
     };
+    static final int TUTOR_BUDGET = 10_000;
 
     private final MaterialAccess access;
     private final StudyAi ai;
@@ -60,11 +63,16 @@ public class LessonService {
     private final TransactionTemplate tx;
     private final JsonMapper json;
     private final Clock clock;
+    private final ContextAssembler context;
+    private final FigureViews figures;
 
     LessonService(MaterialAccess access, StudyAi ai, StudyLessonRepository lessons, StudyTopicRepository topics,
                   StudyQuestionRepository questions, QuestionAttemptRepository attempts, ReviewCardRepository cards,
                   TopicProgressRepository progress, AnswerGrader grader, AnswerRecorder recorder,
-                  ApplicationEventPublisher events, TransactionTemplate tx, JsonMapper json, Clock clock) {
+                  ApplicationEventPublisher events, TransactionTemplate tx, JsonMapper json, Clock clock,
+                  ContextAssembler context, FigureViews figures) {
+        this.context = context;
+        this.figures = figures;
         this.access = access;
         this.ai = ai;
         this.lessons = lessons;
@@ -93,7 +101,7 @@ public class LessonService {
                     latest.containsKey(q.getId()) ? AnswerResult.of(q, latest.get(q.getId()), nextReview(userId, q))
                             : null)).toList();
             return new LessonResponse(topicId, ctx.topic().getTitle(), json.readValue(lesson.getSectionsJson(),
-                    SECTIONS), lesson.getKeyTakeaways(), views, topicStatus);
+                    SECTIONS), lesson.getKeyTakeaways(), views, topicStatus, figures.byIds(lesson.getFigureIds()));
         });
     }
 
@@ -104,7 +112,7 @@ public class LessonService {
             throw ApplicationException.notFound("Question");
         }
         AnswerGrader.Graded graded = grader.grade(question, request, ctx.material().getLanguage(),
-                access.sources(question, ctx.topic()));
+                access.sources(ctx.material(), question, ctx.topic()));
         return tx.execute(status -> {
             AnswerRecorder.Recorded recorded = recorder.record(userId, question, AttemptContext.LESSON, null, graded,
                     request.confidence());
@@ -127,16 +135,22 @@ public class LessonService {
         });
     }
 
+    /** The tutor: hybrid retrieval scoped to the topic's sections, short conversational answer. */
     public AskResponse ask(UUID userId, UUID topicId, AskRequest request) {
         TopicContext ctx = access.requireTopic(userId, topicId);
         List<StudyAi.ChatTurn> history = request.history() == null ? List.of() : request.history().stream()
                 .map(t -> new StudyAi.ChatTurn(t.role(), t.text())).toList();
-        StudyAi.TutorReply reply = ai.ask(new StudyAi.AskSpec(ctx.material().getTitle(),
-                ctx.material().getLanguage(), ctx.topic().getTitle(), access.sources(ctx.topic()),
-                request.question(), history));
+        ContextAssembler.Context sources = context.forQuestion(ctx.material().getDocumentId(), request.question(),
+                ctx.topic().getNodeIds(), TUTOR_BUDGET, 2);
+        if (sources.isEmpty()) {
+            sources = access.sources(ctx.material(), ctx.topic(), TUTOR_BUDGET, 2);
+        }
+        StudyAi.AnswerDraft reply = ai.answer(new StudyAi.AnswerSpec(ctx.material().getTitle(),
+                ctx.material().getLanguage(), request.question(), history, sources.sections(), sources.figures(),
+                "tutor"));
         tx.executeWithoutResult(status -> publish(userId, LearningActivityEvent.Type.TUTOR_QUESTION, ctx.material(),
                 ctx.topic(), b -> b));
-        return new AskResponse(reply.answer(), reply.grounded());
+        return new AskResponse(reply.answer(), reply.grounded(), figures.byIds(uuids(reply.figureIds())));
     }
 
     // ---- internals
@@ -146,13 +160,14 @@ public class LessonService {
         int index = path.indexOf(path.stream().filter(t -> t.getId().equals(ctx.topic().getId())).findFirst()
                 .orElseThrow());
         StudyTopic topic = ctx.topic();
+        ContextAssembler.Context sources = access.sources(ctx.material(), topic, MaterialAccess.LESSON_BUDGET, 6);
         StudyAi.LessonDraft draft = ai.generateLesson(new StudyAi.LessonSpec(ctx.material().getTitle(),
                 ctx.material().getLanguage(), ctx.material().getKind(),
                 new StudyAi.TopicBrief(topic.getTitle(), topic.getSummary(), topic.getKeyConcepts(),
                         topic.getDifficulty()),
                 path.subList(0, index).stream().map(StudyTopic::getTitle).toList(),
                 path.subList(index + 1, path.size()).stream().map(StudyTopic::getTitle).toList(),
-                access.sources(topic)));
+                sources.sections(), sources.figures()));
         if (draft.sections() == null || draft.sections().isEmpty()) {
             throw new ApplicationException(ErrorCode.AI_UNAVAILABLE, "The lesson came back empty, please retry");
         }
@@ -172,13 +187,14 @@ public class LessonService {
             sections.add(new LessonSection(i, s.kind(), s.heading(), s.body()));
         }
         StudyLesson lesson = lessons.saveAndFlush(new StudyLesson(ctx.topic().getId(), json.writeValueAsString(sections),
-                draft.keyTakeaways() == null ? List.of() : draft.keyTakeaways(), draft.model(), now));
+                draft.keyTakeaways() == null ? List.of() : draft.keyTakeaways(), uuids(draft.figureIds()), draft.model(),
+                now));
         int position = 0;
         for (StudyAi.CheckDraft c : draft.checks()) {
             questions.save(new StudyQuestion(ctx.material().getId(), ctx.topic().getId(), lesson.getId(),
                     QuestionOrigin.LESSON_CHECK, c.afterSection(), position++, c.type(), c.prompt(),
                     c.options() == null ? List.of() : c.options(), c.correctOptionIndex(), c.referenceAnswer(),
-                    c.explanation() == null ? "" : c.explanation(), ctx.topic().getChunkPositions(), now));
+                    c.explanation() == null ? "" : c.explanation(), ctx.topic().getNodeIds(), now));
         }
         return lesson;
     }
@@ -196,6 +212,21 @@ public class LessonService {
                     publish(userId, LearningActivityEvent.Type.LESSON_STARTED, ctx.material(), ctx.topic(), b -> b);
                     return TopicStatus.IN_PROGRESS;
                 });
+    }
+
+    static List<UUID> uuids(List<String> ids) {
+        if (ids == null) {
+            return List.of();
+        }
+        List<UUID> out = new ArrayList<>();
+        for (String id : ids) {
+            try {
+                out.add(UUID.fromString(id));
+            } catch (IllegalArgumentException ignored) {
+                // not a figure id we issued; the inference service already filters these
+            }
+        }
+        return out;
     }
 
     private Map<UUID, QuestionAttempt> latestAttempts(UUID userId, List<StudyQuestion> checks) {

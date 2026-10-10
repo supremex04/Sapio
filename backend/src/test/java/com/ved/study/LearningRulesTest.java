@@ -63,7 +63,7 @@ class LearningRulesTest {
 
     private static StudyTopic topic(int position) {
         StudyTopic t = new StudyTopic(UUID.randomUUID(), position, "T" + position, "s", List.of(),
-                TopicDifficulty.CORE, List.of(1));
+                TopicDifficulty.CORE, List.of(UUID.randomUUID()));
         ReflectionTestUtils.setField(t, "id", UUID.randomUUID());
         return t;
     }

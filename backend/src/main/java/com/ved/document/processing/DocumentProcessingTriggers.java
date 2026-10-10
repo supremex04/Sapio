@@ -46,7 +46,8 @@ class DocumentProcessingTriggers {
         // Requeue in its own committed transaction first, so workers see the PENDING state.
         List<UUID> unfinished = tx.execute(status -> {
             List<Document> docs = documents.findByStatusIn(
-                    EnumSet.of(DocumentStatus.PENDING, DocumentStatus.EXTRACTING, DocumentStatus.ANALYZING));
+                    EnumSet.of(DocumentStatus.PENDING, DocumentStatus.EXTRACTING, DocumentStatus.INDEXING,
+                            DocumentStatus.ANALYZING));
             docs.forEach(Document::requeue);
             return docs.stream().map(Document::getId).toList();
         });

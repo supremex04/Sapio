@@ -11,6 +11,7 @@ import pymupdf
 from ved_inference.engines.base import OcrEngine
 from ved_inference.errors import DocumentError
 from ved_inference.parsing.figures import detect_scanned_figures, filter_figures, insert_by_position
+from ved_inference.parsing.language import detect_language
 from ved_inference.parsing.layout import blocks_from_markdown, read_layout
 from ved_inference.parsing.models import Block, DocumentTree
 from ved_inference.parsing.tree import build_tree
@@ -34,6 +35,7 @@ class ParsedDocument:
     tree: DocumentTree
     page_count: int
     engine: str
+    language: str  # ISO 639-1 or "und"
 
     @property
     def text_pages(self) -> int:
@@ -107,7 +109,10 @@ class DocumentParser:
                 for p in range(1, page_count + 1)
             ]
             engines = (["pymupdf"] if native else []) + ([self.ocr_engine_name] if scanned else [])
-            return ParsedDocument(pages=pages, tree=tree, page_count=page_count, engine="+".join(engines))
+            language = detect_language(" ".join(c.text for c in tree.chunks[:40]))
+            return ParsedDocument(
+                pages=pages, tree=tree, page_count=page_count, engine="+".join(engines), language=language
+            )
 
     # ------------------------------------------------------------------------------------------
 

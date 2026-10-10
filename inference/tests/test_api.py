@@ -34,7 +34,7 @@ def test_extract_returns_pages_and_tree_with_figures():
         )
     body = response.json()
     assert response.status_code == 200
-    assert (body["pageCount"], body["textPages"], body["ocrPages"]) == (3, 3, 0)
+    assert (body["pageCount"], body["textPages"], body["ocrPages"], body["language"]) == (3, 3, 0, "en")
     tree = body["tree"]
     assert [n["path"] for n in tree["nodes"]] == ["1", "1.1", "2", "2.1"]
     assert tree["nodes"][1]["parentKey"] == tree["nodes"][0]["key"]

@@ -9,8 +9,10 @@ import com.ved.TestUsers;
 import com.ved.TestUsers.Registered;
 import com.ved.document.extraction.ExtractionException;
 import com.ved.document.extraction.ExtractionGateway;
+import com.ved.knowledge.ai.KnowledgeAi;
 import com.ved.study.ai.StudyAi;
 import com.ved.study.ai.StudyAiException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockMultipartFile;
@@ -22,6 +24,7 @@ import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -52,25 +55,32 @@ public class DocumentFlowIT {
     @MockitoBean
     StudyAi ai;
 
+    @MockitoBean
+    KnowledgeAi knowledgeAi;
+
+    @BeforeEach
+    void stubAi() {
+        FakeAi.stub(knowledgeAi, ai);
+    }
+
     @Test
     void uploadIsExtractedAnalysedAndReady() throws Exception {
         when(extraction.extract(any())).thenReturn(FakeAi.extraction());
-        when(ai.buildMaterial(any())).thenReturn(FakeAi.material());
         Registered user = TestUsers.register(mvc, json);
 
         UUID id = upload(mvc, json, user, "scan.png", PNG_BYTES);
         JsonNode doc = awaitTerminal(mvc, json, user, id);
 
         assertThat(doc.get("status").asString()).isEqualTo("READY");
-        assertThat(doc.get("title").asString()).isEqualTo("Intro Economics");
-        assertThat(doc.get("textPages").asInt()).isEqualTo(2);
+        assertThat(doc.get("title").asString()).isEqualTo("Intro Biology");
+        assertThat(doc.get("textPages").asInt()).isEqualTo(3);
         mvc.perform(get("/api/documents/{id}/result", id).header("Authorization", user.bearer()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").value("# Demand\n\nDemand falls as price rises."));
+                .andExpect(jsonPath("$.content").value("# The Cell\n\n..."));
         mvc.perform(get("/api/documents/{id}/result/download", id).header("Authorization", user.bearer()))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("scan.md")))
-                .andExpect(content().string("# Demand\n\nDemand falls as price rises."));
+                .andExpect(content().string("# The Cell\n\n..."));
         mvc.perform(get("/api/documents/{id}/material", id).header("Authorization", user.bearer()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.topics.length()").value(2));
@@ -95,9 +105,9 @@ public class DocumentFlowIT {
     @Test
     void analysisFailureCanBeRetriedWithoutReExtracting() throws Exception {
         when(extraction.extract(argThat(r -> r.filename().equals("retry.png")))).thenReturn(FakeAi.extraction());
-        when(ai.buildMaterial(argThat(s -> s.filename().equals("retry.png"))))
-                .thenThrow(new StudyAiException("The AI service is busy", false))
-                .thenReturn(FakeAi.material());
+        doThrow(new StudyAiException("The AI service is busy", false))
+                .doAnswer(inv -> FakeAi.material(inv.getArgument(0)))
+                .when(ai).buildMaterial(argThat(s -> s != null && s.filename().equals("retry.png")));
         Registered user = TestUsers.register(mvc, json);
 
         UUID id = upload(mvc, json, user, "retry.png", PNG_BYTES);
@@ -131,7 +141,6 @@ public class DocumentFlowIT {
     @Test
     void usersCannotSeeOrDeleteEachOthersDocuments() throws Exception {
         when(extraction.extract(any())).thenReturn(FakeAi.extraction());
-        when(ai.buildMaterial(any())).thenReturn(FakeAi.material());
         Registered owner = TestUsers.register(mvc, json);
         Registered other = TestUsers.register(mvc, json);
         UUID id = upload(mvc, json, owner, "mine.png", PNG_BYTES);

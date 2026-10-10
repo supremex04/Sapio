@@ -6,7 +6,7 @@ import java.util.UUID;
 import com.ved.common.error.ApplicationException;
 import com.ved.common.error.ErrorCode;
 import com.ved.document.DocumentService;
-import com.ved.study.ai.StudyAi;
+import com.ved.knowledge.retrieval.ContextAssembler;
 import com.ved.study.question.StudyQuestion;
 import com.ved.study.question.StudyQuestionRepository;
 import org.springframework.stereotype.Component;
@@ -21,17 +21,17 @@ public class MaterialAccess {
 
     private final StudyMaterialRepository materials;
     private final StudyTopicRepository topics;
-    private final StudyChunkRepository chunks;
     private final StudyQuestionRepository questions;
     private final DocumentService documents;
+    private final ContextAssembler context;
 
-    MaterialAccess(StudyMaterialRepository materials, StudyTopicRepository topics, StudyChunkRepository chunks,
-                   StudyQuestionRepository questions, DocumentService documents) {
+    MaterialAccess(StudyMaterialRepository materials, StudyTopicRepository topics, StudyQuestionRepository questions,
+                   DocumentService documents, ContextAssembler context) {
         this.materials = materials;
         this.topics = topics;
-        this.chunks = chunks;
         this.questions = questions;
         this.documents = documents;
+        this.context = context;
     }
 
     public record TopicContext(StudyMaterial material, StudyTopic topic) {
@@ -71,24 +71,20 @@ public class MaterialAccess {
         return new QuestionContext(requireMaterial(userId, question.getMaterialId()), topic, question);
     }
 
-    /** Source chunks a topic is grounded in. */
-    @Transactional(readOnly = true)
-    public List<StudyAi.SourceChunk> sources(StudyTopic topic) {
-        return load(topic.getMaterialId(), topic.getChunkPositions());
+    /** Context budgets (characters of source text) per use. */
+    public static final int LESSON_BUDGET = 24_000;
+    public static final int QUESTION_BUDGET = 12_000;
+    public static final int GRADE_BUDGET = 6_000;
+
+    /** The topic's sections (its tree nodes' text, in order) and figures, within a budget. */
+    public ContextAssembler.Context sources(StudyMaterial material, StudyTopic topic, int budget, int maxFigures) {
+        return context.forNodes(material.getDocumentId(), topic.getNodeIds(), budget, maxFigures);
     }
 
-    /** Sources cited by a question, falling back to its topic's sources. */
-    @Transactional(readOnly = true)
-    public List<StudyAi.SourceChunk> sources(StudyQuestion question, StudyTopic topic) {
-        List<Integer> positions = question.getSourceChunkPositions().isEmpty()
-                ? topic.getChunkPositions() : question.getSourceChunkPositions();
-        return load(question.getMaterialId(), positions);
-    }
-
-    private List<StudyAi.SourceChunk> load(UUID materialId, List<Integer> positions) {
-        return chunks.findByMaterialIdAndPositionInOrderByPosition(materialId, positions).stream()
-                .map(c -> new StudyAi.SourceChunk(c.getPosition(), c.getHeading(), c.getContent()))
-                .toList();
+    /** Sources cited by a question, falling back to its topic's nodes. */
+    public ContextAssembler.Context sources(StudyMaterial material, StudyQuestion question, StudyTopic topic) {
+        List<UUID> nodes = question.getSourceNodeIds().isEmpty() ? topic.getNodeIds() : question.getSourceNodeIds();
+        return context.forNodes(material.getDocumentId(), nodes, GRADE_BUDGET, 0);
     }
 
     private static StudyMaterial requireOwned(UUID userId, StudyMaterial material) {

@@ -2,6 +2,8 @@ package com.ved.study.ai;
 
 import java.util.List;
 
+import com.ved.knowledge.retrieval.ContextAssembler.Figure;
+import com.ved.knowledge.retrieval.ContextAssembler.Section;
 import com.ved.study.material.MaterialKind;
 import com.ved.study.material.TopicDifficulty;
 import com.ved.study.question.QuestionType;
@@ -9,7 +11,9 @@ import com.ved.study.question.Verdict;
 
 /**
  * Port to the AI that writes study content. Implemented by {@link InferenceStudyAi} (Python service + LLM).
- * Records mirror the wire contract in docs/specs/inference-api.md. All methods throw {@link StudyAiException}.
+ * Context is always structured and retrieved from the knowledge store ({@link Section}s with citation ids,
+ * {@link Figure}s with ids); the AI never receives the whole document. Records mirror the wire contract in
+ * docs/specs/inference-api.md. All methods throw {@link StudyAiException}.
  */
 public interface StudyAi {
 
@@ -23,39 +27,37 @@ public interface StudyAi {
 
     ReportNarrative assessmentFeedback(FeedbackSpec spec);
 
-    TutorReply ask(AskSpec spec);
+    AnswerDraft answer(AnswerSpec spec);
+
+    NotesDraft notes(NotesSpec spec);
 
     // ---- shared
-
-    record SourceChunk(int position, String heading, String content) {
-    }
 
     record TopicBrief(String title, String summary, List<String> keyConcepts, TopicDifficulty difficulty) {
     }
 
-    // ---- material
+    // ---- learning path from the outline
 
-    record PageText(int pageFrom, int pageTo, String text) {
+    record OutlineNode(String key, String label, String title, int level, String pages, String summary,
+                       List<String> keyTerms) {
     }
 
-    record MaterialSpec(String filename, List<PageText> pages) {
-    }
-
-    record ChunkDraft(int position, String heading, String content, int pageFrom, int pageTo) {
+    record MaterialSpec(String filename, String sample, List<OutlineNode> nodes) {
     }
 
     record TopicDraft(int position, String title, String summary, List<String> keyConcepts,
-                      TopicDifficulty difficulty, List<Integer> chunkPositions) {
+                      TopicDifficulty difficulty, List<String> nodeKeys) {
     }
 
-    record MaterialDraft(String title, String summary, String language, MaterialKind kind, List<ChunkDraft> chunks,
-                         List<TopicDraft> topics, String model) {
+    record MaterialDraft(String title, String summary, String language, MaterialKind kind, List<TopicDraft> topics,
+                         String model) {
     }
 
     // ---- lesson
 
     record LessonSpec(String materialTitle, String language, MaterialKind kind, TopicBrief topic,
-                      List<String> previousTopics, List<String> nextTopics, List<SourceChunk> sources) {
+                      List<String> previousTopics, List<String> nextTopics, List<Section> sections,
+                      List<Figure> figures) {
     }
 
     record SectionDraft(String kind, String heading, String body) {
@@ -66,13 +68,13 @@ public interface StudyAi {
     }
 
     record LessonDraft(List<SectionDraft> sections, List<String> keyTakeaways, List<CheckDraft> checks,
-                       String model) {
+                       List<String> figureIds, String model) {
     }
 
     // ---- questions
 
     record QuestionTopic(String key, String title, String summary, List<String> keyConcepts,
-                         TopicDifficulty difficulty, List<SourceChunk> sources) {
+                         TopicDifficulty difficulty, List<Section> sections) {
     }
 
     record QuestionSpec(String materialTitle, String language, MaterialKind kind, int count, String difficulty,
@@ -81,7 +83,7 @@ public interface StudyAi {
 
     record QuestionDraft(String topicKey, QuestionType type, String prompt, List<String> options,
                          Integer correctOptionIndex, String referenceAnswer, String explanation,
-                         List<Integer> sourceChunkPositions) {
+                         List<String> sourceSectionIds) {
     }
 
     record QuestionsDraft(List<QuestionDraft> questions, String model) {
@@ -92,7 +94,7 @@ public interface StudyAi {
     record QuestionToGrade(String prompt, String referenceAnswer, String explanation) {
     }
 
-    record GradeSpec(String language, QuestionToGrade question, List<SourceChunk> sources, String answer) {
+    record GradeSpec(String language, QuestionToGrade question, List<Section> sections, String answer) {
     }
 
     record GradeResult(Verdict verdict, double score, String feedback, String model) {
@@ -117,16 +119,26 @@ public interface StudyAi {
                            String model) {
     }
 
-    // ---- tutor
+    // ---- long form: answers (tutor + "ask your document") and notes
 
     /** @param role "user" or "tutor" */
     record ChatTurn(String role, String text) {
     }
 
-    record AskSpec(String materialTitle, String language, String topicTitle, List<SourceChunk> sources,
-                   String question, List<ChatTurn> history) {
+    /** @param style "tutor" (short, conversational) or "answer" (long-form) */
+    record AnswerSpec(String materialTitle, String language, String question, List<ChatTurn> history,
+                      List<Section> sections, List<Figure> figures, String style) {
     }
 
-    record TutorReply(String answer, boolean grounded, String model) {
+    record AnswerDraft(String answer, boolean grounded, List<String> citedSectionIds, List<String> figureIds,
+                       String model) {
+    }
+
+    /** @param scope "section" (full notes) or "overview" (chapter notes from its subsections) */
+    record NotesSpec(String materialTitle, String language, MaterialKind kind, String title, String path, String scope,
+                     List<Section> sections, List<Figure> figures) {
+    }
+
+    record NotesDraft(String markdown, List<String> figureIds, List<String> citedSectionIds, String model) {
     }
 }

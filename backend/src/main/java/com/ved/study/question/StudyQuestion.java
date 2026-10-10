@@ -68,9 +68,10 @@ public class StudyQuestion {
     @Column(nullable = false)
     private String explanation;
 
+    /** Tree nodes that support the answer (for grading context and "see section" links). */
     @JdbcTypeCode(SqlTypes.ARRAY)
-    @Column(name = "source_chunk_positions", nullable = false)
-    private List<Integer> sourceChunkPositions;
+    @Column(name = "source_node_ids", nullable = false)
+    private List<UUID> sourceNodeIds;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -81,7 +82,7 @@ public class StudyQuestion {
 
     public StudyQuestion(UUID materialId, UUID topicId, UUID lessonId, QuestionOrigin origin, Integer afterSection,
                          int position, QuestionType type, String prompt, List<String> options, Integer correctOption,
-                         String referenceAnswer, String explanation, List<Integer> sourceChunkPositions,
+                         String referenceAnswer, String explanation, List<UUID> sourceNodeIds,
                          Instant createdAt) {
         if (type != QuestionType.SHORT_ANSWER
                 && (correctOption == null || correctOption < 0 || correctOption >= options.size())) {
@@ -99,7 +100,7 @@ public class StudyQuestion {
         this.correctOption = type == QuestionType.SHORT_ANSWER ? null : correctOption;
         this.referenceAnswer = referenceAnswer;
         this.explanation = explanation;
-        this.sourceChunkPositions = List.copyOf(sourceChunkPositions);
+        this.sourceNodeIds = List.copyOf(sourceNodeIds);
         this.createdAt = createdAt;
     }
 
@@ -164,7 +165,7 @@ public class StudyQuestion {
         return explanation;
     }
 
-    public List<Integer> getSourceChunkPositions() {
-        return sourceChunkPositions;
+    public List<UUID> getSourceNodeIds() {
+        return sourceNodeIds;
     }
 }

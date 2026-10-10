@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -93,11 +94,16 @@ public class AssessmentService {
             throw new ApplicationException(ErrorCode.VALIDATION_FAILED, "Select at least one topic of this material");
         }
         List<String> avoid = questions.findAssessedPrompts(userId, material.getId());
+        Map<String, UUID> sectionNodes = new HashMap<>(); // citation id ("§2.3") -> tree node
+        List<StudyAi.QuestionTopic> topicSpecs = selected.stream().map(t -> {
+            var sources = access.sources(material, t, MaterialAccess.QUESTION_BUDGET, 0);
+            sources.sections().forEach(sec -> sectionNodes.put(sec.id(), sec.nodeId()));
+            return new StudyAi.QuestionTopic(t.getId().toString(), t.getTitle(), t.getSummary(), t.getKeyConcepts(),
+                    t.getDifficulty(), sources.sections());
+        }).toList();
         StudyAi.QuestionsDraft draft = ai.generateQuestions(new StudyAi.QuestionSpec(material.getTitle(),
                 material.getLanguage(), material.getKind(), request.questionCount(), request.difficulty().name(),
-                selected.stream().map(t -> new StudyAi.QuestionTopic(t.getId().toString(), t.getTitle(),
-                        t.getSummary(), t.getKeyConcepts(), t.getDifficulty(), access.sources(t))).toList(),
-                avoid.subList(Math.max(0, avoid.size() - MAX_AVOID_PROMPTS), avoid.size())));
+                topicSpecs, avoid.subList(Math.max(0, avoid.size() - MAX_AVOID_PROMPTS), avoid.size())));
 
         Map<String, StudyTopic> byKey = selected.stream()
                 .collect(Collectors.toMap(t -> t.getId().toString(), Function.identity()));
@@ -118,7 +124,8 @@ public class AssessmentService {
                         QuestionOrigin.ASSESSMENT, null, position, q.type(), q.prompt(),
                         q.options() == null ? List.of() : q.options(), q.correctOptionIndex(), q.referenceAnswer(),
                         q.explanation() == null ? "" : q.explanation(),
-                        q.sourceChunkPositions() == null ? List.of() : q.sourceChunkPositions(), now));
+                        q.sourceSectionIds() == null ? List.of() : q.sourceSectionIds().stream()
+                                .map(sectionNodes::get).filter(Objects::nonNull).distinct().toList(), now));
                 items.save(new AssessmentItem(assessment.getId(), position++, saved.getId()));
             }
             events.publishEvent(LearningActivityEvent.of(userId, LearningActivityEvent.Type.ASSESSMENT_STARTED, now)
@@ -149,7 +156,7 @@ public class AssessmentService {
         requireAnswerable(assessment, item);
         MaterialAccess.QuestionContext ctx = access.requireQuestion(userId, item.getQuestionId());
         AnswerGrader.Graded graded = grader.grade(ctx.question(), request, ctx.material().getLanguage(),
-                access.sources(ctx.question(), ctx.topic()));
+                access.sources(ctx.material(), ctx.question(), ctx.topic()));
         return tx.execute(status -> {
             Assessment locked = assessments.findForUpdate(assessmentId).orElseThrow();
             AssessmentItem fresh = items.findByAssessmentIdAndPosition(assessmentId, position).orElseThrow();

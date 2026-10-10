@@ -1,9 +1,8 @@
 package com.ved.study.question;
 
-import java.util.List;
-
 import com.ved.common.error.ApplicationException;
 import com.ved.common.error.ErrorCode;
+import com.ved.knowledge.retrieval.ContextAssembler;
 import com.ved.study.ai.StudyAi;
 import org.springframework.stereotype.Component;
 
@@ -24,7 +23,7 @@ public class AnswerGrader {
     }
 
     public Graded grade(StudyQuestion question, AnswerRequest answer, String language,
-                        List<StudyAi.SourceChunk> sources) {
+                        ContextAssembler.Context sources) {
         if (question.isChoice()) {
             Integer option = answer.optionIndex();
             if (option == null || option < 0 || option >= question.getOptions().size()) {
@@ -42,7 +41,7 @@ public class AnswerGrader {
         StudyAi.GradeResult result = ai.grade(new StudyAi.GradeSpec(language,
                 new StudyAi.QuestionToGrade(question.getPrompt(), question.getReferenceAnswer(),
                         question.getExplanation()),
-                sources, text));
+                sources.sections(), text));
         return new Graded(result.verdict(), result.score(), result.feedback(), null, text);
     }
 }

@@ -53,6 +53,9 @@ ved:
       core-pool-size: 2
       max-pool-size: 4
       queue-capacity: 200
+  knowledge:
+    # Signs figure image URLs. MUST be overridden outside local development.
+    figure-url-secret: ${VED_FIGURE_URL_SECRET:dev-only-figure-url-secret-change-me}
   inference:
     base-url: ${VED_INFERENCE_URL:http://localhost:8000}
     api-key: ${VED_INFERENCE_API_KEY:dev-internal-key}

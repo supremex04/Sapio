@@ -35,7 +35,7 @@ class InterleaveTest {
 
     private static StudyTopic topic(int position) {
         StudyTopic t = new StudyTopic(UUID.randomUUID(), position, "T", "s", List.of(), TopicDifficulty.CORE,
-                List.of(1));
+                List.of(UUID.randomUUID()));
         ReflectionTestUtils.setField(t, "id", UUID.randomUUID());
         return t;
     }

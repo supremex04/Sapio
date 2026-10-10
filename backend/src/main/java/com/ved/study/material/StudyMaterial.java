@@ -13,8 +13,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 /**
- * The shared content representation of a document: chunks of source text organised into topics.
- * Learn and Test both read from it.
+ * The learning layer of a document: its title, language and the topics of the learning path. Topics point
+ * at nodes of the document tree (knowledge store); Learn and Test both read from that same representation.
  */
 @Entity
 @Table(name = "study_materials")

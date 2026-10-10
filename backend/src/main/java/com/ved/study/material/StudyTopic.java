@@ -43,24 +43,24 @@ public class StudyTopic {
     @Column(nullable = false)
     private TopicDifficulty difficulty;
 
-    /** Positions of the {@link StudyChunk}s this topic is grounded in. */
+    /** Document-tree nodes (chapters/sections) this topic covers; lessons and questions are grounded in them. */
     @JdbcTypeCode(SqlTypes.ARRAY)
-    @Column(name = "chunk_positions", nullable = false)
-    private List<Integer> chunkPositions;
+    @Column(name = "node_ids", nullable = false)
+    private List<UUID> nodeIds;
 
     protected StudyTopic() {
         // for JPA
     }
 
     public StudyTopic(UUID materialId, int position, String title, String summary, List<String> keyConcepts,
-                      TopicDifficulty difficulty, List<Integer> chunkPositions) {
+                      TopicDifficulty difficulty, List<UUID> nodeIds) {
         this.materialId = materialId;
         this.position = position;
         this.title = title;
         this.summary = summary;
         this.keyConcepts = List.copyOf(keyConcepts);
         this.difficulty = difficulty;
-        this.chunkPositions = List.copyOf(chunkPositions);
+        this.nodeIds = List.copyOf(nodeIds);
     }
 
     public UUID getId() {
@@ -91,7 +91,7 @@ public class StudyTopic {
         return difficulty;
     }
 
-    public List<Integer> getChunkPositions() {
-        return chunkPositions;
+    public List<UUID> getNodeIds() {
+        return nodeIds;
     }
 }

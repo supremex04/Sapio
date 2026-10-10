@@ -10,6 +10,7 @@ import com.ved.TestUsers;
 import com.ved.TestUsers.Registered;
 import com.ved.document.DocumentFlowIT;
 import com.ved.document.extraction.ExtractionGateway;
+import com.ved.knowledge.ai.KnowledgeAi;
 import com.ved.study.ai.StudyAi;
 import com.ved.study.ai.StudyAiException;
 import com.ved.study.question.Verdict;
@@ -52,6 +53,9 @@ class StudyFlowIT {
     @MockitoBean
     StudyAi ai;
 
+    @MockitoBean
+    KnowledgeAi knowledgeAi;
+
     Registered user;
     UUID documentId;
     UUID demandTopic;
@@ -60,8 +64,14 @@ class StudyFlowIT {
     @BeforeEach
     void readyDocument() throws Exception {
         when(extraction.extract(any())).thenReturn(FakeAi.extraction());
-        when(ai.buildMaterial(any())).thenReturn(FakeAi.material());
-        when(ai.generateLesson(any())).thenReturn(FakeAi.lesson());
+        FakeAi.stub(knowledgeAi, ai);
+        when(ai.generateLesson(any())).thenAnswer(inv -> {
+            StudyAi.LessonSpec spec = inv.getArgument(0);
+            if (spec == null) {
+                return null; // Mockito re-stubbing replays answers with null arguments
+            }
+            return FakeAi.lesson(spec.figures().isEmpty() ? "none" : spec.figures().getFirst().id());
+        });
         when(ai.assessmentFeedback(any())).thenReturn(FakeAi.narrative());
         user = TestUsers.register(mvc, json);
         documentId = DocumentFlowIT.upload(mvc, json, user, "econ.png", DocumentFlowIT.PNG_BYTES);
@@ -75,7 +85,7 @@ class StudyFlowIT {
     @Test
     void materialRecommendsTheFirstTopicAndHidesNothingSensitive() throws Exception {
         JsonNode material = getJson("/api/documents/{id}/material", documentId);
-        assertThat(material.get("title").asString()).isEqualTo("Intro Economics");
+        assertThat(material.get("title").asString()).isEqualTo("Intro Biology");
         assertThat(material.at("/topics/0/status").asString()).isEqualTo("NOT_STARTED");
         assertThat(material.at("/topics/0/recommended").asBoolean()).isTrue();
         assertThat(material.at("/topics/1/recommended").asBoolean()).isFalse();
@@ -91,6 +101,11 @@ class StudyFlowIT {
         assertThat(checks.get(0).get("afterSection").asInt()).isEqualTo(-1); // warm-up first
         assertThat(checks.get(2).get("type").asString()).isEqualTo("SHORT_ANSWER");
         assertThat(lesson.toString()).doesNotContain("correctOption").doesNotContain("referenceAnswer");
+        // The lesson embeds the document's own figure, resolved to a signed URL.
+        assertThat(lesson.get("figures").size()).isEqualTo(1);
+        String figureId = lesson.get("figures").propertyNames().iterator().next();
+        assertThat(lesson.at("/sections/0/body").asString()).contains("figure:" + figureId);
+        assertThat(lesson.at("/figures/" + figureId + "/url").asString()).contains("/api/figures/" + figureId + "/image?exp=");
 
         // Cached: a second open does not regenerate.
         getJson("/api/topics/{id}/lesson", demandTopic);
@@ -104,15 +119,15 @@ class StudyFlowIT {
                 .andExpect(jsonPath("$.verdict").value("INCORRECT"))
                 .andExpect(jsonPath("$.correctOptionIndex").value(0))
                 .andExpect(jsonPath("$.confidence").value("HIGH"));
-        answer("/api/questions/{id}/answer", trueFalse, "{\"optionIndex\":0}")
+        answer("/api/questions/{id}/answer", trueFalse, "{\"optionIndex\":1}")
                 .andExpect(jsonPath("$.verdict").value("CORRECT"))
                 .andExpect(jsonPath("$.nextReviewAt").isNotEmpty());
-        answer("/api/questions/{id}/answer", trueFalse, "{\"optionIndex\":0}"); // retry: no extra XP
+        answer("/api/questions/{id}/answer", trueFalse, "{\"optionIndex\":1}"); // retry: no extra XP
 
         when(ai.grade(any())).thenReturn(FakeAi.grade(Verdict.PARTIAL, 0.5));
         answer("/api/questions/{id}/answer", explain, "{\"text\":\"price up, demand down\"}")
                 .andExpect(jsonPath("$.verdict").value("PARTIAL"))
-                .andExpect(jsonPath("$.referenceAnswer").value("As price rises, quantity demanded falls."));
+                .andExpect(jsonPath("$.referenceAnswer").value("Water diffuses across a membrane."));
         answer("/api/questions/{id}/answer", trueFalse, "{\"optionIndex\":7}").andExpect(status().isBadRequest());
 
         mvc.perform(post("/api/topics/{id}/complete", demandTopic).header("Authorization", user.bearer()))

@@ -1,13 +1,14 @@
 package com.ved.document.processing;
 
 import java.time.Clock;
-import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 
 import com.ved.document.Document;
 import com.ved.document.DocumentAnalyzer;
 import com.ved.document.DocumentAnalyzer.AnalysisException;
+import com.ved.document.DocumentIndexer;
+import com.ved.document.DocumentIndexer.IndexingException;
 import com.ved.document.DocumentRepository;
 import com.ved.document.DocumentSegment;
 import com.ved.document.DocumentSegmentRepository;
@@ -24,8 +25,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Runs one document through the pipeline: extraction (skipped if text already exists), then analysis.
- * State changes happen in short transactions; slow calls (OCR, LLM) run outside any transaction.
+ * Runs one document through the pipeline: extraction (skipped when already done) → indexing (resumes
+ * whatever is missing) → analysis. State changes happen in short transactions; slow calls (OCR, LLM,
+ * embeddings) run outside any transaction.
  */
 @Component
 public class DocumentProcessor {
@@ -36,16 +38,19 @@ public class DocumentProcessor {
     private final DocumentSegmentRepository segments;
     private final DocumentStorage storage;
     private final ExtractionGateway extraction;
+    private final DocumentIndexer indexer;
     private final DocumentAnalyzer analyzer;
     private final TransactionTemplate tx;
     private final Clock clock;
 
     DocumentProcessor(DocumentRepository documents, DocumentSegmentRepository segments, DocumentStorage storage,
-                      ExtractionGateway extraction, DocumentAnalyzer analyzer, TransactionTemplate tx, Clock clock) {
+                      ExtractionGateway extraction, DocumentIndexer indexer, DocumentAnalyzer analyzer,
+                      TransactionTemplate tx, Clock clock) {
         this.documents = documents;
         this.segments = segments;
         this.storage = storage;
         this.extraction = extraction;
+        this.indexer = indexer;
         this.analyzer = analyzer;
         this.tx = tx;
         this.clock = clock;
@@ -65,13 +70,14 @@ public class DocumentProcessor {
             if (claim.extract()) {
                 extract(documentId, claim);
             }
-            DocumentAnalyzer.Input input = new DocumentAnalyzer.Input(documentId, claim.ownerId(), claim.filename(),
-                    loadPages(documentId));
-            DocumentAnalyzer.Result result = analyzer.analyze(input);
+            indexer.index(documentId);
+            update(documentId, Document::markIndexed);
+            DocumentAnalyzer.Result result = analyzer.analyze(
+                    new DocumentAnalyzer.Input(documentId, claim.ownerId(), claim.filename()));
             update(documentId, d -> d.markReady(result.title(), clock.instant()));
             settled = true;
             log.info("Document {} is ready", documentId);
-        } catch (ExtractionException | AnalysisException e) {
+        } catch (ExtractionException | IndexingException | AnalysisException e) {
             log.info("Document {} failed: {}", documentId, e.getMessage());
             update(documentId, d -> d.markFailed(e.getMessage(), clock.instant()));
             settled = true;
@@ -101,6 +107,7 @@ public class DocumentProcessor {
             throw new ExtractionException("No readable text was found in this document");
         }
         tx.executeWithoutResult(status -> {
+            indexer.ingest(documentId, result.language(), result.tree());
             segments.deleteByDocumentId(documentId);
             int position = 0;
             for (ExtractionResult.Segment s : result.segments()) {
@@ -108,16 +115,8 @@ public class DocumentProcessor {
                         s.markdown() == null ? "" : s.markdown()));
             }
             documents.findById(documentId).ifPresent(d -> d.markExtracted(result.markdown(), result.engine(),
-                    result.pageCount(), result.textPages(), result.ocrPages()));
+                    result.pageCount(), result.textPages(), result.ocrPages(), result.language()));
         });
-    }
-
-    private List<DocumentAnalyzer.Page> loadPages(UUID documentId) {
-        List<DocumentAnalyzer.Page> pages = tx.execute(status -> segments.findByDocumentIdOrderByPosition(documentId)
-                .stream()
-                .map(s -> new DocumentAnalyzer.Page(s.getPageFrom(), s.getPageTo(), s.getContent()))
-                .toList());
-        return pages == null ? List.of() : pages;
     }
 
     private void update(UUID documentId, Consumer<Document> change) {

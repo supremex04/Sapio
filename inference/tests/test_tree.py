@@ -69,3 +69,22 @@ def test_chunks_respect_size_and_figures_anchor_to_their_chunk():
     assert fig.chunk_key in {c.key for c in tree.chunks}
     anchored = next(c for c in tree.chunks if c.key == fig.chunk_key)
     assert "Figure 1: Cell" in anchored.text
+
+
+def test_language_detection():
+    from ved_inference.parsing.language import detect_language
+
+    assert (
+        detect_language(
+            "The cell is the basic unit of life and it is made of parts that work with each other. " * 3
+        )
+        == "en"
+    )
+    assert (
+        detect_language(
+            "La célula es la unidad básica de la vida y de los seres vivos que se encuentran en el mundo. "
+            * 3
+        )
+        == "es"
+    )
+    assert detect_language("short") == "und"

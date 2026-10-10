@@ -61,6 +61,9 @@ public class Document {
     @Column(name = "ocr_pages")
     private Integer ocrPages;
 
+    /** ISO 639-1 language detected at extraction ("und" when unknown); selects the search stemmer. */
+    private String language;
+
     @Column(name = "page_count")
     private Integer pageCount;
 
@@ -106,18 +109,25 @@ public class Document {
     /** Moves a PENDING document into its next working state. */
     public void startProcessing(Instant now) {
         requireStatus(DocumentStatus.PENDING);
-        this.status = isTextExtracted() ? DocumentStatus.ANALYZING : DocumentStatus.EXTRACTING;
+        this.status = isTextExtracted() ? DocumentStatus.INDEXING : DocumentStatus.EXTRACTING;
         this.processingStartedAt = now;
         this.errorMessage = null;
     }
 
-    public void markExtracted(String markdown, String engine, int pageCount, int textPages, int ocrPages) {
+    public void markExtracted(String markdown, String engine, int pageCount, int textPages, int ocrPages,
+                              String language) {
         requireStatus(DocumentStatus.EXTRACTING);
         this.resultMarkdown = markdown;
         this.engine = engine;
         this.pageCount = pageCount;
         this.textPages = textPages;
         this.ocrPages = ocrPages;
+        this.language = language;
+        this.status = DocumentStatus.INDEXING;
+    }
+
+    public void markIndexed() {
+        requireStatus(DocumentStatus.INDEXING);
         this.status = DocumentStatus.ANALYZING;
     }
 
@@ -202,6 +212,10 @@ public class Document {
 
     public Integer getOcrPages() {
         return ocrPages;
+    }
+
+    public String getLanguage() {
+        return language;
     }
 
     public String getResultMarkdown() {

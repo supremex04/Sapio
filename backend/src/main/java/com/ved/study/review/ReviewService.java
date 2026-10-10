@@ -97,7 +97,7 @@ public class ReviewService {
             throw new ApplicationException(ErrorCode.NOT_DUE, "This card is not due yet");
         }
         AnswerGrader.Graded graded = grader.grade(ctx.question(), request, ctx.material().getLanguage(),
-                access.sources(ctx.question(), ctx.topic()));
+                access.sources(ctx.material(), ctx.question(), ctx.topic()));
         return tx.execute(status -> {
             AnswerRecorder.Recorded recorded = recorder.record(userId, ctx.question(), AttemptContext.REVIEW, null,
                     graded, request.confidence());

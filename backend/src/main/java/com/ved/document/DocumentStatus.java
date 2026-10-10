@@ -1,12 +1,14 @@
 package com.ved.document;
 
 /**
- * Pipeline: PENDING -> EXTRACTING -> ANALYZING -> READY, or FAILED from either working state.
+ * Pipeline: PENDING -> EXTRACTING -> INDEXING -> ANALYZING -> READY, or FAILED from any working state.
  */
 public enum DocumentStatus {
     PENDING,
-    /** Reading text: native PDF text or OCR. */
+    /** Reading text and structure (tree, chunks, figures): native PDF text or OCR. */
     EXTRACTING,
+    /** Building the knowledge index: figure descriptions, summaries, term index, embeddings. */
+    INDEXING,
     /** Text available; building the study material (topics) with the LLM. */
     ANALYZING,
     READY,

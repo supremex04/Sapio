@@ -34,6 +34,11 @@ public class StudyLesson {
     @Column(name = "key_takeaways", nullable = false)
     private List<String> keyTakeaways;
 
+    /** Figures embedded in the lesson's sections (as figure:&lt;id&gt; markdown references). */
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "figure_ids", nullable = false)
+    private List<UUID> figureIds;
+
     private String model;
 
     @Column(name = "created_at", nullable = false)
@@ -43,10 +48,12 @@ public class StudyLesson {
         // for JPA
     }
 
-    StudyLesson(UUID topicId, String sectionsJson, List<String> keyTakeaways, String model, Instant createdAt) {
+    StudyLesson(UUID topicId, String sectionsJson, List<String> keyTakeaways, List<UUID> figureIds, String model,
+                Instant createdAt) {
         this.topicId = topicId;
         this.sectionsJson = sectionsJson;
         this.keyTakeaways = List.copyOf(keyTakeaways);
+        this.figureIds = List.copyOf(figureIds);
         this.model = model;
         this.createdAt = createdAt;
     }
@@ -61,6 +68,10 @@ public class StudyLesson {
 
     String getSectionsJson() {
         return sectionsJson;
+    }
+
+    public List<UUID> getFigureIds() {
+        return figureIds;
     }
 
     public List<String> getKeyTakeaways() {

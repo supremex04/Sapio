@@ -1,6 +1,7 @@
 package com.ved.document.extraction;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 
 import com.ved.common.inference.InferenceClient;
@@ -26,8 +27,22 @@ class InferenceExtractionGateway implements ExtractionGateway {
     record SegmentDto(int pageFrom, int pageTo, String method, String markdown) {
     }
 
-    record ExtractResponse(String markdown, String engine, int pageCount, int textPages, int ocrPages,
-                           List<SegmentDto> segments) {
+    record NodeDto(String key, String parentKey, int level, String path, String label, String title, int ordinal,
+                   int pageFrom, int pageTo) {
+    }
+
+    record ChunkDto(String key, String nodeKey, int ordinal, String text, int pageFrom, int pageTo) {
+    }
+
+    record FigureDto(String key, String nodeKey, String chunkKey, int ordinal, int page, List<Float> bbox,
+                     String caption, String mime, int width, int height, String imageBase64) {
+    }
+
+    record TreeDto(List<NodeDto> nodes, List<ChunkDto> chunks, List<FigureDto> figures) {
+    }
+
+    record ExtractResponse(String markdown, String engine, String language, int pageCount, int textPages, int ocrPages,
+                           List<SegmentDto> segments, TreeDto tree) {
     }
 
     @Override
@@ -45,12 +60,29 @@ class InferenceExtractionGateway implements ExtractionGateway {
             List<ExtractionResult.Segment> segments = r.segments() == null ? List.of() : r.segments().stream()
                     .map(s -> new ExtractionResult.Segment(s.pageFrom(), s.pageTo(), s.method(), s.markdown()))
                     .toList();
-            return new ExtractionResult(r.markdown(), r.engine(), r.pageCount(), r.textPages(), r.ocrPages(),
-                    segments);
+            return new ExtractionResult(r.markdown(), r.engine(), r.language(), r.pageCount(), r.textPages(),
+                    r.ocrPages(), segments, toTree(r.tree()));
+        } catch (IllegalArgumentException e) {
+            throw new ExtractionException("Text extraction returned malformed data, please retry", e);
         } catch (InferenceException e) {
             throw new ExtractionException(e.isClientError()
                     ? "Document could not be processed: " + e.getMessage()
                     : "Text extraction is unavailable right now, please retry later", e);
         }
+    }
+
+    private static ExtractionResult.Tree toTree(TreeDto tree) {
+        if (tree == null) {
+            return new ExtractionResult.Tree(List.of(), List.of(), List.of());
+        }
+        Base64.Decoder base64 = Base64.getDecoder();
+        return new ExtractionResult.Tree(
+                tree.nodes().stream().map(n -> new ExtractionResult.Node(n.key(), n.parentKey(), n.level(), n.path(),
+                        n.label(), n.title(), n.ordinal(), n.pageFrom(), n.pageTo())).toList(),
+                tree.chunks().stream().map(c -> new ExtractionResult.Chunk(c.key(), c.nodeKey(), c.ordinal(), c.text(),
+                        c.pageFrom(), c.pageTo())).toList(),
+                tree.figures().stream().map(f -> new ExtractionResult.Figure(f.key(), f.nodeKey(), f.chunkKey(),
+                        f.ordinal(), f.page(), f.bbox(), f.caption(), f.mime(), f.width(), f.height(),
+                        base64.decode(f.imageBase64()))).toList());
     }
 }
