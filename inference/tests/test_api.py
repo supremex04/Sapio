@@ -24,6 +24,7 @@ def test_health_reports_engines():
             "ocrEngine": "rapidocr-layout",
             "llmModel": "fake-llm",
             "embeddingModel": "fake-embed",
+            "embeddingDimensions": 4,
         }
 
 

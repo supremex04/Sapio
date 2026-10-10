@@ -6,6 +6,7 @@ mode with prompt ``document parsing.``; multi-page input uses "base" mode with `
 
 import base64
 import io
+import os
 
 import httpx
 
@@ -23,19 +24,20 @@ class UnlimitedOcrRemoteEngine(OcrEngine):
     name = "unlimited-ocr"
 
     def __init__(self, settings: Settings, transport: httpx.BaseTransport | None = None) -> None:
+        config = settings.ocr.remote
         headers = {}
-        if key := settings.remote_api_key.get_secret_value():
+        if config.api_key_env and (key := os.environ.get(config.api_key_env, "")):
             headers["Authorization"] = f"Bearer {key}"
         self._client = httpx.Client(
-            base_url=settings.remote_base_url.rstrip("/"),
+            base_url=config.base_url.rstrip("/"),
             headers=headers,
-            timeout=httpx.Timeout(settings.remote_timeout_seconds, connect=10.0),
+            timeout=httpx.Timeout(config.timeout_seconds, connect=10.0),
             transport=transport,
         )
-        self._model = settings.remote_model
-        self._flavor = settings.remote_flavor
-        self._batch_size = settings.remote_pages_per_request
-        self._extra_body = settings.remote_extra_body
+        self._model = config.model
+        self._flavor = config.flavor
+        self._batch_size = config.pages_per_request
+        self._extra_body = config.extra_body
 
     def extract(self, pages: list[PageImage]) -> EngineOutput:
         batches = [pages[i : i + self._batch_size] for i in range(0, len(pages), self._batch_size)]

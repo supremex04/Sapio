@@ -36,6 +36,7 @@ def health(request: Request) -> HealthResponse:
         ocr_engine=request.app.state.parser.ocr_engine_name,
         llm_model=llm.model_name,
         embedding_model=embedder.model_name,
+        embedding_dimensions=embedder.dimensions,
     )
 
 
@@ -45,8 +46,8 @@ async def extract(
     parser: Annotated[DocumentParser, Depends(get_parser)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> ExtractResponse:
-    data = await file.read(settings.max_upload_bytes + 1)
-    if len(data) > settings.max_upload_bytes:
+    data = await file.read(settings.parsing.max_upload_bytes + 1)
+    if len(data) > settings.parsing.max_upload_bytes:
         raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, detail="File too large")
     try:
         # Parsing is blocking (layout model, OCR); keep the event loop free.

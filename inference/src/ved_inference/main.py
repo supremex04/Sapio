@@ -30,13 +30,7 @@ def create_app(
         engine = engine_factory(settings)
         llm = llm_factory(settings)
         embedder = embedder_factory(settings)
-        app.state.parser = DocumentParser(
-            engine,
-            max_pages=settings.max_pages,
-            dpi=settings.pdf_render_dpi,
-            native_min_chars=settings.native_text_min_chars,
-            max_concurrency=settings.max_concurrency,
-        )
+        app.state.parser = DocumentParser(engine, settings.parsing)
         log.info(
             "OCR: %s, LLM: %s, embeddings: %s",
             app.state.parser.ocr_engine_name,
@@ -45,8 +39,8 @@ def create_app(
         )
         app.state.llm = llm
         app.state.embedder = embedder
-        app.state.study_service = StudyService(llm)
-        app.state.indexing_service = IndexingService(llm, embedder)
+        app.state.study_service = StudyService(llm, config=settings.study)
+        app.state.indexing_service = IndexingService(llm, embedder, settings.indexing)
         yield
         app.state.parser.close()
         llm.close()

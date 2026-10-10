@@ -25,15 +25,16 @@ class UnlimitedOcrLocalEngine(OcrEngine):
         except ImportError as exc:  # pragma: no cover - depends on installed extras
             raise EngineError("Local engine needs: pip install -e '.[local]'") from exc
         self._torch = torch
-        self._batch_size = settings.local_pages_per_request
-        self._tokenizer = AutoTokenizer.from_pretrained(settings.local_model_id, trust_remote_code=True)
+        config = settings.ocr.local
+        self._batch_size = config.pages_per_request
+        self._tokenizer = AutoTokenizer.from_pretrained(config.model_id, trust_remote_code=True)
         model = AutoModel.from_pretrained(
-            settings.local_model_id,
+            config.model_id,
             trust_remote_code=True,
             use_safetensors=True,
             torch_dtype=torch.bfloat16,
         )
-        self._model = model.eval().to(settings.local_device)
+        self._model = model.eval().to(config.device)
 
     def extract(self, pages: list[PageImage]) -> EngineOutput:
         batches = [pages[i : i + self._batch_size] for i in range(0, len(pages), self._batch_size)]

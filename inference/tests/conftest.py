@@ -8,9 +8,11 @@ from ved_inference.config import get_settings
 
 
 @pytest.fixture(autouse=True)
-def _isolated_settings(monkeypatch):
+def _isolated_settings(monkeypatch, tmp_path):
+    # Tests never read the developer's settings.yaml or .env.
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VED_INFERENCE_CONFIG", str(tmp_path / "absent.yaml"))
     monkeypatch.setenv("VED_INFERENCE_API_KEY", "test-key")
-    monkeypatch.setenv("VED_INFERENCE_ENGINE", "rapid")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()

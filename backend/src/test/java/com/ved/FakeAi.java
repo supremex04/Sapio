@@ -60,6 +60,8 @@ public final class FakeAi {
                 n.path().contains("Osmosis") ? List.of("osmosis", "membrane") : List.of("cell"))).toList();
     }
 
+    public static final String EMBEDDING_MODEL = "fake:embed";
+
     /** Deterministic hashed bag-of-words vectors, so semantic search behaves sensibly in tests. */
     public static List<float[]> embed(List<KnowledgeAi.EmbedInput> items) {
         return items.stream().map(i -> {
@@ -98,7 +100,8 @@ public final class FakeAi {
         when(knowledge.summarize(any(), any()))
                 .thenAnswer(inv -> inv.getArgument(1) == null ? null : summarize(inv.getArgument(1)));
         when(knowledge.embed(any(), any()))
-                .thenAnswer(inv -> inv.getArgument(1) == null ? null : embed(inv.getArgument(1)));
+                .thenAnswer(inv -> inv.getArgument(1) == null ? null
+                        : new KnowledgeAi.Embeddings(EMBEDDING_MODEL, embed(inv.getArgument(1))));
         when(study.buildMaterial(any()))
                 .thenAnswer(inv -> inv.getArgument(0) == null ? null : material(inv.getArgument(0)));
     }

@@ -12,6 +12,7 @@ import com.ved.document.DocumentAnalyzer;
 import com.ved.document.DocumentAnalyzer.AnalysisException;
 import com.ved.document.DocumentIndexer;
 import com.ved.document.DocumentIndexer.IndexingException;
+import com.ved.document.DocumentProperties;
 import com.ved.document.DocumentRepository;
 import com.ved.document.DocumentSegment;
 import com.ved.document.DocumentSegmentRepository;
@@ -45,10 +46,13 @@ public class DocumentProcessor {
     private final DocumentAnalyzer analyzer;
     private final TransactionTemplate tx;
     private final Clock clock;
+    private final List<Duration> retryDelays;
 
     DocumentProcessor(DocumentRepository documents, DocumentSegmentRepository segments, DocumentStorage storage,
                       ExtractionGateway extraction, DocumentIndexer indexer, DocumentAnalyzer analyzer,
-                      TransactionTemplate tx, Clock clock) {
+                      TransactionTemplate tx, Clock clock, DocumentProperties properties) {
+        // Retry schedule for transient failures; progress is kept, so each retry resumes where it stopped.
+        this.retryDelays = properties.processing().autoRetryDelays();
         this.documents = documents;
         this.segments = segments;
         this.storage = storage;
@@ -98,15 +102,11 @@ public class DocumentProcessor {
         }
     }
 
-    /** Retry schedule for transient failures; progress is kept, so each retry resumes where it stopped. */
-    static final List<Duration> AUTO_RETRY_DELAYS = List.of(Duration.ofMinutes(1), Duration.ofMinutes(4),
-            Duration.ofMinutes(15));
-
     private void fail(UUID documentId, String reason, boolean transientFailure) {
         Instant now = clock.instant();
         update(documentId, d -> {
-            if (transientFailure && d.getAutoRetries() < AUTO_RETRY_DELAYS.size()) {
-                Instant at = now.plus(AUTO_RETRY_DELAYS.get(d.getAutoRetries()));
+            if (transientFailure && d.getAutoRetries() < retryDelays.size()) {
+                Instant at = now.plus(retryDelays.get(d.getAutoRetries()));
                 log.info("Document {} paused ({}), retrying automatically at {}", documentId, reason, at);
                 d.markFailed(reason + ". Progress is saved and it will continue automatically.", now, at);
             } else {

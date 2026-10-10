@@ -32,4 +32,4 @@ ENGINE_FACTORIES: dict[EngineName, Callable[[Settings], OcrEngine | None]] = {
 
 
 def build_engine(settings: Settings) -> OcrEngine | None:
-    return ENGINE_FACTORIES[settings.engine](settings)
+    return ENGINE_FACTORIES[settings.ocr.engine](settings)

@@ -14,10 +14,10 @@ class ImagePart:
 
 
 class LlmClient(ABC):
-    """Provider-agnostic structured generation. Implementations: ``gemini.GeminiClient``.
+    """Vendor-neutral structured generation, as the use-cases see it.
 
-    ``generate`` must return an instance of ``schema`` or raise ``EngineError``. ``images`` are sent
-    before the prompt (vision); keep them few and small.
+    ``task`` selects the model route from configuration (llm.tasks / llm.default). ``generate`` returns an
+    instance of ``schema`` or raises ``EngineError``. ``images`` are sent before the prompt (vision).
     """
 
     @property
@@ -33,6 +33,7 @@ class LlmClient(ABC):
         schema: type[T],
         temperature: float = 0.4,
         images: list[ImagePart] | None = None,
+        task: str = "default",
     ) -> T: ...
 
     def close(self) -> None:
@@ -51,7 +52,7 @@ class EmbedItem:
 
 
 class Embedder(ABC):
-    """Dense vectors in one space for text and images (multimodal)."""
+    """Dense vectors (text, and images when the model is multimodal)."""
 
     @property
     @abstractmethod

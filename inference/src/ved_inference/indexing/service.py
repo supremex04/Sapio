@@ -3,14 +3,11 @@
 from collections.abc import Sequence
 
 from ved_inference.api import index_schemas as api
+from ved_inference.config import IndexingConfig
 from ved_inference.errors import EngineError
 from ved_inference.indexing.models import FigureDescriptions, NodeSummaries
 from ved_inference.llm.base import Embedder, EmbedItem, ImagePart, LlmClient
 from ved_inference.study import prompts
-
-FIGURES_PER_CALL = 6
-NODES_PER_CALL = 12
-NODE_TEXT_BUDGET = 6_000
 
 DESCRIBE_SYSTEM = """You index figures from a student's study material so they can be found and explained later.
 Describe what each image shows precisely (labels, axes, steps, relationships) using the document's terminology.
@@ -21,15 +18,17 @@ using only its text (and its subsections' summaries), and list its key terms exa
 
 
 class IndexingService:
-    def __init__(self, llm: LlmClient, embedder: Embedder) -> None:
+    def __init__(self, llm: LlmClient, embedder: Embedder, config: IndexingConfig | None = None) -> None:
         self._llm = llm
         self._embedder = embedder
+        self._config = config or IndexingConfig()
 
     def describe_figures(self, request: api.DescribeFiguresRequest) -> api.DescribeFiguresResponse:
         out: list[api.FigureDescriptionOut] = []
         figures = request.figures
-        for start in range(0, len(figures), FIGURES_PER_CALL):
-            batch = figures[start : start + FIGURES_PER_CALL]
+        per_call = self._config.figures_per_call
+        for start in range(0, len(figures), per_call):
+            batch = figures[start : start + per_call]
             listing = "\n".join(
                 f"[{i}] caption: {f.caption or '(none)'} | section: {f.context or '(unknown)'}"
                 for i, f in enumerate(batch)
@@ -40,6 +39,7 @@ class IndexingService:
                 schema=FigureDescriptions,
                 temperature=0.2,
                 images=[ImagePart(data=f.image_bytes(), mime=f.mime) for f in batch],
+                task="figures",
             )
             by_index = {d.index: d for d in result.figures if 0 <= d.index < len(batch)}
             for i, f in enumerate(batch):
@@ -56,14 +56,16 @@ class IndexingService:
 
     def summarize(self, request: api.SummarizeRequest) -> api.SummarizeResponse:
         out: list[api.NodeSummaryOut] = []
-        for start in range(0, len(request.nodes), NODES_PER_CALL):
-            batch = request.nodes[start : start + NODES_PER_CALL]
-            listing = "\n\n".join(_node_block(n) for n in batch)
+        per_call = self._config.nodes_per_call
+        for start in range(0, len(request.nodes), per_call):
+            batch = request.nodes[start : start + per_call]
+            listing = "\n\n".join(_node_block(n, self._config.node_text_chars) for n in batch)
             result = self._llm.generate(
                 system=SUMMARY_SYSTEM.format(language=prompts.language_name(request.language)),
                 prompt=f"Summarise each of these {len(batch)} sections. Return one entry per key.\n\n{listing}",
                 schema=NodeSummaries,
                 temperature=0.2,
+                task="summaries",
             )
             got = {s.key: s for s in result.summaries}
             for n in batch:
@@ -88,8 +90,8 @@ class IndexingService:
         )
 
 
-def _node_block(n: api.SummarizeNode) -> str:
-    text = n.text if len(n.text) <= NODE_TEXT_BUDGET else n.text[:NODE_TEXT_BUDGET] + "…"
+def _node_block(n: api.SummarizeNode, budget: int) -> str:
+    text = n.text if len(n.text) <= budget else n.text[:budget] + "…"
     children = "\n".join(f"- {c}" for c in n.child_summaries) if n.child_summaries else ""
     return (
         f"### key: {n.key}\nSection: {n.path}\n"

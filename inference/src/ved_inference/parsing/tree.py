@@ -3,13 +3,10 @@
 import re
 from dataclasses import dataclass, field
 
+from ved_inference.config import ParsingConfig
 from ved_inference.parsing.models import Block, DocumentTree, TreeChunk, TreeFigure, TreeNode
 
-MAX_DEPTH = 4
-CHUNK_TARGET = 900  # characters (~150–250 tokens)
-CHUNK_MAX = 1400
-MAX_HEADING_CHARS = 120
-PAGES_PER_FALLBACK_NODE = 5
+DEFAULT = ParsingConfig()
 
 _NUMBERED = re.compile(r"^(\d+(?:\.\d+){0,3})[.)]?\s+\S")
 _UNIT = re.compile(
@@ -32,13 +29,13 @@ class _Draft:
     content: list[Block] = field(default_factory=list)
 
 
-def build_tree(blocks: list[Block], page_count: int) -> DocumentTree:
-    blocks = _demote_noise_headings(blocks)
+def build_tree(blocks: list[Block], page_count: int, config: ParsingConfig = DEFAULT) -> DocumentTree:
+    blocks = _demote_noise_headings(blocks, config.max_heading_chars)
     headings = [b for b in blocks if b.kind == "heading"]
     if not headings:
-        return _page_group_tree(blocks, page_count)
+        return _page_group_tree(blocks, page_count, config)
 
-    levels = _normalised_levels(headings)
+    levels = _normalised_levels(headings, config.max_depth)
     drafts: list[_Draft] = []
     current: _Draft | None = None
     for b in blocks:
@@ -50,17 +47,17 @@ def build_tree(blocks: list[Block], page_count: int) -> DocumentTree:
                 current = _Draft(_Heading(1, "Introduction", None, b.page))
                 drafts.append(current)
             current.content.append(b)
-    return _assemble(drafts, page_count)
+    return _assemble(drafts, config)
 
 
 # --------------------------------------------------------------------------------- levels
 
 
-def _demote_noise_headings(blocks: list[Block]) -> list[Block]:
+def _demote_noise_headings(blocks: list[Block], max_heading_chars: int) -> list[Block]:
     """Very long 'headings' and captions mis-detected as headings become text."""
     out = []
     for b in blocks:
-        if b.kind == "heading" and (len(b.text) > MAX_HEADING_CHARS or _CAPTION.match(b.text)):
+        if b.kind == "heading" and (len(b.text) > max_heading_chars or _CAPTION.match(b.text)):
             out.append(
                 Block(
                     page=b.page,
@@ -74,8 +71,8 @@ def _demote_noise_headings(blocks: list[Block]) -> list[Block]:
     return out
 
 
-def _normalised_levels(headings: list[Block]) -> dict[int, int]:
-    """Maps layout heading levels to 1..MAX_DEPTH, refined by explicit numbering (2.3 → level 2)."""
+def _normalised_levels(headings: list[Block], max_depth: int) -> dict[int, int]:
+    """Maps layout heading levels to 1..max_depth, refined by explicit numbering (2.3 → level 2)."""
     distinct = sorted({h.level for h in headings})
     rank = {lvl: i + 1 for i, lvl in enumerate(distinct)}
     numbered = [h for h in headings if _NUMBERED.match(h.text) or _UNIT.match(h.text)]
@@ -96,7 +93,7 @@ def _normalised_levels(headings: list[Block]) -> dict[int, int]:
                 level = 1  # "Chapter 2", "Unit 4"
             elif m:
                 level = m.group(1).count(".") + 1 + shift
-        levels[id(h)] = min(max(level, 1), MAX_DEPTH)
+        levels[id(h)] = min(max(level, 1), max_depth)
     return levels
 
 
@@ -111,7 +108,7 @@ def _explicit_label(title: str) -> str | None:
 # --------------------------------------------------------------------------------- assembly
 
 
-def _assemble(drafts: list[_Draft], page_count: int) -> DocumentTree:
+def _assemble(drafts: list[_Draft], config: ParsingConfig) -> DocumentTree:
     tree = DocumentTree()
     stack: list[tuple[int, TreeNode]] = []  # (level, node)
     counters: dict[str | None, int] = {}
@@ -143,7 +140,7 @@ def _assemble(drafts: list[_Draft], page_count: int) -> DocumentTree:
         tree.nodes.append(node)
         stack.append((h.level, node))
 
-        chunks, figures = _pack(node, draft.content, chunk_no, figure_no)
+        chunks, figures = _pack(node, draft.content, chunk_no, figure_no, config)
         chunk_no += len(chunks)
         figure_no += len(figures)
         tree.chunks.extend(chunks)
@@ -154,7 +151,7 @@ def _assemble(drafts: list[_Draft], page_count: int) -> DocumentTree:
 
 
 def _pack(
-    node: TreeNode, content: list[Block], chunk_no: int, figure_no: int
+    node: TreeNode, content: list[Block], chunk_no: int, figure_no: int, config: ParsingConfig
 ) -> tuple[list[TreeChunk], list[TreeFigure]]:
     chunks: list[TreeChunk] = []
     figures: list[TreeFigure] = []
@@ -206,12 +203,15 @@ def _pack(
         if (
             b.kind != "caption"
             and buffer
-            and (size + len(text) > CHUNK_MAX or (size >= CHUNK_TARGET and not atomic))
+            and (
+                size + len(text) > config.chunk_max_chars
+                or (size >= config.chunk_target_chars and not atomic)
+            )
         ):
             flush()
         buffer.append(text)
         pages.append(b.page)
-        if atomic and len(text) > CHUNK_TARGET:
+        if atomic and len(text) > config.chunk_target_chars:
             flush()
     flush()
 
@@ -255,15 +255,15 @@ def _propagate_pages(tree: DocumentTree) -> None:
             parent.page_to = max(parent.page_to, node.page_to)
 
 
-def _page_group_tree(blocks: list[Block], page_count: int) -> DocumentTree:
+def _page_group_tree(blocks: list[Block], page_count: int, config: ParsingConfig) -> DocumentTree:
     """No headings at all: one node per few pages so the document is still navigable."""
     drafts: list[_Draft] = []
-    for start in range(1, max(page_count, 1) + 1, PAGES_PER_FALLBACK_NODE):
-        end = min(start + PAGES_PER_FALLBACK_NODE - 1, max(page_count, 1))
+    for start in range(1, max(page_count, 1) + 1, config.pages_per_fallback_node):
+        end = min(start + config.pages_per_fallback_node - 1, max(page_count, 1))
         title = f"Page {start}" if start == end else f"Pages {start}–{end}"
         group = [b for b in blocks if start <= b.page <= end]
         if group:
             drafts.append(_Draft(_Heading(1, title, None, start), group))
     if not drafts:
         drafts.append(_Draft(_Heading(1, "Document", None, 1), blocks))
-    return _assemble(drafts, page_count)
+    return _assemble(drafts, config)

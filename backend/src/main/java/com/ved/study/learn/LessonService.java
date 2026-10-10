@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import com.ved.knowledge.figure.FigureViews;
 import com.ved.knowledge.retrieval.ContextAssembler;
 import com.ved.study.LearningActivityEvent;
+import com.ved.study.StudyProperties;
 import com.ved.study.ai.StudyAi;
 import com.ved.study.material.MaterialAccess;
 import com.ved.study.material.MaterialAccess.TopicContext;
@@ -47,7 +48,6 @@ public class LessonService {
 
     private static final TypeReference<List<LessonSection>> SECTIONS = new TypeReference<>() {
     };
-    static final int TUTOR_BUDGET = 10_000;
 
     private final MaterialAccess access;
     private final StudyAi ai;
@@ -140,10 +140,11 @@ public class LessonService {
         TopicContext ctx = access.requireTopic(userId, topicId);
         List<StudyAi.ChatTurn> history = request.history() == null ? List.of() : request.history().stream()
                 .map(t -> new StudyAi.ChatTurn(t.role(), t.text())).toList();
+        StudyProperties.Budget budget = access.budgets().tutor();
         ContextAssembler.Context sources = context.forQuestion(ctx.material().getDocumentId(), request.question(),
-                ctx.topic().getNodeIds(), TUTOR_BUDGET, 2);
+                ctx.topic().getNodeIds(), budget.chars(), budget.figures());
         if (sources.isEmpty()) {
-            sources = access.sources(ctx.material(), ctx.topic(), TUTOR_BUDGET, 2);
+            sources = access.sources(ctx.material(), ctx.topic(), budget);
         }
         StudyAi.AnswerDraft reply = ai.answer(new StudyAi.AnswerSpec(ctx.material().getTitle(),
                 ctx.material().getLanguage(), request.question(), history, sources.sections(), sources.figures(),
@@ -160,7 +161,7 @@ public class LessonService {
         int index = path.indexOf(path.stream().filter(t -> t.getId().equals(ctx.topic().getId())).findFirst()
                 .orElseThrow());
         StudyTopic topic = ctx.topic();
-        ContextAssembler.Context sources = access.sources(ctx.material(), topic, MaterialAccess.LESSON_BUDGET, 6);
+        ContextAssembler.Context sources = access.sources(ctx.material(), topic, access.budgets().lesson());
         StudyAi.LessonDraft draft = ai.generateLesson(new StudyAi.LessonSpec(ctx.material().getTitle(),
                 ctx.material().getLanguage(), ctx.material().getKind(),
                 new StudyAi.TopicBrief(topic.getTitle(), topic.getSummary(), topic.getKeyConcepts(),

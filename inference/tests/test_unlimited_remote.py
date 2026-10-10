@@ -4,7 +4,7 @@ import httpx
 import pytest
 from PIL import Image
 
-from ved_inference.config import Settings
+from ved_inference.config import OcrConfig, RemoteOcrConfig, Settings
 from ved_inference.documents.models import PageImage
 from ved_inference.engines.unlimited_remote import UnlimitedOcrRemoteEngine
 from ved_inference.errors import EngineError
@@ -21,7 +21,8 @@ def engine_with(handler, **overrides) -> tuple[UnlimitedOcrRemoteEngine, list[di
         requests.append(json.loads(request.content))
         return handler(request)
 
-    settings = Settings(remote_base_url="http://ocr.test/v1", **overrides)
+    remote = RemoteOcrConfig(base_url="http://ocr.test/v1", **overrides)
+    settings = Settings(ocr=OcrConfig(engine="unlimited-remote", remote=remote))
     return UnlimitedOcrRemoteEngine(settings, transport=httpx.MockTransport(record)), requests
 
 
@@ -39,7 +40,7 @@ def test_single_page_uses_gundam_mode_and_strips_markup():
 
 
 def test_long_documents_are_batched_in_multi_page_mode():
-    engine, requests = engine_with(reply("part"), remote_pages_per_request=2)
+    engine, requests = engine_with(reply("part"), pages_per_request=2)
     result = engine.extract(pages(5))
     assert len(requests) == 3
     assert requests[0]["messages"][0]["content"][0]["text"] == "Multi page parsing."
@@ -53,7 +54,7 @@ def test_long_documents_are_batched_in_multi_page_mode():
 
 
 def test_vllm_flavor_omits_sglang_fields_and_merges_extra_body():
-    engine, requests = engine_with(reply("x"), remote_flavor="vllm", remote_extra_body={"max_tokens": 100})
+    engine, requests = engine_with(reply("x"), flavor="vllm", extra_body={"max_tokens": 100})
     engine.extract(pages(1))
     assert "images_config" not in requests[0]
     assert requests[0]["max_tokens"] == 100

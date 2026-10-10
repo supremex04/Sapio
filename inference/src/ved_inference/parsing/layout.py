@@ -76,9 +76,10 @@ def _blocks_from_chunk(page: int, chunk: dict) -> list[Block]:
         elif cls == "formula":
             blocks.append(Block(page=page, kind="formula", text=span, bbox=bbox))
         else:
-            # Some layouts mark headings as text with markdown hashes.
+            # Some layouts mark headings as text with markdown hashes (overlong ones are demoted by the tree
+            # builder, see parsing.max_heading_chars).
             match = _HEADING.match(span)
-            if match and len(span) <= 120 and "\n" not in span:
+            if match and "\n" not in span:
                 blocks.append(
                     Block(
                         page=page,

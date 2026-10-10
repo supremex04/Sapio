@@ -40,7 +40,7 @@ class InferenceKnowledgeAi implements KnowledgeAi {
     record EmbedRequest(String task, List<EmbedItemDto> items) {
     }
 
-    record EmbedResponse(List<float[]> vectors) {
+    record EmbedResponse(List<float[]> vectors, String model) {
     }
 
     @Override
@@ -57,15 +57,15 @@ class InferenceKnowledgeAi implements KnowledgeAi {
     }
 
     @Override
-    public List<float[]> embed(EmbedTask task, List<EmbedInput> items) {
+    public Embeddings embed(EmbedTask task, List<EmbedInput> items) {
         List<EmbedItemDto> dtos = items.stream()
                 .map(i -> new EmbedItemDto(i.text(), i.image() == null ? null : BASE64.encodeToString(i.image()), i.mime()))
                 .toList();
-        List<float[]> vectors = post("/v1/index/embed", new EmbedRequest(task.name(), dtos), EmbedResponse.class).vectors();
-        if (vectors == null || vectors.size() != items.size()) {
+        EmbedResponse response = post("/v1/index/embed", new EmbedRequest(task.name(), dtos), EmbedResponse.class);
+        if (response.vectors() == null || response.vectors().size() != items.size() || response.model() == null) {
             throw new KnowledgeAiException("The embedding service returned an incomplete result");
         }
-        return vectors;
+        return new Embeddings(response.model(), response.vectors());
     }
 
     private <T> T post(String path, Object body, Class<T> type) {
@@ -73,7 +73,7 @@ class InferenceKnowledgeAi implements KnowledgeAi {
             return inference.postJson(path, body, type);
         } catch (InferenceException e) {
             throw new KnowledgeAiException(e.getMessage() == null || e.getMessage().isBlank()
-                    ? "Indexing is unavailable right now, please retry in a moment" : e.getMessage());
+                    ? "Indexing is unavailable right now, please retry in a moment" : e.getMessage(), e.isClientError());
         }
     }
 }

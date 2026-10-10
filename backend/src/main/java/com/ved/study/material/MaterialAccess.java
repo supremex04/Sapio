@@ -3,6 +3,8 @@ package com.ved.study.material;
 import java.util.List;
 import java.util.UUID;
 
+import com.ved.study.StudyProperties;
+
 import com.ved.common.error.ApplicationException;
 import com.ved.common.error.ErrorCode;
 import com.ved.document.DocumentService;
@@ -24,9 +26,11 @@ public class MaterialAccess {
     private final StudyQuestionRepository questions;
     private final DocumentService documents;
     private final ContextAssembler context;
+    private final StudyProperties.Context budgets;
 
     MaterialAccess(StudyMaterialRepository materials, StudyTopicRepository topics, StudyQuestionRepository questions,
-                   DocumentService documents, ContextAssembler context) {
+                   DocumentService documents, ContextAssembler context, StudyProperties properties) {
+        this.budgets = properties.context();
         this.materials = materials;
         this.topics = topics;
         this.questions = questions;
@@ -71,20 +75,20 @@ public class MaterialAccess {
         return new QuestionContext(requireMaterial(userId, question.getMaterialId()), topic, question);
     }
 
-    /** Context budgets (characters of source text) per use. */
-    public static final int LESSON_BUDGET = 24_000;
-    public static final int QUESTION_BUDGET = 12_000;
-    public static final int GRADE_BUDGET = 6_000;
+    /** Context budgets per use ({@code ved.study.context}). */
+    public StudyProperties.Context budgets() {
+        return budgets;
+    }
 
     /** The topic's sections (its tree nodes' text, in order) and figures, within a budget. */
-    public ContextAssembler.Context sources(StudyMaterial material, StudyTopic topic, int budget, int maxFigures) {
-        return context.forNodes(material.getDocumentId(), topic.getNodeIds(), budget, maxFigures);
+    public ContextAssembler.Context sources(StudyMaterial material, StudyTopic topic, StudyProperties.Budget budget) {
+        return context.forNodes(material.getDocumentId(), topic.getNodeIds(), budget.chars(), budget.figures());
     }
 
     /** Sources cited by a question, falling back to its topic's nodes. */
     public ContextAssembler.Context sources(StudyMaterial material, StudyQuestion question, StudyTopic topic) {
         List<UUID> nodes = question.getSourceNodeIds().isEmpty() ? topic.getNodeIds() : question.getSourceNodeIds();
-        return context.forNodes(material.getDocumentId(), nodes, GRADE_BUDGET, 0);
+        return context.forNodes(material.getDocumentId(), nodes, budgets.grade().chars(), budgets.grade().figures());
     }
 
     private static StudyMaterial requireOwned(UUID userId, StudyMaterial material) {

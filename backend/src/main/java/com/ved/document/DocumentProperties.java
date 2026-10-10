@@ -1,6 +1,8 @@
 package com.ved.document;
 
 import java.nio.file.Path;
+import java.time.Duration;
+import java.util.List;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -14,6 +16,8 @@ import org.springframework.validation.annotation.Validated;
 public record DocumentProperties(@NotNull Path storageDir, @Positive long maxSizeBytes,
                                  @Valid @NotNull Processing processing) {
 
-    public record Processing(@Positive int corePoolSize, @Positive int maxPoolSize, @Positive int queueCapacity) {
+    /** @param autoRetryDelays waits before each automatic retry of a transiently failed document */
+    public record Processing(@Positive int corePoolSize, @Positive int maxPoolSize, @Positive int queueCapacity,
+                             @NotNull List<Duration> autoRetryDelays) {
     }
 }

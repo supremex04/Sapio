@@ -74,3 +74,4 @@ class HealthResponse(ApiModel):
     ocr_engine: str
     llm_model: str
     embedding_model: str
+    embedding_dimensions: int

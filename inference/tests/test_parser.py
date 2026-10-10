@@ -2,12 +2,13 @@ import pytest
 
 from tests.conftest import make_text_image, scanned, textbook_pdf
 from tests.fakes import FakeOcrEngine
+from ved_inference.config import ParsingConfig
 from ved_inference.errors import DocumentError
 from ved_inference.parsing.parser import DocumentParser
 
 
 def parser(engine=None, max_pages=20) -> DocumentParser:
-    return DocumentParser(engine, max_pages=max_pages, dpi=110, native_min_chars=20, max_concurrency=1)
+    return DocumentParser(engine, ParsingConfig(max_pages=max_pages, dpi=110, native_min_chars=20))
 
 
 def test_native_pdf_becomes_a_tree_with_linked_figures():

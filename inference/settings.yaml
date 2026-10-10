@@ -1,0 +1,109 @@
+# Ved inference service configuration: providers, model routes and tunings.
+#
+# Any value can be overridden with an environment variable: prefix VED_INFERENCE_, nested keys joined
+# with "__", e.g.  VED_INFERENCE_LLM__DEFAULT__PRIMARY__MODEL=gemini-3.8-flash
+#                  VED_INFERENCE_OCR__ENGINE=unlimited-remote
+# Secrets never go here: providers name the environment variable that holds their key (api_key_env),
+# usually set in inference/.env (gitignored). Reference: docs/guides/configuration.md
+
+# ------------------------------------------------------------------ providers (vendors / endpoints)
+# type: gemini  -> Google Gemini API (generateContent, multimodal embeddings)
+# type: openai  -> any OpenAI-compatible API: OpenAI, Azure/OpenRouter-style gateways, Groq, Together,
+#                  vLLM, LM Studio, Ollama (/v1). json_mode: schema (strict JSON schema) | object.
+providers:
+  gemini:
+    type: gemini
+    api_key_env: VED_INFERENCE_GEMINI_API_KEY
+    timeout_seconds: 180
+    max_retries: 4           # per model, on 429 / 5xx
+    max_backoff_seconds: 45  # longer server hints (daily quota) switch to the next model immediately
+  # openai:
+  #   type: openai
+  #   api_key_env: OPENAI_API_KEY
+  # ollama:                  # local, no key; e.g. `ollama serve` + `ollama pull qwen3:8b nomic-embed-text`
+  #   type: openai
+  #   base_url: http://localhost:11434/v1
+  #   json_mode: object
+  # openrouter:
+  #   type: openai
+  #   base_url: https://openrouter.ai/api/v1
+  #   api_key_env: OPENROUTER_API_KEY
+
+# ------------------------------------------------------------------ text generation routes
+# Every request names a task; it uses llm.tasks.<task> if present, else llm.default.
+# A route is a primary model plus fallbacks (tried in order, across providers, when a model is
+# unavailable, unknown or out of quota). options are provider-specific:
+#   gemini: thinking_level (minimal|low|medium|high)    openai: reasoning_effort, max_tokens, top_p, …
+# Tasks: outline, lesson, questions, grade, feedback, answer, notes, figures (vision), summaries
+llm:
+  default:
+    primary: {provider: gemini, model: gemini-3.5-flash, options: {thinking_level: low}}
+    fallbacks:
+      - {provider: gemini, model: gemini-3.5-flash-lite, options: {thinking_level: low}}
+  tasks:
+    # Bulk indexing work is cheap and high-volume: use the lighter model first.
+    summaries:
+      primary: {provider: gemini, model: gemini-3.5-flash-lite, options: {thinking_level: minimal}}
+      fallbacks:
+        - {provider: gemini, model: gemini-3.5-flash, options: {thinking_level: low}}
+    # Example: notes from a different vendor, falling back to Gemini.
+    # notes:
+    #   primary: {provider: openai, model: gpt-4.1-mini}
+    #   fallbacks: [{provider: gemini, model: gemini-3.5-flash}]
+
+# ------------------------------------------------------------------ embeddings
+# dimensions must match the backend's vector column (vector(768)); changing it needs a DB migration.
+# The backend records the model on every vector, only compares vectors of the query's model, and
+# re-embeds a document in the background the first time it is searched after a switch.
+# multimodal: embed figures from their image (only providers that support it, e.g. Gemini);
+# otherwise figures are embedded from caption + description text.
+embeddings:
+  provider: gemini
+  model: gemini-embedding-2
+  dimensions: 768
+  multimodal: true
+  batch_size: 64
+  # provider: openai / model: text-embedding-3-small / dimensions: 768 / multimodal: false
+  # provider: ollama / model: nomic-embed-text / dimensions: 768 / multimodal: false
+
+# ------------------------------------------------------------------ OCR (scanned pages / images)
+ocr:
+  engine: rapid            # rapid (CPU, built into the layout model) | unlimited-remote | unlimited-local
+  remote:                  # baidu/Unlimited-OCR served by SGLang / vLLM
+    base_url: http://localhost:10000/v1
+    model: Unlimited-OCR
+    flavor: sglang
+    pages_per_request: 8
+  local:
+    model_id: baidu/Unlimited-OCR
+    device: cuda
+
+# ------------------------------------------------------------------ structural parsing
+parsing:
+  max_upload_bytes: 26214400
+  max_pages: 200
+  dpi: 200                 # rendering for OCR and figure crops
+  max_concurrency: 1
+  native_min_chars: 50     # letters/digits for a PDF page to be read natively (no OCR)
+  chunk_target_chars: 900  # leaf chunk size (~150-250 tokens)
+  chunk_max_chars: 1400
+  max_depth: 4
+  max_heading_chars: 120
+  pages_per_fallback_node: 5
+  figures:                 # decorative-image filter
+    max_side_px: 1600
+    min_side_px: 100
+    min_page_area_fraction: 0.012
+    max_aspect: 6.0
+    repeat_pages: 3        # same image on >= N pages = logo / background
+    background_area_fraction: 0.85
+    max_figures: 400
+
+# ------------------------------------------------------------------ indexing & study generation
+indexing:
+  figures_per_call: 6      # images per vision request
+  nodes_per_call: 12       # sections per summary request
+  node_text_chars: 6000
+study:
+  max_topics: 12
+  outline_summary_chars: 400

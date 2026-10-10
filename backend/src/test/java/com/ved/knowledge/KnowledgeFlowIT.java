@@ -10,6 +10,7 @@ import com.ved.document.DocumentFlowIT;
 import com.ved.document.extraction.ExtractionGateway;
 import com.ved.knowledge.ai.KnowledgeAi;
 import com.ved.knowledge.ai.KnowledgeAiException;
+import com.ved.knowledge.store.KnowledgeStore;
 import com.ved.study.ai.StudyAi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,6 +52,9 @@ class KnowledgeFlowIT {
 
     @MockitoBean
     KnowledgeAi knowledgeAi;
+
+    @Autowired
+    KnowledgeStore store;
 
     Registered user;
     UUID documentId;
@@ -117,6 +121,22 @@ class KnowledgeFlowIT {
                 .embed(eq(KnowledgeAi.EmbedTask.RETRIEVAL_QUERY), any());
         assertThat(getJson("/api/documents/{d}/search?q=mitochondria", documentId).at("/hits/0/label").asString())
                 .isEqualTo("Chapter 2");
+    }
+
+    @Test
+    void switchingTheEmbeddingModelReembedsInTheBackground() throws Exception {
+        when(knowledgeAi.embed(any(), any())).thenAnswer(inv -> inv.getArgument(1) == null ? null
+                : new KnowledgeAi.Embeddings("fake:embed-v2", FakeAi.embed(inv.getArgument(1))));
+        assertThat(store.hasStaleEmbeddings(documentId, "fake:embed-v2")).isTrue();
+
+        // Old vectors are never compared with the new model's query; keyword search still answers.
+        assertThat(getJson("/api/documents/{d}/search?q=osmosis", documentId).at("/hits/0/label").asString())
+                .isEqualTo("1.1");
+        for (int i = 0; i < 100 && store.hasStaleEmbeddings(documentId, "fake:embed-v2"); i++) {
+            Thread.sleep(50);
+        }
+        assertThat(store.hasStaleEmbeddings(documentId, "fake:embed-v2")).isFalse();
+        assertThat(store.chunksWithoutEmbedding(documentId, 10)).isEmpty();
     }
 
     @Test

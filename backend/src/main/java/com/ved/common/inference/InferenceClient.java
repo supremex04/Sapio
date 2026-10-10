@@ -44,6 +44,10 @@ public class InferenceClient {
     record ErrorBody(Object detail) {
     }
 
+    public <T> T getJson(String path, Class<T> responseType) throws InferenceException {
+        return call(path, () -> client.get().uri(path).retrieve().body(responseType));
+    }
+
     public <T> T postJson(String path, Object body, Class<T> responseType) throws InferenceException {
         return call(path, () -> client.post().uri(path).contentType(MediaType.APPLICATION_JSON).body(body)
                 .retrieve().body(responseType));

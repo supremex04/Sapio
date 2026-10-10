@@ -12,8 +12,8 @@ public interface KnowledgeAi {
 
     List<NodeSummary> summarize(String language, List<SummaryInput> nodes);
 
-    /** One vector per item, same order. */
-    List<float[]> embed(EmbedTask task, List<EmbedInput> items);
+    /** One vector per item, same order, tagged with the model that produced them. */
+    Embeddings embed(EmbedTask task, List<EmbedInput> items);
 
     enum EmbedTask {
         RETRIEVAL_DOCUMENT,
@@ -30,6 +30,13 @@ public interface KnowledgeAi {
     }
 
     record NodeSummary(String key, String summary, List<String> keyTerms) {
+    }
+
+    /**
+     * @param model stable identity of the embedding model ("provider:model"); vectors from different models are
+     *              never compared
+     */
+    record Embeddings(String model, List<float[]> vectors) {
     }
 
     /** Text, an image, or both. */

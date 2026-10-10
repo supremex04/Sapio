@@ -1,5 +1,5 @@
 from ved_inference.parsing.models import Block, FigureImage
-from ved_inference.parsing.tree import CHUNK_MAX, build_tree
+from ved_inference.parsing.tree import DEFAULT, build_tree
 
 IMG = FigureImage(data=b"x", mime="image/png", width=300, height=200)
 
@@ -62,7 +62,7 @@ def test_chunks_respect_size_and_figures_anchor_to_their_chunk():
         t(para),
     ]
     tree = build_tree(blocks, 1)
-    assert all(len(c.text) <= CHUNK_MAX for c in tree.chunks)
+    assert all(len(c.text) <= DEFAULT.chunk_max_chars for c in tree.chunks)
     assert len(tree.chunks) >= 2
     fig = tree.figures[0]
     assert fig.caption == "Figure 1: Cell"

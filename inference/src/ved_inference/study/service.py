@@ -10,6 +10,7 @@ import re
 from collections.abc import Iterable
 
 from ved_inference.api import study_schemas as api
+from ved_inference.config import StudyConfig
 from ved_inference.errors import EngineError
 from ved_inference.llm.base import LlmClient
 from ved_inference.study import prompts
@@ -24,36 +25,37 @@ from ved_inference.study.models import (
     QuestionSet,
 )
 
-MAX_TOPICS = 12
-OUTLINE_SUMMARY_CHARS = 400
-
 # Every markdown image the model writes; the target is validated against the figures we provided.
 _IMAGE = re.compile(r"!\[([^\]]*)\]\(\s*<?([^)\s>]*)>?(?:\s+\"[^\"]*\")?\s*\)")
 _CITATION = re.compile(r"\[§([^\]\s]+)\]")
 
 
 class StudyService:
-    def __init__(self, llm: LlmClient, rng: random.Random | None = None) -> None:
+    def __init__(
+        self, llm: LlmClient, rng: random.Random | None = None, config: StudyConfig | None = None
+    ) -> None:
         self._llm = llm
         self._rng = rng or random.Random()
+        self._config = config or StudyConfig()
 
     # --- learning path from the document tree ----------------------------------------------------
 
     def build_material(self, request: api.MaterialRequest) -> api.MaterialResponse:
         nodes = request.nodes
-        outline = "\n".join(_outline_line(n) for n in nodes)
+        outline = "\n".join(_outline_line(n, self._config.outline_summary_chars) for n in nodes)
         min_topics = 1 if len(nodes) <= 2 else 3
-        max_topics = max(min_topics, min(MAX_TOPICS, len(nodes)))
+        max_topics = max(min_topics, min(self._config.max_topics, len(nodes)))
         result = self._llm.generate(
             system=prompts.OUTLINE_SYSTEM,
             prompt=prompts.outline_prompt(request.filename, outline, request.sample, min_topics, max_topics),
             schema=Outline,
             temperature=0.2,
+            task="outline",
         )
         valid = {n.key for n in nodes}
         order = {n.key: i for i, n in enumerate(nodes)}
         topics: list[api.TopicOut] = []
-        for t in result.topics[:MAX_TOPICS]:
+        for t in result.topics[: self._config.max_topics]:
             keys = sorted({k for k in t.node_keys if k in valid}, key=order.__getitem__)
             if not keys or not t.title.strip():
                 continue
@@ -96,6 +98,7 @@ class StudyService:
             ),
             schema=Lesson,
             temperature=0.5,
+            task="lesson",
         )
         allowed = {f.id for f in request.figures}
         sections_ids = {s.id for s in request.sections}
@@ -161,6 +164,7 @@ class StudyService:
             ),
             schema=QuestionSet,
             temperature=0.6,
+            task="questions",
         )
         sections_by_topic = {t.key: {s.id for s in t.sections} for t in request.topics}
         out: list[api.QuestionOut] = []
@@ -232,6 +236,7 @@ class StudyService:
             ),
             schema=Grade,
             temperature=0.0,
+            task="grade",
         )
         score = _clamp_to_verdict(grade.verdict, grade.score)
         return api.GradeResponse(
@@ -257,6 +262,7 @@ class StudyService:
             ),
             schema=AssessmentFeedback,
             temperature=0.4,
+            task="feedback",
         )
         return api.FeedbackResponse(
             summary=fb.summary.strip(),
@@ -285,6 +291,7 @@ class StudyService:
             ),
             schema=LongAnswer,
             temperature=0.3,
+            task="answer",
         )
         used: list[str] = []
         sections_ids = {s.id for s in request.sections}
@@ -310,6 +317,7 @@ class StudyService:
             ),
             schema=Notes,
             temperature=0.3,
+            task="notes",
         )
         used: list[str] = []
         sections_ids = {s.id for s in request.sections}
@@ -387,11 +395,9 @@ def cited_ids(text: str, section_ids: Iterable[str]) -> list[str]:
     return found
 
 
-def _outline_line(n: api.OutlineNodeIn) -> str:
+def _outline_line(n: api.OutlineNodeIn, summary_chars: int) -> str:
     indent = "  " * max(n.level - 1, 0)
-    summary = (
-        n.summary if len(n.summary) <= OUTLINE_SUMMARY_CHARS else n.summary[:OUTLINE_SUMMARY_CHARS] + "…"
-    )
+    summary = n.summary if len(n.summary) <= summary_chars else n.summary[:summary_chars] + "…"
     terms = f" | terms: {', '.join(n.key_terms[:8])}" if n.key_terms else ""
     pages = f" (p. {n.pages})" if n.pages else ""
     return f"{indent}[{n.key}] {n.label} {n.title}{pages}: {summary}{terms}"

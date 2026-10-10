@@ -96,7 +96,7 @@ public class AssessmentService {
         List<String> avoid = questions.findAssessedPrompts(userId, material.getId());
         Map<String, UUID> sectionNodes = new HashMap<>(); // citation id ("§2.3") -> tree node
         List<StudyAi.QuestionTopic> topicSpecs = selected.stream().map(t -> {
-            var sources = access.sources(material, t, MaterialAccess.QUESTION_BUDGET, 0);
+            var sources = access.sources(material, t, access.budgets().questions());
             sources.sections().forEach(sec -> sectionNodes.put(sec.id(), sec.nodeId()));
             return new StudyAi.QuestionTopic(t.getId().toString(), t.getTitle(), t.getSummary(), t.getKeyConcepts(),
                     t.getDifficulty(), sources.sections());

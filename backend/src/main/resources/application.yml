@@ -53,9 +53,36 @@ ved:
       core-pool-size: 2
       max-pool-size: 4
       queue-capacity: 200
+      # Transient failures (AI busy / out of quota) retry automatically after these delays, resuming where
+      # they stopped. One entry per attempt; empty disables automatic retries.
+      auto-retry-delays: 1m, 4m, 15m
+      retry-poll: 30s # how often due retries are picked up
   knowledge:
     # Signs figure image URLs. MUST be overridden outside local development.
     figure-url-secret: ${VED_FIGURE_URL_SECRET:dev-only-figure-url-secret-change-me}
+    figure-url-ttl: 6h
+    retrieval:
+      candidates: 30 # per ranker (keyword, vector) before fusion
+      rrf-k: 60      # Reciprocal Rank Fusion constant (60 is the standard from Cormack et al. 2009)
+      # Cosine similarity a figure needs to count as a semantic match (keyword matches on captions always count).
+      # Model-specific: calibrated on gemini-embedding-2 (on-topic figures ~0.52-0.56, loosely related ~0.42-0.46,
+      # unrelated ~0.36-0.38). Re-tune when switching embedding models.
+      figure-min-similarity: 0.48
+    indexing:        # items per inference call; each batch commits, so failures resume from the last batch
+      figure-batch: 12
+      summary-batch: 36
+      chunk-embed-batch: 96
+      figure-embed-batch: 16
+      summary-text-chars: 6000 # source text per section sent for summarising
+  study:
+    # Characters of retrieved source text (and max figures) sent to the model per use.
+    context:
+      lesson:    { chars: 24000, figures: 6 }
+      questions: { chars: 12000, figures: 0 }
+      grade:     { chars: 6000,  figures: 0 }
+      tutor:     { chars: 10000, figures: 2 }
+      ask:       { chars: 14000, figures: 5 }
+      notes:     { chars: 18000, figures: 5 }
   inference:
     base-url: ${VED_INFERENCE_URL:http://localhost:8000}
     api-key: ${VED_INFERENCE_API_KEY:dev-internal-key}

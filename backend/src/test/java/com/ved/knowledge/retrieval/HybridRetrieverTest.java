@@ -19,11 +19,11 @@ class HybridRetrieverTest {
         List<Ranked> keyword = List.of(new Ranked(a, node, 9.0, "**osmosis** moves water"), new Ranked(b, node, 1.0, "b"));
         List<Ranked> vector = List.of(new Ranked(c, node, 0.9, "c"), new Ranked(a, node, 0.8, "plain a"));
 
-        List<HybridRetriever.Hit> hits = HybridRetriever.fuse(List.of(keyword, vector), 10);
+        List<HybridRetriever.Hit> hits = HybridRetriever.fuse(List.of(keyword, vector), 10, 60);
 
         assertThat(hits.getFirst().id()).isEqualTo(a); // in both lists
         assertThat(hits.getFirst().snippet()).contains("**osmosis**");
         assertThat(hits).extracting(HybridRetriever.Hit::id).containsExactly(a, c, b);
-        assertThat(HybridRetriever.fuse(List.of(keyword, vector), 1)).hasSize(1);
+        assertThat(HybridRetriever.fuse(List.of(keyword, vector), 1, 60)).hasSize(1);
     }
 }

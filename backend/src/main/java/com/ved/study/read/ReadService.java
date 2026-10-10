@@ -41,10 +41,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public class ReadService {
 
-    static final int SECTION_NOTES_BUDGET = 18_000;
-    static final int ASK_BUDGET = 14_000;
-    static final int MAX_FIGURES = 5;
-
     private final MaterialAccess access;
     private final KnowledgeStore store;
     private final ContextAssembler context;
@@ -86,7 +82,8 @@ public class ReadService {
         Map<UUID, NodeRow> nodes = nodeMap(documentId);
         List<UUID> scope = request.nodeId() != null && nodes.containsKey(request.nodeId()) ? List.of(request.nodeId())
                 : List.of();
-        Context sources = context.forQuestion(documentId, request.question(), scope, ASK_BUDGET, MAX_FIGURES);
+        Context sources = context.forQuestion(documentId, request.question(), scope, access.budgets().ask().chars(),
+                access.budgets().ask().figures());
         if (sources.isEmpty()) {
             // Nothing matched: give the model the outline so it can say what the document does cover.
             sources = context.forNodes(documentId, nodes.values().stream().filter(n -> n.level() == 1)
@@ -125,7 +122,8 @@ public class ReadService {
             sections.addAll(kids.sections());
             sources = new Context(sections, kids.figures());
         } else {
-            sources = context.forNodes(documentId, List.of(node.id()), SECTION_NOTES_BUDGET, MAX_FIGURES);
+            sources = context.forNodes(documentId, List.of(node.id()), access.budgets().notes().chars(),
+                    access.budgets().notes().figures());
         }
         StudyAi.NotesDraft draft = ai.notes(new StudyAi.NotesSpec(material.getTitle(), material.getLanguage(),
                 material.getKind(), node.title(), ContextAssembler.breadcrumb(nodes, node), overview ? "overview" : "section",
@@ -150,7 +148,7 @@ public class ReadService {
             return false;
         }
         int chars = store.chunksInSubtree(documentId, node.path()).stream().mapToInt(c -> c.content().length()).sum();
-        return chars > SECTION_NOTES_BUDGET;
+        return chars > access.budgets().notes().chars();
     }
 
     // ------------------------------------------------------------------------------- helpers

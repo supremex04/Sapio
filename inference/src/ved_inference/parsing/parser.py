@@ -8,6 +8,7 @@ from pathlib import PurePath
 
 import pymupdf
 
+from ved_inference.config import ParsingConfig
 from ved_inference.engines.base import OcrEngine
 from ved_inference.errors import DocumentError
 from ved_inference.parsing.figures import detect_scanned_figures, filter_figures, insert_by_position
@@ -53,20 +54,13 @@ class DocumentParser:
     recovers headings and captions on scans. A model engine (Unlimited-OCR) returns markdown instead.
     """
 
-    def __init__(
-        self,
-        ocr_engine: OcrEngine | None,
-        *,
-        max_pages: int,
-        dpi: int,
-        native_min_chars: int,
-        max_concurrency: int,
-    ) -> None:
+    def __init__(self, ocr_engine: OcrEngine | None, config: ParsingConfig) -> None:
         self._engine = ocr_engine
-        self._max_pages = max_pages
-        self._dpi = dpi
-        self._native_min_chars = native_min_chars
-        self._slots = threading.BoundedSemaphore(max_concurrency)
+        self._config = config
+        self._max_pages = config.max_pages
+        self._dpi = config.dpi
+        self._native_min_chars = config.native_min_chars
+        self._slots = threading.BoundedSemaphore(config.max_concurrency)
 
     @property
     def ocr_engine_name(self) -> str:
@@ -88,18 +82,22 @@ class DocumentParser:
             if scanned and self._engine is None:
                 ocr_pages = read_layout(doc, scanned, ocr=True, dpi=self._dpi)
                 for page_no, blocks in ocr_pages.items():
-                    extra = detect_scanned_figures(doc[page_no - 1], blocks, dpi=self._dpi)
+                    extra = detect_scanned_figures(
+                        doc[page_no - 1], blocks, dpi=self._dpi, config=self._config.figures
+                    )
                     by_page[page_no] = insert_by_position(blocks, extra)
             elif scanned:
                 by_page.update(self._engine_blocks(doc, scanned))
 
             page_areas = {i + 1: doc[i].rect.width * doc[i].rect.height for i in range(page_count)}
             ordered = [b for page in range(1, page_count + 1) for b in by_page.get(page, [])]
-            blocks = filter_figures(ordered, page_areas, text_pages={i + 1 for i in native})
+            blocks = filter_figures(
+                ordered, page_areas, text_pages={i + 1 for i in native}, config=self._config.figures
+            )
             if not any(b.kind != "figure" and b.text.strip() for b in blocks):
                 raise DocumentError("No readable text was found in this document")
 
-            tree = build_tree(blocks, page_count)
+            tree = build_tree(blocks, page_count, self._config)
             pages = [
                 PageText(
                     page=p,

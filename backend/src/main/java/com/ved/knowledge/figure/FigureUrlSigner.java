@@ -11,7 +11,8 @@ import java.util.UUID;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.ved.knowledge.KnowledgeProperties;
+
 import org.springframework.stereotype.Component;
 
 /**
@@ -22,20 +23,21 @@ import org.springframework.stereotype.Component;
 @Component
 public class FigureUrlSigner {
 
-    static final Duration TTL = Duration.ofHours(6);
     private static final long HOUR = 3600;
 
     private final SecretKeySpec key;
+    private final Duration ttl;
     private final Clock clock;
 
-    FigureUrlSigner(@Value("${ved.knowledge.figure-url-secret}") String secret, Clock clock) {
-        this.key = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+    FigureUrlSigner(KnowledgeProperties properties, Clock clock) {
+        this.key = new SecretKeySpec(properties.figureUrlSecret().getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        this.ttl = properties.figureUrlTtl();
         this.clock = clock;
     }
 
     public String url(UUID figureId) {
         long now = clock.instant().getEpochSecond();
-        long expires = ((now / HOUR) + 1) * HOUR + TTL.toSeconds();
+        long expires = ((now / HOUR) + 1) * HOUR + ttl.toSeconds();
         return "/api/figures/" + figureId + "/image?exp=" + expires + "&sig=" + sign(figureId, expires);
     }
 

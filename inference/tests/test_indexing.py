@@ -30,6 +30,7 @@ def test_figures_are_described_in_batches_and_decorations_flagged():
     )
     assert [(f.key, f.educational) for f in result.figures] == [("a", True), ("b", False)]
     assert llm.images == [2]
+    assert llm.tasks == ["figures"]
 
 
 def test_missing_description_is_an_error():

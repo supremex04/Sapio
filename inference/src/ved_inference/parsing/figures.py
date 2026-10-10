@@ -1,29 +1,24 @@
 """Figure hygiene: re-encoding, decorative-image filtering, and figure detection on scanned pages."""
 
 import io
-from collections import Counter
+from collections import defaultdict
 
 import numpy as np
 import pymupdf
 from PIL import Image
 
+from ved_inference.config import FigureFilterConfig
 from ved_inference.parsing.models import BBox, Block, FigureImage
 
-MAX_SIDE = 1600
-MIN_SIDE_PX = 100
-MIN_PAGE_AREA_FRACTION = 0.012
-MAX_ASPECT = 6.0
-REPEAT_PAGES = 3  # the same image on this many pages is a logo/background
-BACKGROUND_AREA_FRACTION = 0.85
-MAX_FIGURES = 400
+DEFAULT = FigureFilterConfig()
 
 
-def encode(image: Image.Image) -> FigureImage:
-    """Downscales to ≤1600 px and picks PNG for line art / transparency, JPEG for photos."""
+def encode(image: Image.Image, max_side: int = DEFAULT.max_side_px) -> FigureImage:
+    """Downscales to ``max_side`` and picks PNG for line art / transparency, JPEG for photos."""
     img = image
-    if max(img.size) > MAX_SIDE:
+    if max(img.size) > max_side:
         img = img.copy()
-        img.thumbnail((MAX_SIDE, MAX_SIDE))
+        img.thumbnail((max_side, max_side))
     line_art = img.mode in ("RGBA", "LA", "P") or img.convert("RGB").getcolors(maxcolors=512) is not None
     buf = io.BytesIO()
     if line_art:
@@ -55,18 +50,24 @@ def average_hash(img: Image.Image) -> int:
     return int("".join("1" if b else "0" for b in bits), 2)
 
 
-def filter_figures(blocks: list[Block], page_areas: dict[int, float], text_pages: set[int]) -> list[Block]:
+def filter_figures(
+    blocks: list[Block],
+    page_areas: dict[int, float],
+    text_pages: set[int],
+    config: FigureFilterConfig = DEFAULT,
+) -> list[Block]:
     """Removes decorative figures (tiny, extreme aspect, repeated logos, page backgrounds)."""
     hashes: dict[int, int] = {}
-    pages_per_hash: Counter[int] = Counter()
+    pages_by_hash: defaultdict[int, set[int]] = defaultdict(set)
     for i, b in enumerate(blocks):
         if b.kind == "figure" and b.image:
             img = decode(b.image.data)
             if img is not None:
                 h = average_hash(img)
                 hashes[i] = h
-                pages_per_hash[h] += 1
-    repeated = {h for h, n in pages_per_hash.items() if n >= REPEAT_PAGES}
+                pages_by_hash[h].add(b.page)
+    # The same image on many pages is a logo / header ornament (several copies on one page are not).
+    repeated = {h for h, pages in pages_by_hash.items() if len(pages) >= config.repeat_pages}
 
     kept: list[Block] = []
     figures = 0
@@ -74,26 +75,28 @@ def filter_figures(blocks: list[Block], page_areas: dict[int, float], text_pages
         if b.kind != "figure":
             kept.append(b)
             continue
-        if b.image is None or figures >= MAX_FIGURES or hashes.get(i) in repeated:
+        if b.image is None or figures >= config.max_figures or hashes.get(i) in repeated:
             continue
-        if min(b.image.width, b.image.height) < MIN_SIDE_PX:
+        if min(b.image.width, b.image.height) < config.min_side_px:
             continue
         ratio = max(b.image.width, b.image.height) / max(1, min(b.image.width, b.image.height))
-        if ratio > MAX_ASPECT:
+        if ratio > config.max_aspect:
             continue
         if b.bbox is not None:
             area = (b.bbox[2] - b.bbox[0]) * (b.bbox[3] - b.bbox[1])
             page_area = page_areas.get(b.page, 1.0)
-            if area < MIN_PAGE_AREA_FRACTION * page_area:
+            if area < config.min_page_area_fraction * page_area:
                 continue
-            if area > BACKGROUND_AREA_FRACTION * page_area and b.page in text_pages:
+            if area > config.background_area_fraction * page_area and b.page in text_pages:
                 continue  # background image behind a text page
         kept.append(b)
         figures += 1
     return kept
 
 
-def detect_scanned_figures(page: pymupdf.Page, blocks: list[Block], dpi: int = 150) -> list[Block]:
+def detect_scanned_figures(
+    page: pymupdf.Page, blocks: list[Block], dpi: int = 150, config: FigureFilterConfig = DEFAULT
+) -> list[Block]:
     """Gap-with-ink heuristic for OCR'd pages, where the layout model finds text but not pictures.
 
     Renders the page in greyscale, masks every detected text block, and returns tall bands that still
@@ -134,12 +137,14 @@ def detect_scanned_figures(page: pymupdf.Page, blocks: list[Block], dpi: int = 1
         if cols.size == 0:
             continue
         bbox: BBox = (float(cols[0]), float(y0), float(cols[-1]), float(y1))
-        if (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]) < MIN_PAGE_AREA_FRACTION * pix.width * pix.height:
+        if (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]) < config.min_page_area_fraction * pix.width * pix.height:
             continue
         clip = pymupdf.Rect(*bbox) + (-4, -4, 4, 4)
         render = page.get_pixmap(clip=clip, dpi=dpi, alpha=False)
         img = Image.frombytes("RGB", (render.width, render.height), render.samples)
-        found.append(Block(page=page.number + 1, kind="figure", bbox=bbox, image=encode(img)))
+        found.append(
+            Block(page=page.number + 1, kind="figure", bbox=bbox, image=encode(img, config.max_side_px))
+        )
     return found
 
 

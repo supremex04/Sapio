@@ -8,12 +8,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.ved.knowledge.KnowledgeProperties;
+import com.ved.knowledge.StaleEmbeddingsDetected;
 import com.ved.knowledge.ai.KnowledgeAi;
 import com.ved.knowledge.ai.KnowledgeAiException;
 import com.ved.knowledge.store.KnowledgeStore;
 import com.ved.knowledge.store.KnowledgeStore.Ranked;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 /**
@@ -24,15 +27,18 @@ import org.springframework.stereotype.Component;
 public class HybridRetriever {
 
     private static final Logger log = LoggerFactory.getLogger(HybridRetriever.class);
-    static final int CANDIDATES = 30;
-    static final int RRF_K = 60;
 
     private final KnowledgeStore store;
     private final KnowledgeAi ai;
+    private final KnowledgeProperties.Retrieval config;
+    private final ApplicationEventPublisher events;
 
-    HybridRetriever(KnowledgeStore store, KnowledgeAi ai) {
+    HybridRetriever(KnowledgeStore store, KnowledgeAi ai, KnowledgeProperties properties,
+                    ApplicationEventPublisher events) {
         this.store = store;
         this.ai = ai;
+        this.config = properties.retrieval();
+        this.events = events;
     }
 
     /** A fused hit; {@code snippet} prefers the keyword highlight. */
@@ -44,37 +50,45 @@ public class HybridRetriever {
 
     /** @param scopePaths ltree paths of subtrees to search in; empty = whole document */
     public Results search(UUID documentId, String query, List<String> scopePaths, int limit, int figureLimit) {
-        float[] vector = embedQuery(query);
-        List<Ranked> keyword = store.keywordChunks(documentId, query, scopePaths, CANDIDATES);
-        List<Ranked> dense = vector == null ? List.of() : store.vectorChunks(documentId, vector, scopePaths, CANDIDATES);
-        List<Hit> chunks = fuse(List.of(keyword, dense), limit);
+        KnowledgeAi.Embeddings q = embedQuery(documentId, query);
+        int n = config.candidates();
+        List<Ranked> keyword = store.keywordChunks(documentId, query, scopePaths, n);
+        List<Ranked> dense = q == null ? List.of()
+                : store.vectorChunks(documentId, q.model(), q.vectors().getFirst(), scopePaths, n);
+        List<Hit> chunks = fuse(List.of(keyword, dense), limit, config.rrfK());
 
         List<Hit> figures = List.of();
         if (figureLimit > 0) {
-            List<Ranked> fk = store.keywordFigures(documentId, query, CANDIDATES);
-            List<Ranked> fv = vector == null ? List.of() : store.vectorFigures(documentId, vector, CANDIDATES);
-            figures = fuse(List.of(fk, fv), figureLimit);
+            List<Ranked> fk = store.keywordFigures(documentId, query, n);
+            List<Ranked> fv = q == null ? List.of() : store.vectorFigures(documentId, q.model(), q.vectors().getFirst(),
+                    config.figureMinSimilarity(), n);
+            figures = fuse(List.of(fk, fv), figureLimit, config.rrfK());
         }
         return new Results(chunks, figures);
     }
 
-    private float[] embedQuery(String query) {
+    private KnowledgeAi.Embeddings embedQuery(UUID documentId, String query) {
+        KnowledgeAi.Embeddings q;
         try {
-            return ai.embed(KnowledgeAi.EmbedTask.RETRIEVAL_QUERY, List.of(KnowledgeAi.EmbedInput.text(query))).getFirst();
+            q = ai.embed(KnowledgeAi.EmbedTask.RETRIEVAL_QUERY, List.of(KnowledgeAi.EmbedInput.text(query)));
         } catch (KnowledgeAiException e) {
             log.warn("Query embedding unavailable, keyword-only search: {}", e.getMessage());
             return null;
         }
+        if (store.hasStaleEmbeddings(documentId, q.model())) {
+            events.publishEvent(new StaleEmbeddingsDetected(documentId, q.model()));
+        }
+        return q;
     }
 
     /** RRF: score = Σ 1 / (k + rank). Robust to the two lists' incomparable score scales. */
-    static List<Hit> fuse(List<List<Ranked>> lists, int limit) {
+    static List<Hit> fuse(List<List<Ranked>> lists, int limit, int k) {
         Map<UUID, Double> scores = new HashMap<>();
         Map<UUID, Ranked> best = new LinkedHashMap<>();
         for (List<Ranked> list : lists) {
             for (int rank = 0; rank < list.size(); rank++) {
                 Ranked r = list.get(rank);
-                scores.merge(r.id(), 1.0 / (RRF_K + rank + 1), Double::sum);
+                scores.merge(r.id(), 1.0 / (k + rank + 1), Double::sum);
                 best.merge(r.id(), r, (a, b) -> a.snippet() != null && a.snippet().contains("**") ? a : b);
             }
         }

@@ -225,12 +225,32 @@ public class KnowledgeStore {
                 + "AND c.embedding IS NULL ORDER BY c.ordinal LIMIT ?", CHUNK, documentId, limit);
     }
 
-    public void updateChunkEmbeddings(Map<UUID, float[]> vectors) {
-        jdbc.batchUpdate("UPDATE document_chunks SET embedding = ?::vector WHERE id = ?", new ArrayList<>(vectors.entrySet()),
-                200, (ps, e) -> {
+    public void updateChunkEmbeddings(String model, Map<UUID, float[]> vectors) {
+        jdbc.batchUpdate("UPDATE document_chunks SET embedding = ?::vector, embedding_model = ? WHERE id = ?",
+                new ArrayList<>(vectors.entrySet()), 200, (ps, e) -> {
                     ps.setString(1, vectorLiteral(e.getValue()));
-                    ps.setObject(2, e.getKey());
+                    ps.setString(2, model);
+                    ps.setObject(3, e.getKey());
                 });
+    }
+
+    /** Whether any of the document's vectors came from a model other than {@code model}. */
+    public boolean hasStaleEmbeddings(UUID documentId, String model) {
+        Boolean stale = jdbc.queryForObject("""
+                        SELECT EXISTS (SELECT 1 FROM document_chunks WHERE document_id = ? AND embedding IS NOT NULL
+                                         AND embedding_model IS DISTINCT FROM ?)
+                            OR EXISTS (SELECT 1 FROM document_figures WHERE document_id = ? AND embedding IS NOT NULL
+                                         AND embedding_model IS DISTINCT FROM ?)""",
+                Boolean.class, documentId, model, documentId, model);
+        return Boolean.TRUE.equals(stale);
+    }
+
+    /** Clears vectors made by other models so the indexer embeds them again. Returns the rows cleared. */
+    public int clearStaleEmbeddings(UUID documentId, String model) {
+        String set = " SET embedding = NULL, embedding_model = NULL WHERE document_id = ? AND embedding IS NOT NULL "
+                + "AND embedding_model IS DISTINCT FROM ?";
+        return jdbc.update("UPDATE document_chunks" + set, documentId, model)
+                + jdbc.update("UPDATE document_figures" + set, documentId, model);
     }
 
     // ------------------------------------------------------------------------------- figures
@@ -280,11 +300,12 @@ public class KnowledgeStore {
         jdbc.update("UPDATE document_figures SET description = ?, kind = ? WHERE id = ?", description, kind, figureId);
     }
 
-    public void updateFigureEmbeddings(Map<UUID, float[]> vectors) {
-        jdbc.batchUpdate("UPDATE document_figures SET embedding = ?::vector WHERE id = ?",
+    public void updateFigureEmbeddings(String model, Map<UUID, float[]> vectors) {
+        jdbc.batchUpdate("UPDATE document_figures SET embedding = ?::vector, embedding_model = ? WHERE id = ?",
                 new ArrayList<>(vectors.entrySet()), 100, (ps, e) -> {
                     ps.setString(1, vectorLiteral(e.getValue()));
-                    ps.setObject(2, e.getKey());
+                    ps.setString(2, model);
+                    ps.setObject(3, e.getKey());
                 });
     }
 
@@ -324,16 +345,18 @@ public class KnowledgeStore {
     }
 
     /** Dense (semantic) search: cosine distance on the HNSW index. */
-    public List<Ranked> vectorChunks(UUID documentId, float[] queryVector, List<String> scopePaths, int limit) {
+    /** Only vectors from the query's {@code model} are compared (other models live in other vector spaces). */
+    public List<Ranked> vectorChunks(UUID documentId, String model, float[] queryVector, List<String> scopePaths,
+                                     int limit) {
         return jdbc.query("""
                         SELECT c.id, c.node_id, 1 - (c.embedding <=> ?::vector) AS score, left(c.content, 240) AS snippet
                         FROM document_chunks c JOIN document_nodes n ON n.id = c.node_id
-                        WHERE c.document_id = ? AND c.embedding IS NOT NULL
+                        WHERE c.document_id = ? AND c.embedding IS NOT NULL AND c.embedding_model = ?
                           AND (?::ltree[] IS NULL OR n.path <@ ?::ltree[])
                         ORDER BY c.embedding <=> ?::vector LIMIT ?""",
                 (rs, i) -> new Ranked(rs.getObject("id", UUID.class), rs.getObject("node_id", UUID.class),
                         rs.getDouble("score"), rs.getString("snippet")),
-                vectorLiteral(queryVector), documentId, ltreeArray(scopePaths), ltreeArray(scopePaths),
+                vectorLiteral(queryVector), documentId, model, ltreeArray(scopePaths), ltreeArray(scopePaths),
                 vectorLiteral(queryVector), limit);
     }
 
@@ -348,14 +371,19 @@ public class KnowledgeStore {
                 query, documentId, query, limit);
     }
 
-    public List<Ranked> vectorFigures(UUID documentId, float[] queryVector, int limit) {
+    /** @param minSimilarity cosine similarity below which a figure is not considered relevant */
+    public List<Ranked> vectorFigures(UUID documentId, String model, float[] queryVector, double minSimilarity,
+                                      int limit) {
         return jdbc.query("""
                         SELECT f.id, f.node_id, 1 - (f.embedding <=> ?::vector) AS score
-                        FROM document_figures f WHERE f.document_id = ? AND f.embedding IS NOT NULL
+                        FROM document_figures f
+                        WHERE f.document_id = ? AND f.embedding IS NOT NULL AND f.embedding_model = ?
+                          AND 1 - (f.embedding <=> ?::vector) >= ?
                         ORDER BY f.embedding <=> ?::vector LIMIT ?""",
                 (rs, i) -> new Ranked(rs.getObject("id", UUID.class), rs.getObject("node_id", UUID.class),
                         rs.getDouble("score"), null),
-                vectorLiteral(queryVector), documentId, vectorLiteral(queryVector), limit);
+                vectorLiteral(queryVector), documentId, model, vectorLiteral(queryVector), minSimilarity,
+                vectorLiteral(queryVector), limit);
     }
 
     // ------------------------------------------------------------------------------- helpers

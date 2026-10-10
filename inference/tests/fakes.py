@@ -26,13 +26,15 @@ class FakeLlm(LlmClient):
         self.responses = list(responses)
         self.prompts: list[str] = []
         self.images: list[int] = []
+        self.tasks: list[str] = []
 
     @property
     def model_name(self) -> str:
         return "fake-llm"
 
-    def generate(self, *, system, prompt, schema, temperature=0.4, images=None):
+    def generate(self, *, system, prompt, schema, temperature=0.4, images=None, task="default"):
         self.prompts.append(prompt)
+        self.tasks.append(task)
         self.images.append(len(images or []))
         response = self.responses.pop(0)
         return response if isinstance(response, BaseModel) else schema.model_validate(response)
