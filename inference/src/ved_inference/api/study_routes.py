@@ -54,6 +54,11 @@ def assessment_feedback(body: s.FeedbackRequest, service: Service) -> s.Feedback
     return _run(lambda: service.assessment_feedback(body))
 
 
-@router.post("/ask", response_model=s.AskResponse)
-def ask(body: s.AskRequest, service: Service) -> s.AskResponse:
-    return _run(lambda: service.ask(body))
+@router.post("/answer", response_model=s.AnswerResponse)
+def answer(body: s.AnswerRequest, service: Service) -> s.AnswerResponse:
+    return _run(lambda: service.answer(body))
+
+
+@router.post("/notes", response_model=s.NotesResponse)
+def notes(body: s.NotesRequest, service: Service) -> s.NotesResponse:
+    return _run(lambda: service.notes(body))

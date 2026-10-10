@@ -49,3 +49,68 @@ def make_mixed_pdf() -> bytes:
     data = doc.tobytes()
     doc.close()
     return data
+
+
+def png_bytes(color: str = "green", size: tuple[int, int] = (400, 260)) -> bytes:
+    image = Image.new("RGB", size, "white")
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((10, 10, size[0] - 10, size[1] - 10), outline=color, width=8)
+    draw.ellipse((size[0] // 4, size[1] // 4, 3 * size[0] // 4, 3 * size[1] // 4), fill=color)
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+def textbook_pdf() -> bytes:
+    """Two chapters with an outline, body text, a raster figure, a vector diagram, a repeated logo."""
+    doc = pymupdf.open()
+    logo = png_bytes("red", (160, 160))
+    p1 = doc.new_page()
+    p1.insert_image(pymupdf.Rect(500, 20, 560, 80), stream=logo)
+    p1.insert_text((72, 90), "Chapter 1 The Cell", fontsize=24)
+    p1.insert_text((72, 125), "1.1 Cell theory", fontsize=15)
+    p1.insert_textbox(
+        pymupdf.Rect(72, 135, 520, 230), "All living things are made of cells. " * 6, fontsize=11
+    )
+    p1.insert_image(pymupdf.Rect(150, 240, 450, 440), stream=png_bytes())
+    p1.insert_text((150, 460), "Figure 1.1: A typical plant cell", fontsize=10)
+    p2 = doc.new_page()
+    p2.insert_image(pymupdf.Rect(500, 20, 560, 80), stream=logo)
+    p2.insert_text((72, 90), "Chapter 2 Energy", fontsize=24)
+    p2.insert_textbox(
+        pymupdf.Rect(72, 110, 520, 230), "Mitochondria convert glucose into ATP. " * 8, fontsize=11
+    )
+    shape = p2.new_shape()
+    shape.draw_rect(pymupdf.Rect(150, 250, 450, 450))
+    shape.draw_circle((300, 350), 60)
+    shape.finish(color=(0, 0, 1), width=2)
+    shape.commit()
+    p2.insert_text((150, 470), "Figure 2.1: Energy flow", fontsize=10)
+    p3 = doc.new_page()
+    p3.insert_image(pymupdf.Rect(500, 20, 560, 80), stream=logo)
+    p3.insert_text((72, 90), "2.1 Respiration", fontsize=15)
+    p3.insert_textbox(
+        pymupdf.Rect(72, 110, 520, 300), "Cells release energy from glucose in respiration. " * 8, fontsize=11
+    )
+    doc.set_toc(
+        [
+            [1, "Chapter 1 The Cell", 1],
+            [2, "1.1 Cell theory", 1],
+            [1, "Chapter 2 Energy", 2],
+            [2, "2.1 Respiration", 3],
+        ]
+    )
+    data = doc.tobytes()
+    doc.close()
+    return data
+
+
+def scanned(pdf: bytes) -> bytes:
+    """The same pages as images only (no text layer)."""
+    src = pymupdf.open(stream=pdf, filetype="pdf")
+    out = pymupdf.open()
+    for page in src:
+        pix = page.get_pixmap(dpi=150)
+        new = out.new_page(width=page.rect.width, height=page.rect.height)
+        new.insert_image(new.rect, pixmap=pix)
+    return out.tobytes()

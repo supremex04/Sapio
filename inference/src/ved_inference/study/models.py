@@ -17,7 +17,7 @@ class OutlineTopic(BaseModel):
     summary: str = Field(description="1-2 sentences: what the learner will understand")
     key_concepts: list[str] = Field(description="2-6 short key terms or ideas")
     difficulty: Difficulty
-    chunk_positions: list[int] = Field(description="Positions [C#] of all chunks covering this topic")
+    node_keys: list[str] = Field(description="Keys [N#] of the outline sections this topic covers, in order")
 
 
 class Outline(BaseModel):
@@ -75,7 +75,7 @@ class GeneratedQuestion(BaseModel):
         description="Model answer for SHORT_ANSWER; the correct option text otherwise"
     )
     explanation: str
-    source_chunk_positions: list[int]
+    source_section_ids: list[str] = Field(description="Ids of the SECTIONS that support the answer")
 
 
 class QuestionSet(BaseModel):
@@ -100,6 +100,10 @@ class AssessmentFeedback(BaseModel):
     next_steps: list[str]
 
 
-class TutorAnswer(BaseModel):
-    answer: str
-    grounded: bool = Field(description="false if the source does not cover the question")
+class LongAnswer(BaseModel):
+    answer: str = Field(description="Markdown answer citing sections like [§2.3] and embedding figures by id")
+    grounded: bool = Field(description="false if the SECTIONS do not cover the question")
+
+
+class Notes(BaseModel):
+    markdown: str

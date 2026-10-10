@@ -6,7 +6,8 @@ from pydantic import BaseModel
 
 from ved_inference.config import Settings
 from ved_inference.errors import EngineError
-from ved_inference.llm.gemini import GeminiClient
+from ved_inference.llm.base import EmbedItem, ImagePart
+from ved_inference.llm.gemini import GeminiClient, GeminiEmbedder
 from ved_inference.llm.json_schema import response_schema
 from ved_inference.study.models import Outline
 
@@ -84,3 +85,39 @@ def test_client_errors_are_not_retried():
 def test_missing_key_fails_fast():
     with pytest.raises(EngineError):
         GeminiClient(Settings(gemini_api_key=""))
+
+
+def test_generate_sends_images_before_the_prompt():
+    seen = {}
+
+    def handler(request):
+        seen["parts"] = json.loads(request.content)["contents"][0]["parts"]
+        return ok({"title": "t", "value": 1})
+
+    c, _ = client(handler)
+    c.generate(
+        system="s", prompt="describe", schema=Answer, images=[ImagePart(data=b"png", mime="image/png")]
+    )
+    assert "inlineData" in seen["parts"][0] and seen["parts"][1] == {"text": "describe"}
+
+
+def test_embedder_batches_multimodal_items():
+    bodies = []
+
+    def handler(request):
+        body = json.loads(request.content)
+        bodies.append(body)
+        return httpx.Response(200, json={"embeddings": [{"values": [0.1, 0.2]} for _ in body["requests"]]})
+
+    s = Settings(gemini_api_key="k", embedding_dimensions=2)
+    embedder = GeminiEmbedder(s, transport=httpx.MockTransport(handler))
+    embedder.BATCH = 2
+    vectors = embedder.embed(
+        [EmbedItem(text="a"), EmbedItem(image=ImagePart(b"x", "image/png"), text="cap"), EmbedItem(text="b")],
+        "RETRIEVAL_DOCUMENT",
+    )
+    assert vectors == [[0.1, 0.2]] * 3
+    assert len(bodies) == 2
+    first = bodies[0]["requests"][1]
+    assert first["taskType"] == "RETRIEVAL_DOCUMENT" and first["outputDimensionality"] == 2
+    assert "inlineData" in first["content"]["parts"][0] and first["content"]["parts"][1] == {"text": "cap"}

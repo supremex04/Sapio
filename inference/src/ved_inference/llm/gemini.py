@@ -1,5 +1,6 @@
 """Google Gemini (Generative Language API, ``generateContent``) with JSON-schema output."""
 
+import base64
 import json
 import logging
 import time
@@ -9,7 +10,7 @@ from pydantic import ValidationError
 
 from ved_inference.config import Settings
 from ved_inference.errors import EngineError
-from ved_inference.llm.base import LlmClient, T
+from ved_inference.llm.base import Embedder, EmbedItem, EmbedTask, ImagePart, LlmClient, T
 from ved_inference.llm.json_schema import response_schema
 
 log = logging.getLogger(__name__)
@@ -37,10 +38,20 @@ class GeminiClient(LlmClient):
     def model_name(self) -> str:
         return self._last_model
 
-    def generate(self, *, system: str, prompt: str, schema: type[T], temperature: float = 0.4) -> T:
+    def generate(
+        self,
+        *,
+        system: str,
+        prompt: str,
+        schema: type[T],
+        temperature: float = 0.4,
+        images: list[ImagePart] | None = None,
+    ) -> T:
+        parts: list[dict] = [_inline(img) for img in images or []]
+        parts.append({"text": prompt})
         body = {
             "systemInstruction": {"parts": [{"text": system}]},
-            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "contents": [{"role": "user", "parts": parts}],
             "generationConfig": {
                 "temperature": temperature,
                 "responseMimeType": "application/json",
@@ -92,6 +103,88 @@ class GeminiClient(LlmClient):
 
     def close(self) -> None:
         self._client.close()
+
+
+class GeminiEmbedder(Embedder):
+    """``gemini-embedding-2`` (multimodal): text and images in one 768-d space, batched."""
+
+    BATCH = 64
+
+    def __init__(self, settings: Settings, transport: httpx.BaseTransport | None = None) -> None:
+        key = settings.gemini_api_key.get_secret_value()
+        if not key:
+            raise EngineError("VED_INFERENCE_GEMINI_API_KEY is not set")
+        self._client = httpx.Client(
+            base_url=settings.gemini_base_url.rstrip("/"),
+            headers={"x-goog-api-key": key},
+            timeout=httpx.Timeout(settings.llm_timeout_seconds, connect=10.0),
+            transport=transport,
+        )
+        self._model = settings.embedding_model
+        self._dims = settings.embedding_dimensions
+        self._max_retries = settings.llm_max_retries
+
+    @property
+    def model_name(self) -> str:
+        return self._model
+
+    @property
+    def dimensions(self) -> int:
+        return self._dims
+
+    def embed(self, items: list[EmbedItem], task: EmbedTask) -> list[list[float]]:
+        vectors: list[list[float]] = []
+        for i in range(0, len(items), self.BATCH):
+            vectors.extend(self._batch(items[i : i + self.BATCH], task))
+        return vectors
+
+    def _batch(self, items: list[EmbedItem], task: EmbedTask) -> list[list[float]]:
+        requests = []
+        for item in items:
+            parts: list[dict] = []
+            if item.image is not None:
+                parts.append(_inline(item.image))
+            if item.text:
+                parts.append({"text": item.text[:8000]})
+            if not parts:
+                parts.append({"text": " "})
+            requests.append(
+                {
+                    "model": f"models/{self._model}",
+                    "content": {"parts": parts},
+                    "taskType": task,
+                    "outputDimensionality": self._dims,
+                }
+            )
+        last: Exception | None = None
+        for attempt in range(self._max_retries + 1):
+            try:
+                response = self._client.post(
+                    f"/models/{self._model}:batchEmbedContents", json={"requests": requests}
+                )
+                if response.status_code in _RETRYABLE:
+                    raise _Retryable(f"HTTP {response.status_code}")
+                if response.status_code >= 400:
+                    raise EngineError(
+                        f"Embedding request rejected (HTTP {response.status_code}): {_error_message(response)}"
+                    )
+                vectors = [e["values"] for e in response.json()["embeddings"]]
+                if len(vectors) != len(items):
+                    raise _Retryable("embedding count mismatch")
+                return vectors
+            except (_Retryable, httpx.HTTPError, KeyError, ValueError) as exc:
+                last = exc
+                log.warning("Embedding attempt %d failed: %s", attempt + 1, exc)
+                if attempt < self._max_retries:
+                    time.sleep(min(2**attempt, 8))
+        raise EngineError("The embedding service is busy right now. Please try again in a moment.") from last
+
+    def close(self) -> None:
+        self._client.close()
+
+
+def _inline(image: ImagePart) -> dict:
+    return {"inlineData": {"mimeType": image.mime, "data": base64.b64encode(image.data).decode("ascii")}}
 
 
 class _Retryable(Exception):

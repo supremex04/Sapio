@@ -40,6 +40,9 @@ class Settings(BaseSettings):
         default_factory=lambda: ["gemini-3.8-flash", "gemini-3.5-flash-lite"]
     )
     gemini_thinking_level: Literal["minimal", "low", "medium", "high"] = "low"
+    # Multimodal embeddings (text and images in one space). Must match the backend's vector(768) column.
+    embedding_model: str = "gemini-embedding-2"
+    embedding_dimensions: int = 768
 
     # unlimited-remote: an OpenAI-compatible server (vLLM / SGLang) serving baidu/Unlimited-OCR
     remote_base_url: str = "http://localhost:10000/v1"

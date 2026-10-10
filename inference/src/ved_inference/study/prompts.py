@@ -1,6 +1,7 @@
+from collections.abc import Iterable
+
 """Prompt builders. Pedagogy is grounded in docs/architecture/learning-science.md."""
 
-from collections.abc import Iterable
 
 LANGUAGE_NAMES = {
     "en": "English",
@@ -42,29 +43,64 @@ def format_sources(sources: Iterable[tuple[int, str, str]]) -> str:
     return "\n\n".join(f"[C{pos}] {heading}\n{content}".strip() for pos, heading, content in sources)
 
 
-OUTLINE_SYSTEM = """You are an expert instructional designer. You analyse a learner's uploaded document and design a learning path
-through it. You never invent content that is not in the document. Output strictly the requested JSON."""
+OUTLINE_SYSTEM = """You are an expert instructional designer. You design a learning path through a student's document using
+its outline (sections with summaries). You never invent content that is not in the document. Output strictly the requested JSON."""
 
 
-def outline_prompt(filename: str, chunk_listing: str, min_topics: int, max_topics: int) -> str:
-    return f"""Analyse this document (file name: "{filename}") and design a learning path.
+def outline_prompt(filename: str, outline: str, sample: str, min_topics: int, max_topics: int) -> str:
+    return f"""Design a learning path for this document (file name: "{filename}").
 
-The document is split into numbered chunks [C#] (with page ranges). Some chunks may be truncated with "…".
+You see its OUTLINE: every section has a key [N#], its numbering, title, pages, a summary and key terms.
 
 Produce:
-- title: a concise title for the material (not the file name unless it is meaningful).
+- title: a concise title for the material.
 - summary: 2-4 sentences: what the material covers and who it is for.
-- language: ISO 639-1 code of the document's main language. Write title, summary and topics in that language.
-- kind: SYLLABUS (describes a course: units, outcomes, schedule), TEXTBOOK, LECTURE_NOTES, HANDOUT or OTHER.
-- topics: {min_topics}-{max_topics} topics ordered for learning (prerequisites first; usually document order).
-  Each topic is a coherent unit worth a 5-10 minute lesson. For each give a short title, a 1-2 sentence summary of what
-  the learner will understand, 2-6 key concepts, a difficulty (INTRO, CORE or ADVANCED), and chunk_positions:
-  every chunk number whose content belongs to the topic. Every chunk with teaching content should belong to at least one
-  topic. Ignore front/back matter (cover, table of contents, copyright, index, references) - do not make topics of them.
-  For a syllabus, make one topic per unit/module of the course.
+- language: ISO 639-1 code of the document's language (see the sample). Write all text in that language.
+- kind: SYLLABUS, TEXTBOOK, LECTURE_NOTES, HANDOUT or OTHER.
+- topics: {min_topics}-{max_topics} topics in learning order (usually document order). Each topic is a coherent 5-10 minute
+  lesson: a short title, a 1-2 sentence summary, 2-6 key concepts, a difficulty (INTRO, CORE, ADVANCED) and node_keys:
+  the [N#] keys of the sections it covers (prefer whole subtrees; a large chapter may be split into several topics,
+  small neighbouring sections may be merged). Skip front/back matter (contents, references, index).
 
-DOCUMENT CHUNKS:
-{chunk_listing}"""
+SAMPLE TEXT:
+{sample[:1500]}
+
+OUTLINE:
+{outline}"""
+
+
+CONTEXT_RULES = """Use the SECTIONS as your source. Cite them inline as [§id] using their exact id (e.g. [§2.3]) after the
+statements they support. FIGURES are images from the student's own material: when one genuinely helps explain the point
+you are making, embed it on its own line exactly as ![short caption](figure:ID) using an id from the FIGURES list, and
+refer to it in the text ("as the diagram shows…"). Never invent figure ids or section ids; embed each figure at most once."""
+
+
+def render_context(sections: Iterable, figures: Iterable) -> str:
+    """Structured (YAML-like) context: compact, explicit ids, easy for the model to cite."""
+    lines = ["SECTIONS:"]
+    for s in sections:
+        lines.append(f'- id: "{s.id}"')
+        if s.path:
+            lines.append(f'  path: "{s.path}"')
+        if s.pages:
+            lines.append(f'  pages: "{s.pages}"')
+        if s.summary:
+            lines.append(f"  summary: {s.summary}")
+        if s.passages:
+            lines.append("  passages:")
+            lines.extend(f"    - {p}" for p in s.passages)
+    figs = list(figures)
+    if figs:
+        lines.append("FIGURES:")
+        for f in figs:
+            lines.append(f'- id: "{f.id}"')
+            if f.section_id:
+                lines.append(f'  section: "{f.section_id}"')
+            if f.caption:
+                lines.append(f"  caption: {f.caption}")
+            if f.description:
+                lines.append(f"  description: {f.description}")
+    return "\n".join(lines)
 
 
 def lesson_prompt(
@@ -77,7 +113,7 @@ def lesson_prompt(
     difficulty: str,
     previous_topics: list[str],
     next_topics: list[str],
-    sources: str,
+    context: str,
 ) -> str:
     syllabus_note = (
         "\nThe SOURCE is a syllabus: it lists what to learn rather than teaching it. Teach the listed concepts at the level "
@@ -107,8 +143,9 @@ Structure:
    plus a 2-4 sentence model answer.
 5. key_takeaways: 3-5 one-sentence takeaways.
 
-SOURCE:
-{sources}"""
+{CONTEXT_RULES} Put a figure in the section it illustrates (at most one figure per section).
+
+{context}"""
 
 
 DIFFICULTY_GUIDE = {
@@ -131,8 +168,8 @@ Difficulty: {difficulty}. {DIFFICULTY_GUIDE[difficulty]}
 
 Rules:
 - Spread questions across the topics below in proportion to their content; every topic gets at least one question if {count} allows.
-- Every question must be answerable from its topic's SOURCE chunks (for a syllabus: from standard knowledge of the listed concepts).
-  Put the supporting chunk numbers in source_chunk_positions.
+- Every question must be answerable from its topic's SECTIONS (for a syllabus: from standard knowledge of the listed concepts).
+  Put the supporting section ids in source_section_ids.
 - MULTIPLE_CHOICE: exactly 4 options, one clearly correct, distractors that reflect real misconceptions; no "all/none of the above".
 - TRUE_FALSE: options exactly [true, false] in the material's language; avoid trick wording and double negatives.
 - SHORT_ANSWER: answerable in 1-3 sentences; reference_answer is a model answer; correct_index = -1; options empty.
@@ -185,18 +222,51 @@ Write the narrative part of their report:
 - next_steps: 2-4 short, actionable next steps (e.g. review a topic, spaced review, retake in a few days)."""
 
 
-def ask_prompt(*, material_title: str, topic_title: str, sources: str, history: str, question: str) -> str:
-    return f"""The learner is studying the topic "{topic_title}" from "{material_title}" and asks the tutor a question.
+def answer_prompt(*, material_title: str, question: str, history: str, context: str, style: str) -> str:
+    if style == "tutor":
+        shape = "Answer conversationally and concisely (usually under 200 words); give an example or analogy if it helps."
+    else:
+        shape = (
+            "Write a thorough, well-structured answer in Markdown (short intro, headed parts or steps as needed, "
+            "a brief recap). Explain why, not just what. Length should match the question: complete, never padded."
+        )
+    return f"""A student studying "{material_title}" asks a question.
 
 Conversation so far:
 {history or "(none)"}
 
-Learner's question: {question}
+Question: {question}
 
-Answer helpfully and concisely (usually under 200 words) using the SOURCE as primary reference. If it helps understanding,
-give an example or analogy. If the SOURCE does not cover the question, say so briefly, set grounded=false, and (if it is
-within the topic's scope) give a short general explanation clearly labelled as going beyond the document. If the question
-is unrelated to studying this material, gently steer back to the topic.
+{shape}
+{CONTEXT_RULES}
+If the SECTIONS do not cover the question, say so briefly, set grounded=false, and (if it is within the material's scope)
+give a short general explanation clearly labelled as going beyond the document. If the question is unrelated to studying,
+gently steer back.
 
-SOURCE:
-{sources}"""
+{context}"""
+
+
+def notes_prompt(*, material_title: str, kind: str, title: str, path: str, scope: str, context: str) -> str:
+    if scope == "overview":
+        task = (
+            f'Write the OVERVIEW notes for "{path}". The SECTIONS are its subsections (with summaries). Explain how the '
+            "parts fit together, the big ideas and their connections, in curriculum order, and end with a short recap list. "
+            "Do not repeat every detail: the student will read each subsection's own notes."
+        )
+    else:
+        task = (
+            f'Write complete study notes for "{path}" from its SECTIONS: every important idea, definition, formula, process '
+            "and example, in the document's order, so the notes can replace re-reading the pages."
+        )
+    syllabus = (
+        " The material is a syllabus: explain each listed concept at the level it implies."
+        if kind == "SYLLABUS"
+        else ""
+    )
+    return f"""{task}{syllabus}
+
+Format (Markdown): start with a 1-2 sentence "In short" line, then headed parts (##), bullet points and short paragraphs,
+**bold** key terms on first use, tables for comparisons, LaTeX for formulas. End with "Key terms" (term: one-line meaning).
+{CONTEXT_RULES} Place figures right after the paragraph they illustrate.
+
+{context}"""

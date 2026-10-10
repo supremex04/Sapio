@@ -1,31 +1,34 @@
-"""Study use-cases: material outline, lessons, questions, grading, report feedback, tutor.
+"""Study use-cases on structured context: learning path, lessons, questions, grading, answers, notes.
 
-The LLM does the writing; this module owns the rules: grounding (only the given chunks),
-validation of everything the model returns, and fairness fixes such as shuffling options.
+The LLM writes; this module owns the rules: it only ever sees retrieved sections and figures (never
+the whole document), and it validates everything the model returns (references, figure ids,
+citations, answer keys) and fixes known biases such as answer-position bias.
 """
 
 import random
-from collections.abc import Sequence
+import re
+from collections.abc import Iterable
 
 from ved_inference.api import study_schemas as api
-from ved_inference.errors import DocumentError, EngineError
+from ved_inference.errors import EngineError
 from ved_inference.llm.base import LlmClient
 from ved_inference.study import prompts
-from ved_inference.study.chunking import PageText, chunk_pages
 from ved_inference.study.models import (
     AssessmentFeedback,
     ChoiceCheck,
     Grade,
     Lesson,
+    LongAnswer,
+    Notes,
     Outline,
     QuestionSet,
-    TutorAnswer,
 )
 
-OUTLINE_CHAR_BUDGET = 300_000
-LESSON_CHAR_BUDGET = 40_000
-QUESTION_TOPIC_CHAR_BUDGET = 12_000
 MAX_TOPICS = 12
+OUTLINE_SUMMARY_CHARS = 400
+
+_FIGURE_EMBED = re.compile(r"!\[([^\]]*)\]\(figure:([A-Za-z0-9_-]+)\)")
+_CITATION = re.compile(r"\[§([^\]\s]+)\]")
 
 
 class StudyService:
@@ -33,28 +36,25 @@ class StudyService:
         self._llm = llm
         self._rng = rng or random.Random()
 
-    # --- material --------------------------------------------------------------------------------
+    # --- learning path from the document tree ----------------------------------------------------
 
     def build_material(self, request: api.MaterialRequest) -> api.MaterialResponse:
-        chunks = chunk_pages([PageText(p.page_from, p.page_to, p.text) for p in request.pages])
-        if not chunks or sum(len(c.content) for c in chunks) < 80:
-            raise DocumentError("The document contains too little readable text to study from")
-
-        listing = _fit_listing([(c.position, c.page_from, c.page_to, c.heading, c.content) for c in chunks])
-        min_topics = 1 if len(chunks) <= 2 else 3
-        max_topics = max(min_topics, min(MAX_TOPICS, len(chunks) + 1))
-        outline = self._llm.generate(
+        nodes = request.nodes
+        outline = "\n".join(_outline_line(n) for n in nodes)
+        min_topics = 1 if len(nodes) <= 2 else 3
+        max_topics = max(min_topics, min(MAX_TOPICS, len(nodes)))
+        result = self._llm.generate(
             system=prompts.OUTLINE_SYSTEM,
-            prompt=prompts.outline_prompt(request.filename, listing, min_topics, max_topics),
+            prompt=prompts.outline_prompt(request.filename, outline, request.sample, min_topics, max_topics),
             schema=Outline,
             temperature=0.2,
         )
-
-        valid = {c.position for c in chunks}
+        valid = {n.key for n in nodes}
+        order = {n.key: i for i, n in enumerate(nodes)}
         topics: list[api.TopicOut] = []
-        for t in outline.topics[:MAX_TOPICS]:
-            positions = sorted({p for p in t.chunk_positions if p in valid})
-            if not positions or not t.title.strip():
+        for t in result.topics[:MAX_TOPICS]:
+            keys = sorted({k for k in t.node_keys if k in valid}, key=order.__getitem__)
+            if not keys or not t.title.strip():
                 continue
             topics.append(
                 api.TopicOut(
@@ -63,27 +63,16 @@ class StudyService:
                     summary=t.summary.strip(),
                     key_concepts=[k.strip() for k in t.key_concepts if k.strip()][:6],
                     difficulty=t.difficulty,
-                    chunk_positions=positions,
+                    node_keys=keys,
                 )
             )
         if not topics:
             raise EngineError("Could not organise the document into topics. Please retry.")
-
         return api.MaterialResponse(
-            title=outline.title.strip() or request.filename,
-            summary=outline.summary.strip(),
-            language=(outline.language or "en").strip().lower()[:8],
-            kind=outline.kind,
-            chunks=[
-                api.ChunkOut(
-                    position=c.position,
-                    heading=c.heading,
-                    content=c.content,
-                    page_from=c.page_from,
-                    page_to=c.page_to,
-                )
-                for c in chunks
-            ],
+            title=result.title.strip() or request.filename,
+            summary=result.summary.strip(),
+            language=(result.language or "en").strip().lower()[:8],
+            kind=result.kind,
             topics=topics,
             model=self._llm.model_name,
         )
@@ -102,12 +91,20 @@ class StudyService:
                 difficulty=request.topic.difficulty,
                 previous_topics=request.previous_topics,
                 next_topics=request.next_topics,
-                sources=_sources_text(request.sources, LESSON_CHAR_BUDGET),
+                context=prompts.render_context(request.sections, request.figures),
             ),
             schema=Lesson,
             temperature=0.5,
         )
-        sections = [s for s in lesson.sections if s.body.strip()]
+        allowed = {f.id for f in request.figures}
+        sections_ids = {s.id for s in request.sections}
+        used: list[str] = []
+        sections = []
+        for s in lesson.sections:
+            if not s.body.strip():
+                continue
+            body = clean_markdown(s.body, allowed, sections_ids, used)
+            sections.append(api.SectionOut(kind=s.kind, heading=s.heading.strip(), body=body))
         if not sections:
             raise EngineError("The lesson came back empty. Please retry.")
         last = len(sections) - 1
@@ -136,11 +133,10 @@ class StudyService:
             )
         checks.sort(key=lambda c: c.after_section)
         return api.LessonResponse(
-            sections=[
-                api.SectionOut(kind=s.kind, heading=s.heading.strip(), body=s.body.strip()) for s in sections
-            ],
+            sections=sections,
             key_takeaways=[k.strip() for k in lesson.key_takeaways if k.strip()][:5],
             checks=checks,
+            figure_ids=used,
             model=self._llm.model_name,
         )
 
@@ -149,7 +145,7 @@ class StudyService:
     def questions(self, request: api.QuestionsRequest) -> api.QuestionsResponse:
         topics_block = "\n\n".join(
             f"### Topic key: {t.key}\nTitle: {t.title}\nSummary: {t.summary}\nKey concepts: {', '.join(t.key_concepts)}\n"
-            f"SOURCE:\n{_sources_text(t.sources, QUESTION_TOPIC_CHAR_BUDGET)}"
+            f"{prompts.render_context(t.sections, [])}"
             for t in request.topics
         )
         result = self._llm.generate(
@@ -165,12 +161,12 @@ class StudyService:
             schema=QuestionSet,
             temperature=0.6,
         )
-        sources_by_topic = {t.key: {s.position for s in t.sources} for t in request.topics}
+        sections_by_topic = {t.key: {s.id for s in t.sections} for t in request.topics}
         out: list[api.QuestionOut] = []
         for q in result.questions:
-            if q.topic_key not in sources_by_topic or not q.prompt.strip():
+            if q.topic_key not in sections_by_topic or not q.prompt.strip():
                 continue
-            cited = sorted({p for p in q.source_chunk_positions if p in sources_by_topic[q.topic_key]})
+            cited = [s for s in dict.fromkeys(q.source_section_ids) if s in sections_by_topic[q.topic_key]]
             if q.type == "SHORT_ANSWER":
                 if not q.reference_answer.strip():
                     continue
@@ -183,7 +179,7 @@ class StudyService:
                         correct_option_index=None,
                         reference_answer=q.reference_answer.strip(),
                         explanation=q.explanation.strip(),
-                        source_chunk_positions=cited,
+                        source_section_ids=cited,
                     )
                 )
                 continue
@@ -207,7 +203,7 @@ class StudyService:
                         correct_option_index=choice.correct_option_index,
                         reference_answer=choice.reference_answer,
                         explanation=choice.explanation,
-                        source_chunk_positions=cited,
+                        source_section_ids=cited,
                     )
                 )
         if not out:
@@ -228,7 +224,9 @@ class StudyService:
                 prompt=request.question.prompt,
                 reference=request.question.reference_answer,
                 explanation=request.question.explanation,
-                sources=_sources_text(request.sources, 8_000) or "(not provided)",
+                sources=prompts.render_context(request.sections, [])
+                if request.sections
+                else "(not provided)",
                 answer=request.answer[:4000],
             ),
             schema=Grade,
@@ -269,24 +267,59 @@ class StudyService:
             model=self._llm.model_name,
         )
 
-    def ask(self, request: api.AskRequest) -> api.AskResponse:
+    # --- long form: answers and notes ------------------------------------------------------------
+
+    def answer(self, request: api.AnswerRequest) -> api.AnswerResponse:
         history = "\n".join(
             f"{'Learner' if t.role == 'user' else 'Tutor'}: {t.text}" for t in request.history[-10:]
         )
-        answer = self._llm.generate(
+        result = self._llm.generate(
             system=prompts.system(request.language),
-            prompt=prompts.ask_prompt(
+            prompt=prompts.answer_prompt(
                 material_title=request.material_title,
-                topic_title=request.topic_title,
-                sources=_sources_text(request.sources, LESSON_CHAR_BUDGET),
-                history=history,
                 question=request.question,
+                history=history,
+                context=prompts.render_context(request.sections, request.figures),
+                style=request.style,
             ),
-            schema=TutorAnswer,
-            temperature=0.4,
+            schema=LongAnswer,
+            temperature=0.3,
         )
-        return api.AskResponse(
-            answer=answer.answer.strip(), grounded=answer.grounded, model=self._llm.model_name
+        used: list[str] = []
+        sections_ids = {s.id for s in request.sections}
+        text = clean_markdown(result.answer, {f.id for f in request.figures}, sections_ids, used)
+        return api.AnswerResponse(
+            answer=text,
+            grounded=result.grounded,
+            cited_section_ids=cited_ids(text, sections_ids),
+            figure_ids=used,
+            model=self._llm.model_name,
+        )
+
+    def notes(self, request: api.NotesRequest) -> api.NotesResponse:
+        result = self._llm.generate(
+            system=prompts.system(request.language),
+            prompt=prompts.notes_prompt(
+                material_title=request.material_title,
+                kind=request.kind,
+                title=request.title,
+                path=request.path,
+                scope=request.scope,
+                context=prompts.render_context(request.sections, request.figures),
+            ),
+            schema=Notes,
+            temperature=0.3,
+        )
+        used: list[str] = []
+        sections_ids = {s.id for s in request.sections}
+        text = clean_markdown(result.markdown, {f.id for f in request.figures}, sections_ids, used)
+        if not text.strip():
+            raise EngineError("The notes came back empty. Please retry.")
+        return api.NotesResponse(
+            markdown=text,
+            figure_ids=used,
+            cited_section_ids=cited_ids(text, sections_ids),
+            model=self._llm.model_name,
         )
 
     # --- helpers ---------------------------------------------------------------------------------
@@ -319,28 +352,42 @@ class StudyService:
         )
 
 
-def _sources_text(sources: Sequence[api.SourceChunk], budget: int) -> str:
-    parts, used = [], 0
-    for s in sources:
-        remaining = budget - used
-        if remaining <= 200:
-            break
-        content = s.content if len(s.content) <= remaining else s.content[:remaining] + "…"
-        parts.append((s.position, s.heading, content))
-        used += len(content)
-    return prompts.format_sources(parts)
+def clean_markdown(text: str, allowed_figures: set[str], section_ids: set[str], used: list[str]) -> str:
+    """Removes invented figure ids and citations; keeps each figure once; records the figures used."""
+
+    def figure(m: re.Match[str]) -> str:
+        fid = m.group(2)
+        if fid not in allowed_figures or fid in used:
+            return ""
+        used.append(fid)
+        return f"![{m.group(1).strip()}](figure:{fid})"
+
+    def citation(m: re.Match[str]) -> str:
+        return m.group(0) if m.group(1) in section_ids or f"§{m.group(1)}" in section_ids else ""
+
+    out = _FIGURE_EMBED.sub(figure, text)
+    out = _CITATION.sub(citation, out)
+    return re.sub(r"\n{3,}", "\n\n", out).strip()
 
 
-def _fit_listing(chunks: list[tuple[int, int, int, str, str]]) -> str:
-    """Lists every chunk; truncates each evenly if the whole document exceeds the outline budget."""
-    total = sum(len(c[4]) for c in chunks)
-    per_chunk = None if total <= OUTLINE_CHAR_BUDGET else max(300, OUTLINE_CHAR_BUDGET // len(chunks))
-    lines = []
-    for pos, p_from, p_to, heading, content in chunks:
-        pages = f"p. {p_from}" if p_from == p_to else f"p. {p_from}-{p_to}"
-        body = content if per_chunk is None or len(content) <= per_chunk else content[:per_chunk] + "…"
-        lines.append(f"[C{pos}] ({pages}) {heading}\n{body}")
-    return "\n\n".join(lines)
+def cited_ids(text: str, section_ids: Iterable[str]) -> list[str]:
+    ids = set(section_ids)
+    found = []
+    for m in _CITATION.finditer(text):
+        sid = m.group(1) if m.group(1) in ids else f"§{m.group(1)}"
+        if sid in ids and sid not in found:
+            found.append(sid)
+    return found
+
+
+def _outline_line(n: api.OutlineNodeIn) -> str:
+    indent = "  " * max(n.level - 1, 0)
+    summary = (
+        n.summary if len(n.summary) <= OUTLINE_SUMMARY_CHARS else n.summary[:OUTLINE_SUMMARY_CHARS] + "…"
+    )
+    terms = f" | terms: {', '.join(n.key_terms[:8])}" if n.key_terms else ""
+    pages = f" (p. {n.pages})" if n.pages else ""
+    return f"{indent}[{n.key}] {n.label} {n.title}{pages}: {summary}{terms}"
 
 
 def _clamp_to_verdict(verdict: str, score: float) -> float:

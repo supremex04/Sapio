@@ -1,4 +1,8 @@
-"""Wire contracts for /v1/study/* (see docs/specs/inference-api.md)."""
+"""Wire contracts for /v1/study/* (see docs/specs/inference-api.md and knowledge.md).
+
+Study endpoints never receive the whole document: the backend retrieves the relevant sections
+(summary + passages) and figures (caption + description) from the knowledge store.
+"""
 
 from typing import Literal
 
@@ -10,29 +14,42 @@ from ved_inference.study.models import Difficulty, MaterialKind, QuestionType, S
 AssessmentDifficulty = Literal["EASY", "MIXED", "HARD"]
 
 
-class SourceChunk(ApiModel):
-    position: int
-    heading: str = ""
-    content: str
+class SectionIn(ApiModel):
+    """One retrieved section. ``id`` is the citation id the model must use, e.g. "§2.3"."""
+
+    id: str
+    path: str = ""  # breadcrumb "Chapter 2 › 2.3 Osmosis"
+    pages: str = ""
+    summary: str = ""
+    passages: list[str] = Field(default_factory=list)
 
 
-class PageTextIn(ApiModel):
-    page_from: int
-    page_to: int
-    text: str
+class FigureRef(ApiModel):
+    """A figure the model may embed as ![caption](figure:<id>)."""
+
+    id: str
+    section_id: str = ""
+    caption: str = ""
+    description: str = ""
+
+
+# ---------------------------------------------------------------- material (learning path from the tree)
+
+
+class OutlineNodeIn(ApiModel):
+    key: str
+    label: str
+    title: str
+    level: int
+    pages: str = ""
+    summary: str = ""
+    key_terms: list[str] = Field(default_factory=list)
 
 
 class MaterialRequest(ApiModel):
     filename: str
-    pages: list[PageTextIn] = Field(min_length=1)
-
-
-class ChunkOut(ApiModel):
-    position: int
-    heading: str
-    content: str
-    page_from: int
-    page_to: int
+    sample: str = ""  # a few hundred characters of text, for language/kind detection
+    nodes: list[OutlineNodeIn] = Field(min_length=1, max_length=600)
 
 
 class TopicOut(ApiModel):
@@ -41,7 +58,7 @@ class TopicOut(ApiModel):
     summary: str
     key_concepts: list[str]
     difficulty: Difficulty
-    chunk_positions: list[int]
+    node_keys: list[str]
 
 
 class MaterialResponse(ApiModel):
@@ -49,9 +66,11 @@ class MaterialResponse(ApiModel):
     summary: str
     language: str
     kind: MaterialKind
-    chunks: list[ChunkOut]
     topics: list[TopicOut]
     model: str
+
+
+# ---------------------------------------------------------------- lesson
 
 
 class TopicIn(ApiModel):
@@ -68,13 +87,14 @@ class LessonRequest(ApiModel):
     topic: TopicIn
     previous_topics: list[str] = Field(default_factory=list)
     next_topics: list[str] = Field(default_factory=list)
-    sources: list[SourceChunk] = Field(min_length=1)
+    sections: list[SectionIn] = Field(min_length=1)
+    figures: list[FigureRef] = Field(default_factory=list)
 
 
 class SectionOut(ApiModel):
     kind: SectionKind
     heading: str
-    body: str
+    body: str  # markdown; may embed ![caption](figure:<id>)
 
 
 class CheckOut(ApiModel):
@@ -91,12 +111,16 @@ class LessonResponse(ApiModel):
     sections: list[SectionOut]
     key_takeaways: list[str]
     checks: list[CheckOut]
+    figure_ids: list[str]  # figures actually embedded
     model: str
+
+
+# ---------------------------------------------------------------- questions
 
 
 class QuestionTopicIn(TopicIn):
     key: str
-    sources: list[SourceChunk] = Field(min_length=1)
+    sections: list[SectionIn] = Field(min_length=1)
 
 
 class QuestionsRequest(ApiModel):
@@ -117,12 +141,15 @@ class QuestionOut(ApiModel):
     correct_option_index: int | None
     reference_answer: str | None
     explanation: str
-    source_chunk_positions: list[int]
+    source_section_ids: list[str]
 
 
 class QuestionsResponse(ApiModel):
     questions: list[QuestionOut]
     model: str
+
+
+# ---------------------------------------------------------------- grading & report
 
 
 class QuestionToGrade(ApiModel):
@@ -134,7 +161,7 @@ class QuestionToGrade(ApiModel):
 class GradeRequest(ApiModel):
     language: str = "en"
     question: QuestionToGrade
-    sources: list[SourceChunk] = Field(default_factory=list)
+    sections: list[SectionIn] = Field(default_factory=list)
     answer: str
 
 
@@ -179,21 +206,45 @@ class FeedbackResponse(ApiModel):
     model: str
 
 
+# ---------------------------------------------------------------- answers & notes (long form)
+
+
 class ChatTurn(ApiModel):
     role: Literal["user", "tutor"]
     text: str = Field(max_length=4000)
 
 
-class AskRequest(ApiModel):
+class AnswerRequest(ApiModel):
     material_title: str
     language: str = "en"
-    topic_title: str
-    sources: list[SourceChunk] = Field(min_length=1)
     question: str = Field(min_length=1, max_length=2000)
-    history: list[ChatTurn] = Field(default=[], max_length=20)
+    history: list[ChatTurn] = Field(default_factory=list, max_length=20)
+    sections: list[SectionIn] = Field(min_length=1)
+    figures: list[FigureRef] = Field(default_factory=list)
+    style: Literal["tutor", "answer"] = "answer"  # tutor = short conversational; answer = long-form
 
 
-class AskResponse(ApiModel):
+class AnswerResponse(ApiModel):
     answer: str
     grounded: bool
+    cited_section_ids: list[str]
+    figure_ids: list[str]
+    model: str
+
+
+class NotesRequest(ApiModel):
+    material_title: str
+    language: str = "en"
+    kind: MaterialKind = "OTHER"
+    title: str  # the node the notes are for
+    path: str
+    scope: Literal["section", "overview"]  # overview = chapter notes from child notes (reduce step)
+    sections: list[SectionIn] = Field(min_length=1)
+    figures: list[FigureRef] = Field(default_factory=list)
+
+
+class NotesResponse(ApiModel):
+    markdown: str
+    figure_ids: list[str]
+    cited_section_ids: list[str]
     model: str

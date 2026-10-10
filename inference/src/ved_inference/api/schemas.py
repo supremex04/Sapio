@@ -17,6 +17,47 @@ class SegmentOut(ApiModel):
     markdown: str
 
 
+class NodeOut(ApiModel):
+    key: str
+    parent_key: str | None
+    level: int
+    path: str
+    label: str
+    title: str
+    ordinal: int
+    page_from: int
+    page_to: int
+
+
+class ChunkOut(ApiModel):
+    key: str
+    node_key: str
+    ordinal: int
+    text: str
+    page_from: int
+    page_to: int
+
+
+class FigureOut(ApiModel):
+    key: str
+    node_key: str
+    chunk_key: str | None
+    ordinal: int
+    page: int
+    bbox: list[float] | None
+    caption: str
+    mime: str
+    width: int
+    height: int
+    image_base64: str
+
+
+class TreeOut(ApiModel):
+    nodes: list[NodeOut]
+    chunks: list[ChunkOut]
+    figures: list[FigureOut]
+
+
 class ExtractResponse(ApiModel):
     markdown: str
     engine: str
@@ -24,9 +65,11 @@ class ExtractResponse(ApiModel):
     text_pages: int
     ocr_pages: int
     segments: list[SegmentOut]
+    tree: TreeOut
 
 
 class HealthResponse(ApiModel):
     status: str
     ocr_engine: str
     llm_model: str
+    embedding_model: str

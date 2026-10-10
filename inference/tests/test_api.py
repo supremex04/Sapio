@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
-from tests.conftest import make_mixed_pdf
-from tests.fakes import FakeLlm, FakeOcrEngine
+from tests.conftest import textbook_pdf
+from tests.fakes import FakeEmbedder, FakeLlm
 from ved_inference.main import create_app
 
 KEY = {"X-Internal-Api-Key": "test-key"}
@@ -9,25 +9,42 @@ KEY = {"X-Internal-Api-Key": "test-key"}
 
 def client(llm=None) -> TestClient:
     return TestClient(
-        create_app(engine_factory=lambda _s: FakeOcrEngine(), llm_factory=lambda _s: llm or FakeLlm())
+        create_app(
+            engine_factory=lambda _s: None,
+            llm_factory=lambda _s: llm or FakeLlm(),
+            embedder_factory=lambda _s: FakeEmbedder(),
+        )
     )
 
 
 def test_health_reports_engines():
     with client() as c:
-        assert c.get("/health").json() == {"status": "ok", "ocrEngine": "fake-ocr", "llmModel": "fake-llm"}
+        assert c.get("/health").json() == {
+            "status": "ok",
+            "ocrEngine": "rapidocr-layout",
+            "llmModel": "fake-llm",
+            "embeddingModel": "fake-embed",
+        }
 
 
-def test_extract_returns_segments_with_methods():
+def test_extract_returns_pages_and_tree_with_figures():
     with client() as c:
         response = c.post(
-            "/v1/extract", headers=KEY, files={"file": ("doc.pdf", make_mixed_pdf(), "application/pdf")}
+            "/v1/extract", headers=KEY, files={"file": ("bio.pdf", textbook_pdf(), "application/pdf")}
         )
     body = response.json()
     assert response.status_code == 200
-    assert (body["pageCount"], body["textPages"], body["ocrPages"]) == (2, 1, 1)
-    assert [seg["method"] for seg in body["segments"]] == ["text", "ocr"]
-    assert body["markdown"].endswith("---\n\nocr page 2")
+    assert (body["pageCount"], body["textPages"], body["ocrPages"]) == (3, 3, 0)
+    tree = body["tree"]
+    assert [n["path"] for n in tree["nodes"]] == ["1", "1.1", "2", "2.1"]
+    assert tree["nodes"][1]["parentKey"] == tree["nodes"][0]["key"]
+    figure = tree["figures"][0]
+    assert (
+        figure["caption"].startswith("Figure 1.1")
+        and figure["imageBase64"]
+        and figure["mime"].startswith("image/")
+    )
+    assert "*[Figure]*" in body["markdown"] and "base64" not in body["markdown"]
 
 
 def test_endpoints_require_internal_api_key():
@@ -36,6 +53,7 @@ def test_endpoints_require_internal_api_key():
             c.post("/v1/extract", files={"file": ("d.pdf", b"%PDF-", "application/pdf")}).status_code == 401
         )
         assert c.post("/v1/study/grade", json={}).status_code == 401
+        assert c.post("/v1/index/embed", json={}).status_code == 401
 
 
 def test_unreadable_document_is_422():
@@ -46,15 +64,12 @@ def test_unreadable_document_is_422():
     assert response.status_code == 422
 
 
-def test_study_grade_round_trip_uses_camel_case():
-    llm = FakeLlm({"verdict": "CORRECT", "score": 1.0, "feedback": "Nice"})
-    with client(llm) as c:
+def test_index_embed_round_trip():
+    with client() as c:
         response = c.post(
-            "/v1/study/grade",
-            headers=KEY,
-            json={"question": {"prompt": "Q", "referenceAnswer": "R"}, "answer": "A"},
+            "/v1/index/embed", headers=KEY, json={"task": "RETRIEVAL_QUERY", "items": [{"text": "abc"}]}
         )
-    assert response.json() == {"verdict": "CORRECT", "score": 1.0, "feedback": "Nice", "model": "fake-llm"}
+    assert response.json() == {"vectors": [[3.0, 0.0, 0.0, 1.0]], "model": "fake-embed", "dimensions": 4}
 
 
 def test_llm_failures_map_to_503():

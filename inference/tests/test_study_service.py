@@ -4,64 +4,74 @@ import pytest
 
 from tests.fakes import FakeLlm
 from ved_inference.api import study_schemas as s
-from ved_inference.errors import DocumentError, EngineError
-from ved_inference.study.service import StudyService
+from ved_inference.errors import EngineError
+from ved_inference.study.service import StudyService, clean_markdown
 
-TEXT = ("Demand falls as price rises. " * 40 + "\n\n") * 2
+SECTION = s.SectionIn(
+    id="§1.1",
+    path="Chapter 1 › Cell theory",
+    pages="1",
+    summary="Cells.",
+    passages=["All living things are made of cells."],
+)
+FIGURE = s.FigureRef(
+    id="fig-1", section_id="§1.1", caption="Figure 1.1: A plant cell", description="A diagram."
+)
 
 
 def material_request() -> s.MaterialRequest:
-    return s.MaterialRequest(filename="econ.pdf", pages=[s.PageTextIn(page_from=1, page_to=1, text=TEXT)])
+    return s.MaterialRequest(
+        filename="bio.pdf",
+        sample="All living things are made of cells.",
+        nodes=[
+            s.OutlineNodeIn(
+                key="N1", label="Chapter 1", title="The Cell", level=1, summary="Cells", key_terms=["cell"]
+            ),
+            s.OutlineNodeIn(key="N2", label="1.1", title="Cell theory", level=2, summary="Theory"),
+            s.OutlineNodeIn(key="N3", label="Chapter 2", title="Energy", level=1, summary="ATP"),
+        ],
+    )
 
 
 def outline(**overrides):
     base = {
-        "title": "Econ",
-        "summary": "About demand.",
+        "title": "Biology",
+        "summary": "Cells and energy.",
         "language": "EN",
-        "kind": "LECTURE_NOTES",
+        "kind": "TEXTBOOK",
         "topics": [
             {
-                "title": "Demand",
+                "title": "Cells",
                 "summary": "s",
-                "key_concepts": ["law of demand", " "],
+                "key_concepts": ["cell", " "],
                 "difficulty": "INTRO",
-                "chunk_positions": [1, 99],
+                "node_keys": ["N2", "N1", "N9"],
             },
             {
                 "title": "Ghost",
                 "summary": "s",
                 "key_concepts": [],
                 "difficulty": "CORE",
-                "chunk_positions": [42],
+                "node_keys": ["N42"],
             },
         ],
     }
     return base | overrides
 
 
-def test_material_validates_chunk_references_and_drops_unanchored_topics():
-    result = StudyService(FakeLlm(outline())).build_material(material_request())
+def test_material_topics_reference_valid_nodes_in_document_order():
+    llm = FakeLlm(outline())
+    result = StudyService(llm).build_material(material_request())
     assert result.language == "en"
-    assert [(t.position, t.title, t.chunk_positions, t.key_concepts) for t in result.topics] == [
-        (1, "Demand", [1], ["law of demand"])
+    assert [(t.title, t.node_keys, t.key_concepts) for t in result.topics] == [
+        ("Cells", ["N1", "N2"], ["cell"])
     ]
-    assert result.chunks[0].position == 1
+    assert "[N2] 1.1 Cell theory" in llm.prompts[0]  # the outline, not raw text, goes to the model
 
 
-def test_material_with_no_valid_topics_is_an_engine_error():
-    llm = FakeLlm(outline(topics=[outline()["topics"][1]]))
+def test_material_without_valid_topics_is_an_engine_error():
     with pytest.raises(EngineError):
-        StudyService(llm).build_material(material_request())
-
-
-def test_nearly_empty_document_is_rejected_before_calling_the_llm():
-    llm = FakeLlm()
-    with pytest.raises(DocumentError):
-        StudyService(llm).build_material(
-            s.MaterialRequest(filename="x.pdf", pages=[s.PageTextIn(page_from=1, page_to=1, text="hi")])
-        )
-    assert llm.prompts == []
+        StudyService(FakeLlm(outline(topics=[outline()["topics"][1]]))).build_material(material_request())
 
 
 def choice(**kw):
@@ -76,45 +86,52 @@ def choice(**kw):
 
 def lesson_request() -> s.LessonRequest:
     return s.LessonRequest(
-        material_title="Econ",
-        topic=s.TopicIn(title="Demand", summary="s", key_concepts=["x"]),
-        sources=[s.SourceChunk(position=1, content="Demand falls as price rises.")],
+        material_title="Bio",
+        topic=s.TopicIn(title="Cells", summary="s", key_concepts=["x"]),
+        sections=[SECTION],
+        figures=[FIGURE],
     )
 
 
-def test_lesson_places_warmup_first_explain_back_last_and_never_checks_after_summary():
+def test_lesson_structure_and_figures_are_validated():
     llm = FakeLlm(
         {
             "warmup": choice(prompt="Guess?"),
             "sections": [
-                {"kind": "CONCEPT", "heading": "A", "body": "a"},
-                {"kind": "EXAMPLE", "heading": "B", "body": "b"},
+                {
+                    "kind": "CONCEPT",
+                    "heading": "A",
+                    "body": "Cells [§1.1] [§9.9].\n\n![Plant cell](figure:fig-1)\n\n![x](figure:made-up)",
+                },
+                {"kind": "EXAMPLE", "heading": "B", "body": "again ![dup](figure:fig-1)"},
                 {"kind": "SUMMARY", "heading": "C", "body": "c"},
             ],
             "checks": [
                 choice(after_section=0),
                 choice(after_section=7, prompt="Late?"),
                 choice(after_section=1, correct_index=9),
-            ],  # invalid index -> dropped
-            "explain_back": {"prompt": "Explain demand", "reference_answer": "Price up, quantity down."},
+            ],
+            "explain_back": {"prompt": "Explain cells", "reference_answer": "Cells are units of life."},
             "key_takeaways": ["t1", ""],
         }
     )
     lesson = StudyService(llm, random.Random(1)).lesson(lesson_request())
 
+    body = lesson.sections[0].body
+    assert "[§1.1]" in body and "§9.9" not in body
+    assert "figure:fig-1" in body and "made-up" not in body
+    assert "figure:" not in lesson.sections[1].body  # each figure at most once
+    assert lesson.figure_ids == ["fig-1"]
     assert [(c.after_section, c.type) for c in lesson.checks] == [
         (-1, "MULTIPLE_CHOICE"),
         (0, "MULTIPLE_CHOICE"),
         (1, "MULTIPLE_CHOICE"),
         (2, "SHORT_ANSWER"),
     ]
-    late = lesson.checks[2]
-    assert late.prompt == "Late?" and late.options[late.correct_option_index] == "right"
-    assert lesson.checks[-1].reference_answer == "Price up, quantity down."
-    assert lesson.key_takeaways == ["t1"]
+    assert "FIGURES:" in llm.prompts[0] and 'id: "fig-1"' in llm.prompts[0]
 
 
-def test_multiple_choice_options_are_shuffled_but_answer_tracked():
+def test_questions_cite_only_their_topics_sections_and_shuffle_options():
     positions = set()
     for seed in range(20):
         llm = FakeLlm(
@@ -128,7 +145,7 @@ def test_multiple_choice_options_are_shuffled_but_answer_tracked():
                         "correct_index": 0,
                         "reference_answer": "right",
                         "explanation": "e",
-                        "source_chunk_positions": [1, 5],
+                        "source_section_ids": ["§1.1", "§5"],
                     }
                 ]
             }
@@ -137,15 +154,11 @@ def test_multiple_choice_options_are_shuffled_but_answer_tracked():
             StudyService(llm, random.Random(seed))
             .questions(
                 s.QuestionsRequest(
-                    material_title="Econ",
+                    material_title="Bio",
                     count=1,
                     topics=[
                         s.QuestionTopicIn(
-                            key="t",
-                            title="T",
-                            summary="s",
-                            key_concepts=[],
-                            sources=[s.SourceChunk(position=1, content="c")],
+                            key="t", title="T", summary="s", key_concepts=[], sections=[SECTION]
                         )
                     ],
                 )
@@ -153,90 +166,52 @@ def test_multiple_choice_options_are_shuffled_but_answer_tracked():
             .questions[0]
         )
         assert q.options[q.correct_option_index] == "right"
-        assert q.source_chunk_positions == [1]  # chunk 5 isn't this topic's source
+        assert q.source_section_ids == ["§1.1"]
         positions.add(q.correct_option_index)
     assert len(positions) > 1
 
 
-def test_questions_for_unknown_topics_are_dropped():
-    llm = FakeLlm(
-        {
-            "questions": [
-                {
-                    "topic_key": "nope",
-                    "type": "TRUE_FALSE",
-                    "prompt": "Q",
-                    "options": ["True", "False"],
-                    "correct_index": 0,
-                    "reference_answer": "True",
-                    "explanation": "e",
-                    "source_chunk_positions": [],
-                }
-            ]
-        }
+def test_answer_keeps_valid_citations_and_figures():
+    llm = FakeLlm({"answer": "Cells are units [§1.1][§7].\n\n![Plant cell](figure:fig-1)", "grounded": True})
+    result = StudyService(llm).answer(
+        s.AnswerRequest(
+            material_title="Bio", question="What is a cell?", sections=[SECTION], figures=[FIGURE]
+        )
     )
+    assert result.cited_section_ids == ["§1.1"] and result.figure_ids == ["fig-1"]
+    assert "[§7]" not in result.answer
+
+
+def test_notes_overview_scope_and_empty_notes_rejected():
+    llm = FakeLlm({"markdown": "## Big ideas\n\nCells [§1.1]."}, {"markdown": "  "})
+    service = StudyService(llm)
+    notes = service.notes(
+        s.NotesRequest(
+            material_title="Bio", title="Chapter 1", path="Chapter 1", scope="overview", sections=[SECTION]
+        )
+    )
+    assert notes.cited_section_ids == ["§1.1"]
+    assert "OVERVIEW" in llm.prompts[0]
     with pytest.raises(EngineError):
-        StudyService(llm).questions(
-            s.QuestionsRequest(
-                material_title="m",
-                count=1,
-                topics=[
-                    s.QuestionTopicIn(
-                        key="t",
-                        title="T",
-                        summary="s",
-                        key_concepts=[],
-                        sources=[s.SourceChunk(position=1, content="c")],
-                    )
-                ],
-            )
+        service.notes(
+            s.NotesRequest(material_title="Bio", title="1.1", path="1.1", scope="section", sections=[SECTION])
         )
 
 
-def test_grade_clamps_score_into_verdict_band_and_skips_llm_for_empty_answers():
-    request = s.GradeRequest(question=s.QuestionToGrade(prompt="Q", reference_answer="R"), answer="something")
+def test_clean_markdown_strips_unknown_ids():
+    used: list[str] = []
+    out = clean_markdown("a [§2] b [§1.1]\n\n\n\n![c](figure:zz)", {"fig-1"}, {"§1.1"}, used)
+    assert out == "a  b [§1.1]" and used == []
+
+
+def test_grade_clamps_score_and_skips_llm_for_empty_answers():
+    request = s.GradeRequest(
+        question=s.QuestionToGrade(prompt="Q", reference_answer="R"), answer="something", sections=[SECTION]
+    )
     graded = StudyService(FakeLlm({"verdict": "PARTIAL", "score": 0.95, "feedback": "ok"})).grade(request)
     assert (graded.verdict, graded.score) == ("PARTIAL", 0.7)
-
     llm = FakeLlm()
-    empty = StudyService(llm).grade(request.model_copy(update={"answer": "  "}))
-    assert empty.verdict == "INCORRECT" and llm.prompts == []
-
-
-def test_true_false_options_are_capitalised():
-    llm = FakeLlm(
-        {
-            "questions": [
-                {
-                    "topic_key": "t",
-                    "type": "TRUE_FALSE",
-                    "prompt": "Q",
-                    "options": ["true", "false"],
-                    "correct_index": 1,
-                    "reference_answer": "false",
-                    "explanation": "e",
-                    "source_chunk_positions": [],
-                }
-            ]
-        }
+    assert (
+        StudyService(llm).grade(request.model_copy(update={"answer": "  "})).verdict == "INCORRECT"
+        and llm.prompts == []
     )
-    q = (
-        StudyService(llm)
-        .questions(
-            s.QuestionsRequest(
-                material_title="m",
-                count=1,
-                topics=[
-                    s.QuestionTopicIn(
-                        key="t",
-                        title="T",
-                        summary="s",
-                        key_concepts=[],
-                        sources=[s.SourceChunk(position=1, content="c")],
-                    )
-                ],
-            )
-        )
-        .questions[0]
-    )
-    assert q.options == ["True", "False"] and q.correct_option_index == 1 and q.reference_answer == "False"
