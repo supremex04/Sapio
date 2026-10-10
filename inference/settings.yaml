@@ -17,6 +17,8 @@ providers:
     timeout_seconds: 180
     max_retries: 4           # per model, on 429 / 5xx
     max_backoff_seconds: 45  # longer server hints (daily quota) switch to the next model immediately
+  # local:                   # in-process embedding models (ONNX Runtime, CPU); embeddings only
+  #   type: onnx
   # openai:
   #   type: openai
   #   api_key_env: OPENAI_API_KEY
@@ -64,6 +66,23 @@ embeddings:
   multimodal: true
   batch_size: 64
   # provider: openai / model: text-embedding-3-small / dimensions: 768 / multimodal: false
+  #
+  # In-house (no API calls, nothing leaves the machine): Qwen3-Embedding-0.6B, int8, ONNX Runtime on CPU.
+  # Needs `pip install -e '.[embed]'`; the model (614 MB) downloads on first use to ~/.cache/huggingface.
+  # Measured on our own documents (scripts/eval_embeddings.py, 134 questions), keyword + meaning search as in
+  # production: right passage first 74% (Gemini 76%), in the top 3 94% (Gemini 96%). ~0.3 s per passage on CPU.
+  # Figures are embedded from their caption + description (not the image). Re-tune
+  # ved.knowledge.retrieval.figure-min-similarity after switching.
+  # provider: local
+  # model: onnx-community/Qwen3-Embedding-0.6B-ONNX
+  # dimensions: 768
+  # multimodal: false
+  # batch_size: 32
+  # options:
+  #   file: onnx/model_int8.onnx
+  #   pooling: last
+  #   batch_size: 8            # texts per forward pass (memory grows with batch × length)
+  #   query_prefix: "Instruct: Given a student's question about their study material, retrieve passages that answer it\nQuery: "
   # provider: ollama / model: nomic-embed-text / dimensions: 768 / multimodal: false
 
 # ------------------------------------------------------------------ OCR (scanned pages / images)

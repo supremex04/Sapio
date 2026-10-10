@@ -77,7 +77,12 @@ class GeminiProvider(Provider):
         )
 
     def embed(
-        self, model: str, dimensions: int, items: list[EmbedItem], task: EmbedTask
+        self,
+        model: str,
+        dimensions: int,
+        items: list[EmbedItem],
+        task: EmbedTask,
+        options: dict | None = None,
     ) -> list[list[float]]:
         requests = []
         for item in items:

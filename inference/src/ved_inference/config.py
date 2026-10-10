@@ -26,7 +26,8 @@ from pydantic_settings import (
 )
 
 EngineName = Literal["rapid", "unlimited-remote", "unlimited-local"]
-ProviderType = Literal["gemini", "openai"]  # "openai" = any OpenAI-compatible API (OpenAI, vLLM, Ollama, …)
+# "openai" = any OpenAI-compatible API (OpenAI, vLLM, Ollama, …); "onnx" = embedding models run in-process (CPU)
+ProviderType = Literal["gemini", "openai", "onnx"]
 TaskName = Literal[
     "outline", "lesson", "questions", "grade", "feedback", "answer", "notes", "figures", "summaries"
 ]
@@ -87,6 +88,8 @@ class EmbeddingConfig(BaseModel):
     # True: figures are embedded from the image itself (+ caption); False: from caption + description text.
     multimodal: bool = True
     batch_size: int = Field(default=64, ge=1)
+    # Model-specific settings for in-process (onnx) models: file, pooling, query instruction… (see OnnxEmbeddingOptions)
+    options: dict[str, Any] = Field(default_factory=dict)
 
 
 class RemoteOcrConfig(BaseModel):

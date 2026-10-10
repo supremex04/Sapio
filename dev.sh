@@ -90,7 +90,7 @@ install_inference() {
     step "Installing inference dependencies (Python)"
     [[ -x $dir/.venv/bin/python ]] || "$PYTHON" -m venv "$dir/.venv"
     "$dir/.venv/bin/pip" install -q --upgrade pip
-    (cd "$dir" && .venv/bin/pip install -q -e '.[rapid,dev]')
+    (cd "$dir" && .venv/bin/pip install -q -e ''.[rapid,embed,dev]')
     mark_installed inference "$dir/pyproject.toml"
     ok "inference ready"
   fi

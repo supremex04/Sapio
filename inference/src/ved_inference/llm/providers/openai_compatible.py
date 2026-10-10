@@ -95,7 +95,12 @@ class OpenAICompatibleProvider(Provider):
         )
 
     def embed(
-        self, model: str, dimensions: int, items: list[EmbedItem], task: EmbedTask
+        self,
+        model: str,
+        dimensions: int,
+        items: list[EmbedItem],
+        task: EmbedTask,
+        options: dict | None = None,
     ) -> list[list[float]]:
         texts = [(i.text or " ")[:8000] for i in items]  # images are not supported by /embeddings
 

@@ -88,7 +88,11 @@ class RoutedEmbedder(Embedder):
             for start in range(0, len(items), size):
                 vectors.extend(
                     self._provider.embed(
-                        self._config.model, self._config.dimensions, items[start : start + size], task
+                        self._config.model,
+                        self._config.dimensions,
+                        items[start : start + size],
+                        task,
+                        self._config.options,
                     )
                 )
         except ModelUnavailable as exc:

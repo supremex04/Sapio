@@ -28,7 +28,12 @@ class Provider(ABC):
 
     @abstractmethod
     def embed(
-        self, model: str, dimensions: int, items: list[EmbedItem], task: EmbedTask
+        self,
+        model: str,
+        dimensions: int,
+        items: list[EmbedItem],
+        task: EmbedTask,
+        options: dict | None = None,
     ) -> list[list[float]]: ...
 
     def close(self) -> None:

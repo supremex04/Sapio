@@ -15,6 +15,10 @@ def build_provider(name: str, config: ProviderConfig) -> Provider:
         from ved_inference.llm.providers.openai_compatible import OpenAICompatibleProvider
 
         return OpenAICompatibleProvider(name, config)
+    if config.type == "onnx":
+        from ved_inference.llm.providers.onnx_embedder import OnnxEmbeddingProvider
+
+        return OnnxEmbeddingProvider(name, config)
     raise ValueError(f"Unknown provider type {config.type}")
 
 

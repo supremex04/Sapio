@@ -23,6 +23,8 @@ dependencies = [
 [project.optional-dependencies]
 # CPU OCR engine that runs anywhere (default for local development).
 rapid = ["rapidocr_onnxruntime>=1.4"]
+# In-process embedding models (ONNX Runtime, CPU; no PyTorch): provider type "onnx".
+embed = ["onnxruntime>=1.18", "tokenizers>=0.20", "huggingface-hub>=0.24"]
 # Unlimited-OCR in-process via transformers. Needs an NVIDIA GPU with ~8 GB+ VRAM.
 # Versions pinned to what the model card was tested with.
 local = [

@@ -239,7 +239,7 @@ def test_router_reports_when_every_model_is_unavailable():
 
 def test_embedder_drops_images_for_text_only_models_and_checks_dimensions():
     class TextOnly(_Flaky):
-        def embed(self, model, dimensions, items, task):
+        def embed(self, model, dimensions, items, task, options=None):
             assert all(i.image is None for i in items)
             return [[0.0] * dimensions for _ in items]
 
@@ -251,7 +251,7 @@ def test_embedder_drops_images_for_text_only_models_and_checks_dimensions():
     ) == [[0.0] * 3]
 
     class Wrong(_Flaky):
-        def embed(self, model, dimensions, items, task):
+        def embed(self, model, dimensions, items, task, options=None):
             return [[0.0] * 5 for _ in items]
 
     with pytest.raises(EngineError, match="5 dimensions"):

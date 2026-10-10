@@ -175,6 +175,54 @@ Embeddings have no fallback chain: one model must embed everything, or vectors w
    or an **error** if the dimensions are not 768.
 5. Re-tune `ved.knowledge.retrieval.figure-min-similarity`: similarity scales differ per model.
 
+### In-house embeddings (provider type `onnx`)
+
+Embedding models are small (hundreds of millions of parameters, versus billions for a chat model) and only read
+text, so they run fine in-process on a CPU. Provider type `onnx` runs Hugging Face ONNX exports with ONNX Runtime
+(no PyTorch; `pip install -e '.[embed]'`). The model downloads once to `~/.cache/huggingface`.
+
+```yaml
+providers:
+  local: {type: onnx}
+embeddings:
+  provider: local
+  model: onnx-community/Qwen3-Embedding-0.6B-ONNX   # Hugging Face repo id
+  dimensions: 768                                   # Matryoshka model: first 768 of 1024 dims, re-normalised
+  multimodal: false                                 # figures embedded from caption + description
+  options:
+    file: onnx/model_int8.onnx                      # 614 MB; model_fp16 (1.2 GB) is slightly more accurate
+    pooling: last                                   # last | mean | cls (see the model card)
+    batch_size: 8                                   # texts per forward pass; memory grows with batch × length
+    query_prefix: "Instruct: Given a student's question about their study material, retrieve passages that answer it\nQuery: "
+```
+
+`options` per model family: `file`, `pooling`, `query_prefix` / `document_prefix` (instruction-tuned models need
+them), `max_tokens` (512), `batch_size` (8), `threads` (0 = all cores). Example for a smaller English model:
+`nomic-ai/nomic-embed-text-v1.5` with `pooling: mean`, `query_prefix: "search_query: "`,
+`document_prefix: "search_document: "`.
+
+### Choosing an embedding model: measure on your own documents
+
+`inference/scripts/eval_embeddings.py` compares candidates (defined at the top of the script) on real material:
+it asks the LLM for one paraphrased student question per passage and figure (cached, so every model faces the same
+questions), then reports how often the right passage ranks first / in the top 3 / top 5 (hit@k, MRR), for meaning
+search alone and fused with keyword search as in production. Copies of the same image count as one answer.
+
+Export documents from Postgres into the script's JSON format (passages are prefixed with their breadcrumb, like
+the indexer does) and run `.venv/bin/python scripts/eval_embeddings.py export.json --questions questions.json`.
+
+Results on 3 documents (125 passages, 11 figures, 134 questions; 2026-10-10):
+
+| Model | Search | Passage #1 | Top 3 | Top 5 | MRR | Embedding time |
+|---|---|---|---|---|---|---|
+| gemini-embedding-2 (API) | meaning only | 88% | 100% | 100% | 0.936 | 128 s (rate limits) |
+| Qwen3-Embedding-0.6B int8 (CPU) | meaning only | 76% | 95% | 99% | 0.860 | 77 s |
+| gemini-embedding-2 (API) | keyword + meaning | 76% | 96% | 97% | 0.861 | |
+| Qwen3-Embedding-0.6B int8 (CPU) | keyword + meaning | 74% | 94% | 97% | 0.846 | |
+
+The questions deliberately avoid the source's wording, which makes keyword search look worse than it is with
+real students; treat the numbers as a comparison between models, not as absolute quality.
+
 ## OCR engine
 
 Only scanned pages and images are OCR'd; PDF pages with a text layer are read natively.
