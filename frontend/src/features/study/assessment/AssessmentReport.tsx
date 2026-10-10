@@ -148,7 +148,7 @@ export function AssessmentReportView({ assessment, fresh }: { assessment: Assess
               <ButtonLink to={`/documents/${docId}/test`} variant="mastery">
                 New test
               </ButtonLink>
-              <ButtonLink to={`/documents/${docId}/learn`} variant="ghost">
+              <ButtonLink to={`/documents/${docId}`} variant="ghost">
                 Learning path
               </ButtonLink>
             </div>

@@ -19,6 +19,7 @@ import { Skeleton, SkeletonText } from "../../../shared/ui/Skeleton";
 import { Tabs } from "../../../shared/ui/Tabs";
 import { documentsApi } from "../../documents/api";
 import { DocumentPreview } from "../../documents/DocumentPreview";
+import { LearningPath } from "./LearningPath";
 import { pipelineState } from "../../documents/pipeline";
 import { PipelineStepper } from "../../documents/PipelineStepper";
 import { DocumentWorkbench } from "../../documents/DocumentWorkbench";
@@ -27,7 +28,7 @@ import "../../documents/documents.css";
 import { studyApi } from "../api";
 import { reviewMinutes } from "../nextStep";
 import { recommendedTopic } from "../path";
-import type { AssessmentSummary, Material, Topic } from "../types";
+import type { AssessmentSummary, Material } from "../types";
 import "./hub.css";
 
 type Tab = "topics" | "preview" | "tests";
@@ -150,7 +151,7 @@ export function StudyHubPage() {
               ]}
             />
             <div className="hub-panel">
-              {ready && tab === "topics" && material && <TopicList documentId={id} topics={material.topics} />}
+              {ready && tab === "topics" && material && <LearningPath documentId={id} topics={material.topics} />}
               {ready && tab === "tests" && <AssessmentList documentId={id} items={assessments} />}
               {(!ready || tab === "preview") && (
                 <Card>
@@ -195,7 +196,7 @@ function ModeCards({ documentId, material }: { documentId: string; material: Mat
   return (
     <div className="stack">
       <div className="hub-modes">
-        <Link to={next ? `/documents/${documentId}/learn/${next.id}` : `/documents/${documentId}/learn`} className="mode-card mode-card-learn">
+        <Link to={next ? `/documents/${documentId}/learn/${next.id}` : `/documents/${documentId}`} className="mode-card mode-card-learn">
           <span className="mode-art" aria-hidden>
             <Emoji name="open-book" size={56} />
           </span>
@@ -251,46 +252,6 @@ function ModeCards({ documentId, material }: { documentId: string; material: Mat
         </Link>
       )}
     </div>
-  );
-}
-
-function masteryLabel(t: Topic): string | null {
-  return t.mastery == null ? null : `${Math.round(t.mastery * 100)}%`;
-}
-
-function TopicList({ documentId, topics }: { documentId: string; topics: Topic[] }) {
-  return (
-    <ol className="hub-list">
-      {topics.map((t) => {
-        const done = t.status === "COMPLETED";
-        const mastery = masteryLabel(t);
-        return (
-          <li key={t.id}>
-            <Link to={`/documents/${documentId}/learn/${t.id}`} className={cx("hub-row", t.recommended && "is-recommended")}>
-              <span className={cx("hub-num", done && "is-done")} aria-hidden>
-                {done ? "✓" : t.position}
-              </span>
-              <span className="hub-row-main">
-                <span className="row">
-                  <strong>{t.title}</strong>
-                  {t.recommended && <Badge tone="primary">Up next</Badge>}
-                  {t.status === "IN_PROGRESS" && !t.recommended && <Badge>In progress</Badge>}
-                  {done && <Badge tone="success">Done</Badge>}
-                </span>
-                <span className="small muted">{t.summary}</span>
-              </span>
-              {mastery ? (
-                <Chip emoji="brain" tone="mastery" label={`${mastery} mastery`}>
-                  {mastery}
-                </Chip>
-              ) : (
-                <span className="xs muted hub-row-aside">Not practised</span>
-              )}
-            </Link>
-          </li>
-        );
-      })}
-    </ol>
   );
 }
 

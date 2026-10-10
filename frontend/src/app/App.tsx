@@ -15,7 +15,6 @@ const LibraryPage = lazy(() => import("../features/documents/LibraryPage").then(
 const AssessmentPage = lazy(() => import("../features/study/assessment/AssessmentPage").then((m) => ({ default: m.AssessmentPage })));
 const TestSetupPage = lazy(() => import("../features/study/assessment/TestSetupPage").then((m) => ({ default: m.TestSetupPage })));
 const StudyHubPage = lazy(() => import("../features/study/hub/StudyHubPage").then((m) => ({ default: m.StudyHubPage })));
-const LearnPathPage = lazy(() => import("../features/study/learn/LearnPathPage").then((m) => ({ default: m.LearnPathPage })));
 const LessonPage = lazy(() => import("../features/study/learn/LessonPage").then((m) => ({ default: m.LessonPage })));
 const StyleguidePage = lazy(() => import("./styleguide/StyleguidePage").then((m) => ({ default: m.StyleguidePage })));
 const ReviewPage = lazy(() => import("../features/study/review/ReviewPage").then((m) => ({ default: m.ReviewPage })));
@@ -37,7 +36,7 @@ export function App() {
                   <Route path="library" element={<LibraryPage />} />
                   <Route path="review" element={<ReviewPage />} />
                   <Route path="documents/:id" element={<StudyHubPage />} />
-                  <Route path="documents/:id/learn" element={<LearnPathPage />} />
+                  <Route path="documents/:id/learn" element={<Navigate to=".." relative="path" replace />} />
                   <Route path="documents/:id/learn/:topicId" element={<LessonPage />} />
                   <Route path="documents/:id/test" element={<TestSetupPage />} />
                   <Route path="assessments/:id" element={<AssessmentPage />} />

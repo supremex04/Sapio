@@ -71,7 +71,7 @@ never the whole document. *Why:* compact, structured context keeps generation gr
 
 | Capability | What it does | Learning-science rationale |
 |---|---|---|
-| Learning path (`/documents/:id/learn`) | 3–12 ordered topics built from the tree, shown as a path with per-topic mastery and one recommended node | Mastery learning: advance on mastery, not time |
+| Learning path (document page → Topics) | 3–12 ordered topics built from the tree: an overview strip (one segment per topic, coloured by state) and a vertical timeline whose rail fills as topics are completed, with per-topic mastery bars and one recommended "Start / Continue" | Mastery learning: advance on mastery, not time |
 | Lessons (`/documents/:id/learn/:topicId`) | generated on first open and cached; CONCEPT / EXAMPLE / ANALOGY sections ending in SUMMARY, key takeaways | Concrete examples & dual coding; cognitive load (one section at a time) |
 | Warm-up question | a pretest before the first section | Pretesting / generation effect |
 | Comprehension checks | multiple choice / true-false between sections, graded server-side with elaborative feedback and optional confidence | Retrieval practice, immediate elaborative feedback, hypercorrection |

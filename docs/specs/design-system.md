@@ -114,9 +114,11 @@ on wide screens (≥ 1200 px), top stat bar + bottom tab bar on mobile.
 
 ## Signature patterns
 
-- **Learning path**: a winding column of round 3D nodes (zig-zag), one per topic; colours by state
-  (done = gold, recommended = blue with a bouncing "Start" bubble and Dia beside it, not started = grey);
-  a mastery ring around each node; the path ends in a trophy node: *Test yourself*.
+- **Learning path** (document page → Topics tab): a one-line overview strip with one segment per topic (green done,
+  blue up next, half blue in progress, grey not started; hover shows the topic) above a vertical timeline. Each topic
+  is a node on a rail that turns green below completed topics; the recommended node pulses softly and carries the
+  one primary action (Start / Continue); mastery is a small purple bar. No separate full-screen map: progress is
+  visible where the student already is (goal-gradient), without a page of decoration.
 - **Question flow** (lesson checks, tests, reviews): one question at a time, big option tiles,
   confidence picker, sticky bottom bar with **Check**, which becomes the **FeedbackSheet**.
 - **Celebration screens**: Dia cheering + three stat cards (XP, accuracy, time) + one primary button.

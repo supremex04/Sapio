@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildLessonSteps, initialRevealCount, masteryLabel, nextTopicAfter, nodeState, pathWave, startLabel } from "./path";
+import { buildLessonSteps, initialRevealCount, masteryLabel, nextTopicAfter, nodeState, startLabel } from "./path";
 import type { AnswerResult, Lesson, LessonCheck, Topic } from "./types";
 
 const topic = (over: Partial<Topic>): Topic => ({
@@ -99,14 +99,6 @@ describe("masteryLabel", () => {
   });
 });
 
-describe("pathWave", () => {
-  it("starts centred and winds within [-1, 1]", () => {
-    expect(pathWave(0)).toBe(0);
-    const waves = Array.from({ length: 12 }, (_, i) => pathWave(i));
-    expect(waves.every((w) => w >= -1 && w <= 1)).toBe(true);
-    expect(waves.some((w) => w > 0.5) && waves.some((w) => w < -0.5)).toBe(true);
-  });
-});
 
 describe("startLabel", () => {
   it("says what the learner is about to do", () => {

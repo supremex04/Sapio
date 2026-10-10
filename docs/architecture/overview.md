@@ -192,7 +192,7 @@ src/
 | `/welcome` | One-time, skippable daily-goal step (after registration / first login on a device) |
 | `/library` | Upload + documents with processing status |
 | `/documents/:id` | Study hub: Learn / Test my knowledge, topics, tests, document Preview (reading view, original, raw text) |
-| `/documents/:id/learn` | Topic path with mastery and the recommended node |
+| `/documents/:id/learn` | Redirects to `/documents/:id` (the learning path lives in its Topics tab) |
 | `/documents/:id/learn/:topicId` | Lesson: warm-up → sections + checks → explain-it-back → takeaways |
 | `/documents/:id/test` | Test setup (count, difficulty, topics) |
 | `/assessments/:id` | Runner (one question at a time) or report when completed |

@@ -59,7 +59,7 @@ export function LessonPage() {
   return (
     <>
       <FocusHeader
-        exitTo={`/documents/${documentId}/learn`}
+        exitTo={`/documents/${documentId}`}
         exitLabel="Exit lesson"
         progress={progress}
         progressLabel="Lesson progress"
@@ -197,7 +197,7 @@ function LessonFlow({ lesson, documentId, material, xpTotal, onProgress, onStepP
         xpEarned={xpTotal !== null && xpAtStart.current !== null ? Math.max(0, xpTotal - xpAtStart.current) : null}
         nextTopicTitle={nextTopic?.title}
         primary={nextAction}
-        backTo={`/documents/${documentId}/learn`}
+        backTo={`/documents/${documentId}`}
       />
     );
   }
@@ -246,7 +246,7 @@ function LessonFlow({ lesson, documentId, material, xpTotal, onProgress, onStepP
                 tone="neutral"
                 aside={
                   completed ? (
-                    <ButtonLink to={`/documents/${documentId}/learn`} variant="ghost" size="sm">
+                    <ButtonLink to={`/documents/${documentId}`} variant="ghost" size="sm">
                       Back to path
                     </ButtonLink>
                   ) : (
