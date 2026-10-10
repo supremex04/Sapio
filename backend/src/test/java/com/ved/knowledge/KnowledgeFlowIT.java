@@ -56,6 +56,9 @@ class KnowledgeFlowIT {
     @Autowired
     KnowledgeStore store;
 
+    @Autowired
+    KnowledgeIndexer indexer;
+
     Registered user;
     UUID documentId;
     JsonNode tree;
@@ -149,6 +152,11 @@ class KnowledgeFlowIT {
         assertThat(note).startsWith("*Screenshot:* Terminal output").contains("```\n$ minikube start\nDone!\n```");
         assertThat(store.chunksWithoutEmbedding(documentId, 10)).singleElement()
                 .satisfies(c -> assertThat(c.content()).endsWith(note));
+        // Searchable by keyword at once, while the passage waits to be re-embedded…
+        assertThat(getJson("/api/documents/{d}/search?q=minikube", documentId).get("hits").toString())
+                .contains("minikube");
+        // …and the best match once indexing has re-embedded it (keyword and meaning search agree).
+        indexer.index(documentId);
         assertThat(getJson("/api/documents/{d}/search?q=minikube", documentId).at("/hits/0/snippet").asString())
                 .contains("minikube");
     }

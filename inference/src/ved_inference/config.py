@@ -20,6 +20,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field, SecretStr, model_validator
 from pydantic_settings import (
     BaseSettings,
+    InitSettingsSource,
     PydanticBaseSettingsSource,
     SettingsConfigDict,
     YamlConfigSettingsSource,
@@ -211,11 +212,43 @@ class Settings(BaseSettings):
         dotenv_settings: PydanticBaseSettingsSource,
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
-        yaml_path = Path(os.environ.get("VED_INFERENCE_CONFIG", "settings.yaml"))
         sources: list[PydanticBaseSettingsSource] = [init_settings, env_settings, dotenv_settings]
-        if yaml_path.is_file():
-            sources.append(YamlConfigSettingsSource(settings_cls, yaml_file=yaml_path))
+        files = config_files()
+        if files:
+            sources.append(LayeredYamlSource(settings_cls, files))
         return tuple(sources)
+
+
+def config_files() -> list[Path]:
+    """``VED_INFERENCE_CONFIG``: one file or a comma-separated list (base first, overlays after)."""
+    spec = os.environ.get("VED_INFERENCE_CONFIG", "settings.yaml")
+    paths = [Path(p.strip()) for p in spec.split(",") if p.strip()]
+    missing = [p for p in paths[1:] if not p.is_file()]
+    if missing:
+        raise FileNotFoundError(f"Config overlay not found: {', '.join(map(str, missing))}")
+    return [p for p in paths if p.is_file()]
+
+
+def deep_merge(base: dict, overlay: dict) -> dict:
+    """Overlay wins; nested mappings merge key by key (so an overlay can add one provider or change one setting)."""
+    out = dict(base)
+    for key, value in overlay.items():
+        out[key] = (
+            deep_merge(out[key], value)
+            if isinstance(value, dict) and isinstance(out.get(key), dict)
+            else value
+        )
+    return out
+
+
+class LayeredYamlSource(InitSettingsSource):
+    """settings.yaml plus optional overlays (e.g. settings.local-embedding.yaml), deep-merged in order."""
+
+    def __init__(self, settings_cls: type[BaseSettings], files: list[Path]) -> None:
+        merged: dict[str, Any] = {}
+        for path in files:
+            merged = deep_merge(merged, YamlConfigSettingsSource(settings_cls, yaml_file=path).init_kwargs)
+        super().__init__(settings_cls, init_kwargs=merged)
 
 
 @lru_cache

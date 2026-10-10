@@ -56,3 +56,35 @@ def test_shipped_settings_yaml_is_valid(monkeypatch):
     s = Settings()
     assert s.embeddings.dimensions == 768
     assert s.llm.route("summaries").primary.model == "gemini-3.5-flash-lite"
+
+
+def test_overlays_deep_merge_over_the_base_file(tmp_path, monkeypatch):
+    base = tmp_path / "settings.yaml"
+    base.write_text(YAML)
+    overlay = tmp_path / "overlay.yaml"
+    overlay.write_text("providers:\n  local2: {type: onnx}\nembeddings: {provider: local2, model: m}\n")
+    monkeypatch.setenv("VED_INFERENCE_CONFIG", f"{base},{overlay}")
+    s = Settings()
+    assert set(s.providers) == {"local", "gemini", "local2"}  # providers merged, not replaced
+    assert s.embeddings.provider == "local2" and s.embeddings.dimensions == 768
+    assert s.llm.route("summaries").primary.model == "qwen3"  # untouched by the overlay
+
+
+def test_a_missing_overlay_is_an_error(tmp_path, monkeypatch):
+    base = tmp_path / "settings.yaml"
+    base.write_text(YAML)
+    monkeypatch.setenv("VED_INFERENCE_CONFIG", f"{base},{tmp_path / 'nope.yaml'}")
+    with pytest.raises(FileNotFoundError, match="nope.yaml"):
+        Settings()
+
+
+def test_shipped_local_embedding_overlay_is_valid(monkeypatch):
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    monkeypatch.setenv(
+        "VED_INFERENCE_CONFIG", f"{root / 'settings.yaml'},{root / 'settings.local-embedding.yaml'}"
+    )
+    s = Settings()
+    assert s.embeddings.provider == "local" and s.providers["local"].type == "onnx"
+    assert s.llm.default.primary.provider == "gemini"

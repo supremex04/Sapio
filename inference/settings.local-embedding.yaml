@@ -1,0 +1,24 @@
+# Overlay: in-house embeddings instead of the Gemini API (everything else stays as in settings.yaml).
+# Enable with `./dev.sh --local-embedding`, or VED_INFERENCE_CONFIG=settings.yaml,settings.local-embedding.yaml.
+#
+# Qwen3-Embedding-0.6B, 8-bit, ONNX Runtime on CPU: no API calls, nothing leaves the machine. Needs the "embed"
+# extra (dev.sh installs it); the model (614 MB) downloads on first use to ~/.cache/huggingface. On our documents it
+# found the right passage about as often as Gemini (see docs/guides/configuration.md, "In-house embeddings").
+#
+# Switching (either way) is safe but not free: each document is re-embedded in the background the first time it is
+# searched with the other model. Figures are embedded from caption + description, not the image.
+providers:
+  local:
+    type: onnx
+
+embeddings:
+  provider: local
+  model: onnx-community/Qwen3-Embedding-0.6B-ONNX
+  dimensions: 768
+  multimodal: false
+  batch_size: 32
+  options:
+    file: onnx/model_int8.onnx
+    pooling: last
+    batch_size: 8
+    query_prefix: "Instruct: Given a student's question about their study material, retrieve passages that answer it\nQuery: "

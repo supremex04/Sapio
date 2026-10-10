@@ -11,6 +11,10 @@
 #   ./dev.sh logs [name]  follow logs (inference | backend | frontend; default all)
 #   ./dev.sh test         run all test suites
 #
+# Options (combine with up / -d):
+#   --local-embedding     compute embeddings in-house (Qwen3-Embedding on CPU, no API calls) instead of the
+#                         Gemini API: loads inference/settings.local-embedding.yaml over settings.yaml
+#
 # Dependencies are reinstalled automatically when their manifest changes
 # (inference/pyproject.toml, frontend/package*.json, backend/pom.xml): a hash of each is
 # remembered in .dev/stamps. See docs/guides/local-development.md.
@@ -148,9 +152,17 @@ kill_tree() {
   kill "$pid" 2>/dev/null || true
 }
 
+embedding_mode() { if [[ $LOCAL_EMBEDDING == 1 ]]; then echo local; else echo api; fi; }
+
 start_service() {
   local name=$1 cmd dir
-  if is_running "$name"; then ok "$name already running (pid $(pid_of "$name"))"; return; fi
+  if is_running "$name"; then
+    ok "$name already running (pid $(pid_of "$name"))"
+    if [[ $name == inference && "$(cat "$PID_DIR/inference.mode" 2>/dev/null || echo api)" != "$(embedding_mode)" ]]; then
+      warn "inference runs with $(cat "$PID_DIR/inference.mode" 2>/dev/null || echo api) embeddings; run ./dev.sh stop first to switch to $(embedding_mode)"
+    fi
+    return
+  fi
   if port_in_use "${PORT[$name]}"; then
     die "port ${PORT[$name]} ($name) is used by another process. Stop it or run ./dev.sh stop"
   fi
@@ -160,8 +172,15 @@ start_service() {
     frontend)  dir="$ROOT/frontend";  cmd="npx vite --port 5173 --strictPort" ;;
   esac
   : > "$LOG_DIR/$name.log"
-  (cd "$dir" && exec nohup $cmd >> "$LOG_DIR/$name.log" 2>&1) &
+  (
+    cd "$dir"
+    if [[ $name == inference && $LOCAL_EMBEDDING == 1 ]]; then
+      export VED_INFERENCE_CONFIG="settings.yaml,settings.local-embedding.yaml"
+    fi
+    exec nohup $cmd >> "$LOG_DIR/$name.log" 2>&1
+  ) &
   echo $! > "$PID_DIR/$name"
+  [[ $name == inference ]] && embedding_mode > "$PID_DIR/inference.mode"
   info "$name starting (pid $!, log .dev/logs/$name.log)"
 }
 
@@ -242,6 +261,13 @@ cmd_up() {
   info "App        http://localhost:5173"
   info "Backend    http://localhost:8080   ${DIM}(API under /api)${RESET}"
   info "Inference  http://localhost:8000   ${DIM}(internal)${RESET}"
+  local embedding
+  embedding=$(curl -sf http://localhost:8000/health | sed -n 's/.*"embeddingModel":"\([^"]*\)".*/\1/p' || true)
+  if [[ "$(cat "$PID_DIR/inference.mode" 2>/dev/null || echo api)" == local ]]; then
+    info "Embeddings ${embedding:-unknown}   ${DIM}(in-house; start without --local-embedding for the API)${RESET}"
+  else
+    info "Embeddings ${embedding:-unknown}   ${DIM}(API; ./dev.sh --local-embedding to run them in-house)${RESET}"
+  fi
   if [[ $detach == 1 ]]; then
     info "Logs: ./dev.sh logs    Stop: ./dev.sh stop"
   else
@@ -291,7 +317,18 @@ cmd_test() {
   (cd "$ROOT/frontend" && npx tsc --noEmit && npx vitest run --silent && npx vite build --logLevel error) && ok "frontend"
 }
 
-usage() { sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"; }
+
+# Global options may appear anywhere; the rest is the command.
+LOCAL_EMBEDDING=0
+args=()
+for arg in "$@"; do
+  case $arg in
+    --local-embedding) LOCAL_EMBEDDING=1 ;;
+    *) args+=("$arg") ;;
+  esac
+done
+set -- "${args[@]+"${args[@]}"}"
 
 case "${1:-up}" in
   up)            if [[ ${2:-} == "-d" ]]; then cmd_up 1; else cmd_up 0; fi ;;

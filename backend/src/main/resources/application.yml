@@ -63,7 +63,13 @@ ved:
     figure-url-ttl: 6h
     retrieval:
       candidates: 30 # per ranker (keyword, vector) before fusion
-      rrf-k: 60      # Reciprocal Rank Fusion constant (60 is the standard from Cormack et al. 2009)
+      # Weighted Reciprocal Rank Fusion: score = sum of weight / (k + rank). Tuned with
+      # inference/scripts/eval_embeddings.py on 268 student questions (natural and reworded) over our documents:
+      # trusting meaning search twice as much as keywords, with a small k, raised the right passage at #1 from
+      # 80% to 85% (natural) and 76% to 79% (reworded), keeping ~99% / 93% in the top 3. See configuration.md.
+      rrf-k: 10
+      keyword-weight: 1.0
+      vector-weight: 2.0
       # Cosine similarity a figure needs to count as a semantic match (keyword matches on captions always count).
       # Model-specific: calibrated on gemini-embedding-2 (on-topic figures ~0.52-0.56, loosely related ~0.42-0.46,
       # unrelated ~0.36-0.38). Re-tune when switching embedding models.

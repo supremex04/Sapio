@@ -27,9 +27,12 @@ public record KnowledgeProperties(@NotBlank String figureUrlSecret, @NotNull Dur
     /**
      * @param candidates results taken from each ranker (keyword, vector) before fusion
      * @param rrfK       Reciprocal Rank Fusion constant; higher flattens the influence of top ranks
+     * @param keywordWeight how much the keyword (full-text) ranking counts in the fusion
+     * @param vectorWeight  how much the meaning (embedding) ranking counts in the fusion
      * @param figureMinSimilarity cosine similarity a figure needs to count as a semantic match
      */
-    public record Retrieval(@Positive int candidates, @Positive int rrfK,
+    public record Retrieval(@Positive int candidates, @Positive int rrfK, @Positive double keywordWeight,
+                            @Positive double vectorWeight,
                             @DecimalMin("-1") @DecimalMax("1") double figureMinSimilarity) {
     }
 
