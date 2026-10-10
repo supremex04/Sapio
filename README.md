@@ -17,6 +17,10 @@ XP, streaks and learning analytics. Every design decision is grounded in learnin
 
 ## Quick start
 
+
+
+**Requirement:** Bash 4.0 or higher.
+
 ```bash
 ./dev.sh          # installs what's missing or changed, starts everything → http://localhost:5173
 ```
