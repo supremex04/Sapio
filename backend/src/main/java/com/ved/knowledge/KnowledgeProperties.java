@@ -21,7 +21,8 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties("ved.knowledge")
 public record KnowledgeProperties(@NotBlank String figureUrlSecret, @NotNull Duration figureUrlTtl,
-                                  @Valid @NotNull Retrieval retrieval, @Valid @NotNull Indexing indexing) {
+                                  @Valid @NotNull Retrieval retrieval, @Valid @NotNull Indexing indexing,
+                                  @Valid @NotNull Reading reading) {
 
     /**
      * @param candidates results taken from each ranker (keyword, vector) before fusion
@@ -30,6 +31,14 @@ public record KnowledgeProperties(@NotBlank String figureUrlSecret, @NotNull Dur
      */
     public record Retrieval(@Positive int candidates, @Positive int rrfK,
                             @DecimalMin("-1") @DecimalMax("1") double figureMinSimilarity) {
+    }
+
+    /**
+     * Study units of the reading view: the sections that get Expand / Revision. A unit is the highest section whose
+     * whole subtree has between {@code unitMinChars} and {@code unitMaxChars} of text (keep the max below
+     * ved.study.context.notes.chars, so a unit's rewrite sees all of its text).
+     */
+    public record Reading(@Positive int unitMinChars, @Positive int unitMaxChars) {
     }
 
     /** Items per inference call / per committed batch while indexing. */

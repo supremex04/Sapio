@@ -27,8 +27,13 @@ public final class KnowledgeResponses {
     }
 
     /** One node of the whole-document reading view, in document order. */
+    /** @param unit set on study units (they get Expand / Revision): what the unit covers */
     public record ContentSection(UUID id, UUID parentId, String path, String label, String title, int level,
-                                 int pageFrom, int pageTo, List<Block> blocks) {
+                                 int pageFrom, int pageTo, List<Block> blocks, Unit unit) {
+    }
+
+    /** A study unit's coverage: itself and its subsections, e.g. labels "1.1"–"1.1.3", pages 1–5. */
+    public record Unit(String fromLabel, String toLabel, int sections, int pageFrom, int pageTo) {
     }
 
     public record ContentResponse(UUID documentId, List<ContentSection> sections, Map<String, FigureView> figures) {

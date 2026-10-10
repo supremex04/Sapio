@@ -1,7 +1,9 @@
 package com.ved.knowledge.web;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +11,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.ved.knowledge.KnowledgeProperties;
 import com.ved.knowledge.figure.FigureViews;
 import com.ved.knowledge.retrieval.ContextAssembler;
 import com.ved.knowledge.retrieval.HybridRetriever;
@@ -29,7 +32,11 @@ public class KnowledgeService {
     private final HybridRetriever retriever;
     private final FigureViews figures;
 
-    KnowledgeService(KnowledgeAccess access, KnowledgeStore store, HybridRetriever retriever, FigureViews figures) {
+    private final KnowledgeProperties.Reading reading;
+
+    KnowledgeService(KnowledgeAccess access, KnowledgeStore store, HybridRetriever retriever, FigureViews figures,
+                     KnowledgeProperties properties) {
+        this.reading = properties.reading();
         this.access = access;
         this.store = store;
         this.retriever = retriever;
@@ -58,8 +65,13 @@ public class KnowledgeService {
         Map<UUID, List<FigureRow>> unanchored = shown.stream().filter(f -> f.chunkId() == null)
                 .collect(Collectors.groupingBy(FigureRow::nodeId, LinkedHashMap::new, Collectors.toList()));
 
+        List<NodeRow> nodes = store.nodes(documentId);
+        Map<UUID, Integer> ownChars = new HashMap<>();
+        chunksByNode.forEach((node, chunks) -> ownChars.put(node, chunks.stream().mapToInt(c -> c.content().length()).sum()));
+        Map<UUID, KnowledgeResponses.Unit> units = studyUnits(nodes, ownChars);
+
         List<KnowledgeResponses.ContentSection> sections = new ArrayList<>();
-        for (NodeRow n : store.nodes(documentId)) {
+        for (NodeRow n : nodes) {
             List<Block> blocks = new ArrayList<>();
             for (ChunkRow c : chunksByNode.getOrDefault(n.id(), List.of())) {
                 blocks.add(new Block("text", c.content(), null, c.pageFrom()));
@@ -69,9 +81,58 @@ public class KnowledgeService {
             unanchored.getOrDefault(n.id(), List.of())
                     .forEach(f -> blocks.add(new Block("figure", null, f.id(), f.page())));
             sections.add(new KnowledgeResponses.ContentSection(n.id(), n.parentId(), n.path(), n.label(), n.title(),
-                    n.level(), n.pageFrom(), n.pageTo(), blocks));
+                    n.level(), n.pageFrom(), n.pageTo(), blocks, units.get(n.id())));
         }
         return new KnowledgeResponses.ContentResponse(documentId, sections, figures.toMap(shown));
+    }
+
+    /**
+     * Picks the study units top-down: the first section whose subtree text fits [min, max] is a unit and covers its
+     * subsections; a bigger section is split into its children; smaller fragments are covered by no unit of their
+     * own. So every passage gets at most one Expand / Revision, and each rewrite sees all of the text it covers.
+     */
+    Map<UUID, KnowledgeResponses.Unit> studyUnits(List<NodeRow> nodes, Map<UUID, Integer> ownChars) {
+        Map<UUID, List<NodeRow>> children = new HashMap<>();
+        List<NodeRow> roots = new ArrayList<>();
+        for (NodeRow n : nodes) {
+            if (n.parentId() == null) {
+                roots.add(n);
+            } else {
+                children.computeIfAbsent(n.parentId(), k -> new ArrayList<>()).add(n);
+            }
+        }
+        Map<UUID, Integer> subtreeChars = new HashMap<>();
+        for (int i = nodes.size() - 1; i >= 0; i--) { // document order: children come after their parent
+            NodeRow n = nodes.get(i);
+            subtreeChars.put(n.id(), ownChars.getOrDefault(n.id(), 0) + children.getOrDefault(n.id(), List.of())
+                    .stream().mapToInt(c -> subtreeChars.getOrDefault(c.id(), 0)).sum());
+        }
+        Map<UUID, KnowledgeResponses.Unit> units = new HashMap<>();
+        ArrayDeque<NodeRow> todo = new ArrayDeque<>(roots);
+        while (!todo.isEmpty()) {
+            NodeRow n = todo.pollFirst();
+            int chars = subtreeChars.getOrDefault(n.id(), 0);
+            List<NodeRow> kids = children.getOrDefault(n.id(), List.of());
+            if (chars < reading.unitMinChars()) {
+                continue; // too little to rewrite; nothing below can qualify either
+            }
+            if (chars <= reading.unitMaxChars() || kids.isEmpty()) {
+                List<NodeRow> covered = new ArrayList<>();
+                collect(n, children, covered);
+                NodeRow last = covered.getLast();
+                units.put(n.id(), new KnowledgeResponses.Unit(n.label(), last.label(), covered.size(),
+                        covered.stream().mapToInt(NodeRow::pageFrom).min().orElse(n.pageFrom()),
+                        covered.stream().mapToInt(NodeRow::pageTo).max().orElse(n.pageTo())));
+            } else {
+                todo.addAll(kids);
+            }
+        }
+        return units;
+    }
+
+    private static void collect(NodeRow n, Map<UUID, List<NodeRow>> children, List<NodeRow> out) {
+        out.add(n);
+        children.getOrDefault(n.id(), List.of()).forEach(c -> collect(c, children, out));
     }
 
     public KnowledgeResponses.NodeResponse node(UUID userId, UUID documentId, UUID nodeId) {

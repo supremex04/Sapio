@@ -36,6 +36,6 @@ class FigureUrlSignerTest {
     }
 
     private static KnowledgeProperties props(String secret) {
-        return new KnowledgeProperties(secret, Duration.ofHours(6), null, null);
+        return new KnowledgeProperties(secret, Duration.ofHours(6), null, null, null);
     }
 }

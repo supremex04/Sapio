@@ -365,6 +365,8 @@ All are `@ConfigurationProperties` records with `@Validated` constraints in `app
 | `figure-url-ttl` | `6h` | validity of a signed figure URL |
 | `retrieval.candidates` | `30` | results per ranker (keyword, vector) before fusion |
 | `retrieval.rrf-k` | `60` | Reciprocal Rank Fusion constant; higher flattens the weight of top ranks |
+| `reading.unit-min-chars` | `300` | smallest study unit of the Preview (sections that get Expand / Revision): less text than this gets no rewrite of its own |
+| `reading.unit-max-chars` | `6000` | largest study unit (~2-4 textbook pages, a 5-10 minute read); bigger sections split into their subsections. Keep below `ved.study.context.notes.chars` |
 | `retrieval.figure-min-similarity` | `0.48` | cosine similarity a figure needs to count as a semantic match (caption keyword matches always count). Calibrated on `gemini-embedding-2`: on-topic ~0.52–0.56, loosely related ~0.42–0.46, unrelated ~0.36–0.38. **Re-tune when switching embedding models** |
 | `indexing.figure-batch` | `12` | figures per `/v1/index/figures` call (max 60) |
 | `indexing.summary-batch` | `36` | nodes per `/v1/index/summaries` call (max 120) |

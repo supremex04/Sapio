@@ -108,8 +108,11 @@ Home shows "N reviews due". Skipped test items are scheduled like misses.
 | Study notes per section in two styles: **Expand** (in-depth: steps, why and how, plain-language jargon, examples and analogies) and **Revision** (terse key points + a "Quick self-test"); chapter notes by map-reduce over child notes; cite sections, embed figures; generated once per style and cached | `GET /api/documents/{id}/nodes/{nodeId}/notes?style=EXPAND\|REVISION` | ✅ |
 | Ask the whole document (or a subtree): long-form, cited answer with sources and figures | `POST /api/documents/{id}/ask` | 🔌 |
 
-Notes appear in the document **Preview** (study hub → Preview → Reading view): each section with subsections or at
-least 250 characters of text switches between *Original*, *Expand* and *Revision* once the course is `READY`. The rest
+Notes appear in the document **Preview** (study hub → Preview → Reading view), on **study units** once the course is
+`READY`. A unit is the highest section whose whole subtree has 300–6,000 characters of text (`ved.knowledge.reading`):
+each passage belongs to at most one unit, the buttons say what they cover ("Covers 1–1.1.3 · pp. 1–5"), and while a
+rewrite is shown it stands in for the unit's subsections. Bigger chapters are split into their sections; tiny
+fragments are covered by no unit of their own. The rest
 of **Read mode** (tree navigation, search, term index, ask the document) is **not built yet**; it is the next frontend
 milestone ([roadmap.md](roadmap.md)). The tutor inside lessons is the only ask-style UI today.
 

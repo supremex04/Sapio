@@ -465,12 +465,16 @@ The document's **Preview** tab (on the study hub) has three views: **Reading vie
 understood it (sections in order, figures in place, a contents list), **Original** shows the file exactly as you
 uploaded it (the browser's own PDF/image viewer), and **Raw text** shows the extracted Markdown.
 
-- **Notes**: in the Reading view, a section with subsections or a fair amount of text (250+ characters) can be
-  switched from *Original* to **Expand** (an in-depth explanation: small steps, why and how, jargon in plain words,
-  examples and analogies) or **Revision** (only the key points, ending with a short "Quick self-test"). This
-  works once the course is ready. Each style is generated from that section's full text and figures, then saved,
-  so the second visit is instant. For a big chapter, Ved writes notes for its subsections first and combines
-  them (map-reduce: summarise the parts, then the whole).
+- **Notes**: in the Reading view, each **study unit** can be switched from *Original* to **Expand** (an in-depth
+  explanation: small steps, why and how, jargon in plain words, examples and analogies) or **Revision** (only the
+  key points, ending with a short "Quick self-test"). This works once the course is ready.
+
+  *Which sections get the buttons?* Walking the tree from the top, the first section whose **whole subtree** has
+  between 300 and 6,000 characters of text (about 2-4 textbook pages, a 5-10 minute read) becomes a unit and covers
+  its subsections. A bigger chapter is split into its sections; a tiny fragment (a title line, two bullets) gets no
+  rewrite of its own. So each passage is rewritten by exactly one unit, the buttons say what they cover ("Covers
+  1–1.1.3 · pp. 1–5"), and while a rewrite is shown it replaces the unit's subsections instead of repeating them.
+  Each style is generated from the unit's full text and figures, then saved, so the second visit is instant.
 - **Ask your document** works in the backend API but has no screen yet (planned with the rest of "Read mode":
   tree navigation and search). It runs hybrid search across the whole document (or a chosen chapter) and writes
   a long-form, cited answer with relevant figures.

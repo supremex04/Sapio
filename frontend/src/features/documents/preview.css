@@ -72,11 +72,21 @@
 .preview-section-head h4 {
   margin: 0;
 }
-.preview-section-head .xs {
+.preview-section-head > .xs {
   flex: none;
 }
+.preview-section-head {
+  flex-wrap: wrap;
+}
 .preview-actions {
-  overflow-x: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  margin-left: auto;
+}
+.preview-coverage {
+  white-space: nowrap;
 }
 .preview-working {
   display: flex;

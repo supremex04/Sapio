@@ -56,6 +56,16 @@ export interface ContentSection {
   pageFrom: number;
   pageTo: number;
   blocks: ContentBlock[];
+  /** Set on study units (they get Expand / Revision): what the unit covers. */
+  unit: StudyUnit | null;
+}
+
+export interface StudyUnit {
+  fromLabel: string;
+  toLabel: string;
+  sections: number;
+  pageFrom: number;
+  pageTo: number;
 }
 
 export interface DocumentContent {

@@ -57,7 +57,10 @@ function ReadingView({ doc, ready }: { doc: DocumentDto; ready: boolean }) {
     documentsApi.content(doc.id).then(setContent, (e) => setError(errorMessage(e)));
   }, [doc.id, doc.status]);
 
-  const withChildren = useMemo(() => new Set(content?.sections.map((s) => s.parentId).filter(Boolean)), [content]);
+  // Which unit each section belongs to (itself or its nearest ancestor), so a unit's rewrite can stand in for
+  // all of its subsections.
+  const unitOf = useMemo(() => coveringUnits(content?.sections ?? []), [content]);
+  const [views, setViews] = useState<Record<string, View>>({});
 
   if (error) return <Alert>{error}</Alert>;
   if (!content) {
@@ -76,24 +79,44 @@ function ReadingView({ doc, ready }: { doc: DocumentDto; ready: boolean }) {
     <div className="preview-reading">
       <Contents sections={content.sections} />
       {!ready && <p className="small muted">Expand and Revision become available once your course is ready.</p>}
-      {content.sections.map((section) => (
-        <PreviewSection
-          key={section.id}
-          documentId={doc.id}
-          section={section}
-          figures={content.figures}
-          canRewrite={ready && (withChildren.has(section.id) || textLength(section) >= MIN_REWRITE_CHARS)}
-        />
-      ))}
+      {content.sections.map((section) => {
+        const unitId = unitOf.get(section.id);
+        // Inside a unit that currently shows a rewrite: the rewrite covers this subsection.
+        if (unitId && unitId !== section.id && (views[unitId] ?? "source") !== "source") return null;
+        return (
+          <PreviewSection
+            key={section.id}
+            documentId={doc.id}
+            section={section}
+            figures={content.figures}
+            canRewrite={ready && section.unit !== null}
+            view={views[section.id] ?? "source"}
+            onView={(v) => setViews((all) => ({ ...all, [section.id]: v }))}
+          />
+        );
+      })}
     </div>
   );
 }
 
-/** Rewriting a couple of lines adds nothing; very short sections are covered by their parent's rewrite. */
-const MIN_REWRITE_CHARS = 250;
+/** section id → id of the study unit covering it (itself if it is a unit). Sections arrive in document order. */
+export function coveringUnits(sections: ContentSection[]): Map<string, string> {
+  const result = new Map<string, string>();
+  for (const s of sections) {
+    const inherited = s.parentId ? result.get(s.parentId) : undefined;
+    const unit = s.unit ? s.id : inherited;
+    if (unit) result.set(s.id, unit);
+  }
+  return result;
+}
 
-function textLength(section: ContentSection): number {
-  return section.blocks.reduce((n, b) => n + (b.type === "text" ? (b.markdown?.length ?? 0) : 0), 0);
+/** "1.1–1.1.3 · pp. 1–5" or "this section · p. 2". */
+function coverage(section: ContentSection): string {
+  const u = section.unit;
+  if (!u) return "";
+  const pages = u.pageFrom === u.pageTo ? `p. ${u.pageFrom}` : `pp. ${u.pageFrom}–${u.pageTo}`;
+  const range = u.sections <= 1 ? "this section" : `${u.fromLabel || section.title}–${u.toLabel}`;
+  return `${range} · ${pages}`;
 }
 
 function Contents({ sections }: { sections: ContentSection[] }) {
@@ -134,13 +157,16 @@ function PreviewSection({
   section,
   figures,
   canRewrite,
+  view,
+  onView,
 }: {
   documentId: string;
   section: ContentSection;
   figures: Record<string, FigureView>;
   canRewrite: boolean;
+  view: View;
+  onView: (view: View) => void;
 }) {
-  const [view, setView] = useState<View>("source");
   const [notes, setNotes] = useState<Partial<Record<NoteStyle, SectionNotes>>>({});
   const [loading, setLoading] = useState<NoteStyle | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -149,7 +175,7 @@ function PreviewSection({
   const Heading = section.level <= 1 ? "h2" : section.level === 2 ? "h3" : "h4";
 
   async function show(next: View) {
-    setView(next);
+    onView(next);
     setError(null);
     if (next === "source" || notes[next]) return;
     setLoading(next);
@@ -170,22 +196,24 @@ function PreviewSection({
         <Heading>
           {section.label && <span className="preview-label">{section.label}</span>} {section.title}
         </Heading>
-        <span className="xs muted">{section.pageFrom === section.pageTo ? `p. ${section.pageFrom}` : `pp. ${section.pageFrom}–${section.pageTo}`}</span>
+        {canRewrite ? (
+          <div className="preview-actions">
+            <Segmented
+              label={`View of ${section.title}`}
+              value={view}
+              onChange={(v) => void show(v)}
+              options={[
+                { value: "source", label: "Original" },
+                { value: "EXPAND", label: <><Emoji name="sparkles" size={16} /> Expand</> },
+                { value: "REVISION", label: <><Emoji name="high-voltage" size={16} /> Revision</> },
+              ]}
+            />
+            <span className="preview-coverage xs muted">Covers {coverage(section)}</span>
+          </div>
+        ) : (
+          <span className="xs muted">{section.pageFrom === section.pageTo ? `p. ${section.pageFrom}` : `pp. ${section.pageFrom}–${section.pageTo}`}</span>
+        )}
       </header>
-      {canRewrite && (
-        <div className="preview-actions">
-          <Segmented
-            label={`View of ${section.title}`}
-            value={view}
-            onChange={(v) => void show(v)}
-            options={[
-              { value: "source", label: "Original" },
-              { value: "EXPAND", label: <><Emoji name="sparkles" size={16} /> Expand</> },
-              { value: "REVISION", label: <><Emoji name="high-voltage" size={16} /> Revision</> },
-            ]}
-          />
-        </div>
-      )}
       <AnimatePresence mode="wait" initial={false}>
         <motion.div key={view} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
           {view === "source" ? (
@@ -207,7 +235,7 @@ function PreviewSection({
             </Alert>
           ) : current ? (
             <div className={cx("preview-notes", `preview-notes-${view.toLowerCase()}`)}>
-              <span className="preview-notes-badge xs">{REWRITE_COPY[view].badge} · from this section</span>
+              <span className="preview-notes-badge xs">{REWRITE_COPY[view].badge} · covers {coverage(section)}</span>
               <Markdown figures={current.figures}>{current.markdown}</Markdown>
             </div>
           ) : null}
