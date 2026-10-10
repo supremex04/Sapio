@@ -16,11 +16,12 @@ public record DocumentResponse(
         Integer ocrPages,
         String errorMessage,
         Instant createdAt,
-        Instant completedAt) {
+        Instant completedAt,
+        Instant retryAt) {
 
     public static DocumentResponse from(Document d) {
         return new DocumentResponse(d.getId(), d.getOriginalFilename(), d.getTitle(), d.getContentType(),
                 d.getSizeBytes(), d.getStatus(), d.getEngine(), d.getPageCount(), d.getTextPages(), d.getOcrPages(),
-                d.getErrorMessage(), d.getCreatedAt(), d.getCompletedAt());
+                d.getErrorMessage(), d.getCreatedAt(), d.getCompletedAt(), d.getRetryAt());
     }
 }

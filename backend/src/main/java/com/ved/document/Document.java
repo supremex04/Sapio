@@ -88,6 +88,14 @@ public class Document {
     @Column(name = "completed_at")
     private Instant completedAt;
 
+    /** Automatic retries already scheduled after transient failures (AI provider busy). */
+    @Column(name = "auto_retries", nullable = false)
+    private int autoRetries;
+
+    /** When set on a FAILED document, the pipeline resumes automatically at this time. */
+    @Column(name = "retry_at")
+    private Instant retryAt;
+
     protected Document() {
         // for JPA
     }
@@ -139,6 +147,15 @@ public class Document {
     }
 
     public void markFailed(String reason, Instant now) {
+        markFailed(reason, now, null);
+    }
+
+    /** @param retryAt when to resume automatically (transient failures), or null to wait for the user */
+    public void markFailed(String reason, Instant now, Instant retryAt) {
+        this.retryAt = retryAt;
+        if (retryAt != null) {
+            this.autoRetries++;
+        }
         this.status = DocumentStatus.FAILED;
         this.errorMessage = reason == null || reason.length() <= MAX_ERROR_LENGTH
                 ? reason : reason.substring(0, MAX_ERROR_LENGTH);
@@ -151,9 +168,16 @@ public class Document {
         this.processingStartedAt = null;
     }
 
-    /** User-initiated retry of a failed document. */
+    /** User-initiated retry of a failed document (also resets the automatic retry budget). */
     public void retry() {
+        this.autoRetries = 0;
+        resume();
+    }
+
+    /** Scheduled automatic retry; keeps counting towards the retry budget. */
+    public void resume() {
         requireStatus(DocumentStatus.FAILED);
+        this.retryAt = null;
         this.status = DocumentStatus.PENDING;
         this.errorMessage = null;
         this.completedAt = null;
@@ -228,6 +252,14 @@ public class Document {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public int getAutoRetries() {
+        return autoRetries;
+    }
+
+    public Instant getRetryAt() {
+        return retryAt;
     }
 
     public Instant getCompletedAt() {

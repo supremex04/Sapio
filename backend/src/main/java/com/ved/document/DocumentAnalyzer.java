@@ -20,8 +20,20 @@ public interface DocumentAnalyzer {
 
     /** The message is safe to show to the document owner. */
     class AnalysisException extends Exception {
+        private final boolean transientFailure;
+
         public AnalysisException(String message, Throwable cause) {
+            this(message, cause, false);
+        }
+
+        /** @param transientFailure the AI provider was busy/unavailable: worth retrying automatically */
+        public AnalysisException(String message, Throwable cause, boolean transientFailure) {
             super(message, cause);
+            this.transientFailure = transientFailure;
+        }
+
+        public boolean isTransient() {
+            return transientFailure;
         }
     }
 }

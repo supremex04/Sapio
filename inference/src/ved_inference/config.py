@@ -30,8 +30,9 @@ class Settings(BaseSettings):
     # LLM used for study features (outline, lessons, questions, grading, tutor)
     llm_provider: LlmProviderName = "gemini"
     llm_timeout_seconds: float = 180.0
-    # Retries per model on rate limits / overload (HTTP 429/500/503), with exponential backoff.
-    llm_max_retries: int = Field(default=2, ge=0)
+    # Retries per model on rate limits / overload (HTTP 429/5xx). Waits follow the server's retryDelay
+    # hint (quota windows) or exponential backoff, each capped at 45 s.
+    llm_max_retries: int = Field(default=4, ge=0)
     gemini_api_key: SecretStr = SecretStr("")
     gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
     gemini_model: str = "gemini-3.5-flash"

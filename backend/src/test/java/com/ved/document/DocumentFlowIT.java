@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import com.ved.FakeAi;
 import com.ved.IntegrationTest;
+import com.ved.MutableClock;
 import com.ved.TestUsers;
 import com.ved.TestUsers.Registered;
 import com.ved.document.extraction.ExtractionException;
@@ -57,6 +58,9 @@ public class DocumentFlowIT {
 
     @MockitoBean
     KnowledgeAi knowledgeAi;
+
+    @Autowired
+    MutableClock clock;
 
     @BeforeEach
     void stubAi() {
@@ -125,6 +129,30 @@ public class DocumentFlowIT {
 
         mvc.perform(post("/api/documents/{id}/retry", id).header("Authorization", user.bearer()))
                 .andExpect(status().isConflict());
+    }
+
+    @Test
+    void transientFailuresRetryAutomaticallyAndResume() throws Exception {
+        when(extraction.extract(argThat(r -> r != null && r.filename().equals("busy.png"))))
+                .thenThrow(new ExtractionException("Text extraction is unavailable right now", null, true))
+                .thenReturn(FakeAi.extraction());
+        Registered user = TestUsers.register(mvc, json);
+
+        UUID id = upload(mvc, json, user, "busy.png", PNG_BYTES);
+        JsonNode paused = awaitTerminal(mvc, json, user, id);
+        assertThat(paused.get("status").asString()).isEqualTo("FAILED");
+        assertThat(paused.get("errorMessage").asString()).contains("continue automatically");
+        assertThat(paused.get("retryAt").isNull()).isFalse();
+
+        clock.advance(Duration.ofMinutes(2)); // the scheduler (polling every 200 ms in tests) picks it up
+        long deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos();
+        String status = "FAILED";
+        while (!"READY".equals(status) && System.nanoTime() < deadline) {
+            Thread.sleep(100);
+            status = json.readTree(mvc.perform(get("/api/documents/{id}", id).header("Authorization", user.bearer()))
+                    .andReturn().getResponse().getContentAsString()).get("status").asString();
+        }
+        assertThat(status).isEqualTo("READY");
     }
 
     @Test

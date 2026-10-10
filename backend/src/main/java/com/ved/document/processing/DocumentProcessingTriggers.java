@@ -1,5 +1,7 @@
 package com.ved.document.processing;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
@@ -13,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.task.TaskRejectedException;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -29,11 +32,14 @@ class DocumentProcessingTriggers {
     private final DocumentProcessor processor;
     private final DocumentRepository documents;
     private final TransactionTemplate tx;
+    private final Clock clock;
 
-    DocumentProcessingTriggers(DocumentProcessor processor, DocumentRepository documents, TransactionTemplate tx) {
+    DocumentProcessingTriggers(DocumentProcessor processor, DocumentRepository documents, TransactionTemplate tx,
+                               Clock clock) {
         this.processor = processor;
         this.documents = documents;
         this.tx = tx;
+        this.clock = clock;
     }
 
     @TransactionalEventListener
@@ -54,6 +60,21 @@ class DocumentProcessingTriggers {
         if (unfinished != null && !unfinished.isEmpty()) {
             log.info("Resuming {} unfinished document(s)", unfinished.size());
             unfinished.forEach(this::submit);
+        }
+    }
+
+    /** Resumes documents whose automatic retry is due (transient AI failures). */
+    @Scheduled(fixedDelayString = "${ved.documents.processing.retry-poll:30s}")
+    void resumeDueRetries() {
+        Instant now = clock.instant();
+        List<UUID> due = tx.execute(status -> {
+            List<Document> docs = documents.findByStatusAndRetryAtLessThanEqual(DocumentStatus.FAILED, now);
+            docs.forEach(Document::resume);
+            return docs.stream().map(Document::getId).toList();
+        });
+        if (due != null && !due.isEmpty()) {
+            log.info("Automatically retrying {} document(s)", due.size());
+            due.forEach(this::submit);
         }
     }
 

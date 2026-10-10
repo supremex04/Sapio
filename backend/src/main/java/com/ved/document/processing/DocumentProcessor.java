@@ -1,6 +1,9 @@
 package com.ved.document.processing;
 
 import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -77,9 +80,14 @@ public class DocumentProcessor {
             update(documentId, d -> d.markReady(result.title(), clock.instant()));
             settled = true;
             log.info("Document {} is ready", documentId);
-        } catch (ExtractionException | IndexingException | AnalysisException e) {
-            log.info("Document {} failed: {}", documentId, e.getMessage());
-            update(documentId, d -> d.markFailed(e.getMessage(), clock.instant()));
+        } catch (ExtractionException e) {
+            fail(documentId, e.getMessage(), e.isTransient());
+            settled = true;
+        } catch (IndexingException e) {
+            fail(documentId, e.getMessage(), e.isTransient());
+            settled = true;
+        } catch (AnalysisException e) {
+            fail(documentId, e.getMessage(), e.isTransient());
             settled = true;
         } finally {
             // Anything unexpected (including Errors) must not leave the document stuck mid-pipeline.
@@ -88,6 +96,24 @@ public class DocumentProcessor {
                 update(documentId, d -> d.markFailed("Unexpected processing error", clock.instant()));
             }
         }
+    }
+
+    /** Retry schedule for transient failures; progress is kept, so each retry resumes where it stopped. */
+    static final List<Duration> AUTO_RETRY_DELAYS = List.of(Duration.ofMinutes(1), Duration.ofMinutes(4),
+            Duration.ofMinutes(15));
+
+    private void fail(UUID documentId, String reason, boolean transientFailure) {
+        Instant now = clock.instant();
+        update(documentId, d -> {
+            if (transientFailure && d.getAutoRetries() < AUTO_RETRY_DELAYS.size()) {
+                Instant at = now.plus(AUTO_RETRY_DELAYS.get(d.getAutoRetries()));
+                log.info("Document {} paused ({}), retrying automatically at {}", documentId, reason, at);
+                d.markFailed(reason + ". Progress is saved and it will continue automatically.", now, at);
+            } else {
+                log.info("Document {} failed: {}", documentId, reason);
+                d.markFailed(reason, now);
+            }
+        });
     }
 
     private Claim claim(UUID documentId) {

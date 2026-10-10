@@ -70,7 +70,7 @@ class GeminiClient(LlmClient):
                     last_error = exc
                     log.warning("Gemini %s attempt %d failed: %s", model, attempt + 1, exc)
                     if attempt < self._max_retries:
-                        time.sleep(min(2**attempt, 8))
+                        time.sleep(_backoff(attempt, exc))
                 except _ModelUnavailable as exc:
                     last_error = exc
                     log.warning("Gemini model %s unavailable: %s", model, exc)
@@ -83,7 +83,7 @@ class GeminiClient(LlmClient):
         except httpx.HTTPError as exc:
             raise _Retryable(str(exc)) from exc
         if response.status_code in _RETRYABLE:
-            raise _Retryable(f"HTTP {response.status_code}")
+            raise _Retryable(f"HTTP {response.status_code}", _retry_delay(response))
         if response.status_code == 404:
             raise _ModelUnavailable("HTTP 404")
         if response.status_code >= 400:
@@ -163,7 +163,7 @@ class GeminiEmbedder(Embedder):
                     f"/models/{self._model}:batchEmbedContents", json={"requests": requests}
                 )
                 if response.status_code in _RETRYABLE:
-                    raise _Retryable(f"HTTP {response.status_code}")
+                    raise _Retryable(f"HTTP {response.status_code}", _retry_delay(response))
                 if response.status_code >= 400:
                     raise EngineError(
                         f"Embedding request rejected (HTTP {response.status_code}): {_error_message(response)}"
@@ -176,7 +176,7 @@ class GeminiEmbedder(Embedder):
                 last = exc
                 log.warning("Embedding attempt %d failed: %s", attempt + 1, exc)
                 if attempt < self._max_retries:
-                    time.sleep(min(2**attempt, 8))
+                    time.sleep(_backoff(attempt, exc))
         raise EngineError("The embedding service is busy right now. Please try again in a moment.") from last
 
     def close(self) -> None:
@@ -188,7 +188,33 @@ def _inline(image: ImagePart) -> dict:
 
 
 class _Retryable(Exception):
-    pass
+    def __init__(self, message: str, delay: float | None = None) -> None:
+        super().__init__(message)
+        self.delay = delay
+
+
+MAX_BACKOFF_SECONDS = 45.0
+
+
+def _backoff(attempt: int, error: Exception) -> float:
+    """Server hint (rate-limit window) if given, else exponential; always bounded."""
+    hinted = getattr(error, "delay", None)
+    return min(hinted if hinted is not None else 2.0 ** (attempt + 1), MAX_BACKOFF_SECONDS)
+
+
+def _retry_delay(response: httpx.Response) -> float | None:
+    """Reads google.rpc.RetryInfo ("retryDelay": "31s") or a Retry-After header."""
+    header = response.headers.get("retry-after")
+    if header and header.isdigit():
+        return float(header)
+    try:
+        for detail in response.json().get("error", {}).get("details", []):
+            delay = detail.get("retryDelay")
+            if isinstance(delay, str) and delay.endswith("s"):
+                return float(delay[:-1])
+    except (ValueError, AttributeError):
+        pass
+    return None
 
 
 class _ModelUnavailable(Exception):

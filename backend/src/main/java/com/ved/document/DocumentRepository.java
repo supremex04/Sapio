@@ -1,5 +1,6 @@
 package com.ved.document;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -16,4 +17,6 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
     Page<Document> findByOwnerIdOrderByCreatedAtDesc(UUID ownerId, Pageable pageable);
 
     List<Document> findByStatusIn(Collection<DocumentStatus> statuses);
+
+    List<Document> findByStatusAndRetryAtLessThanEqual(DocumentStatus status, Instant at);
 }

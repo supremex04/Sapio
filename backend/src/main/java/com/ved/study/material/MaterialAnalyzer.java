@@ -57,7 +57,7 @@ class MaterialAnalyzer implements DocumentAnalyzer {
                             n.summary() == null ? "" : n.summary(), n.keyTerms())).toList()));
         } catch (StudyAiException e) {
             throw new AnalysisException(e.isInputRejected() ? e.getMessage()
-                    : "Building the learning path failed: " + e.getMessage(), e);
+                    : "Building the learning path failed: " + e.getMessage(), e, !e.isInputRejected());
         }
         tx.executeWithoutResult(status -> {
             materials.deleteByDocumentId(input.documentId());

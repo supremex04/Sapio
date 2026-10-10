@@ -67,7 +67,7 @@ class InferenceExtractionGateway implements ExtractionGateway {
         } catch (InferenceException e) {
             throw new ExtractionException(e.isClientError()
                     ? "Document could not be processed: " + e.getMessage()
-                    : "Text extraction is unavailable right now, please retry later", e);
+                    : "Text extraction is unavailable right now", e, !e.isClientError());
         }
     }
 

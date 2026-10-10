@@ -1,3 +1,5 @@
 ved:
   documents:
     storage-dir: ${java.io.tmpdir}/ved-test-storage
+    processing:
+      retry-poll: 200ms

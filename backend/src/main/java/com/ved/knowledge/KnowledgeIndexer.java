@@ -18,6 +18,7 @@ import com.ved.document.extraction.ExtractionResult;
 import com.ved.document.storage.DocumentStorage;
 import com.ved.knowledge.ai.KnowledgeAi;
 import com.ved.knowledge.ai.KnowledgeAi.EmbedInput;
+import com.ved.knowledge.ai.KnowledgeAiException;
 import com.ved.knowledge.retrieval.ContextAssembler;
 import com.ved.knowledge.store.KnowledgeStore;
 import com.ved.knowledge.store.KnowledgeStore.ChunkRow;
@@ -92,6 +93,8 @@ class KnowledgeIndexer implements DocumentIndexer {
             summarize(documentId, language);
             embedChunks(documentId);
             embedFigures(documentId);
+        } catch (KnowledgeAiException e) {
+            throw new IndexingException("The AI service is busy (rate limit)", e, true);
         } catch (ApplicationException e) {
             throw new IndexingException("Indexing failed: " + e.getMessage(), e);
         }
