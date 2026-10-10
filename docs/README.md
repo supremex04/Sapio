@@ -29,7 +29,8 @@ plus spaced review, XP/levels/streaks, daily goals and learning analytics.
 | | [specs/api-conventions.md](specs/api-conventions.md) | adding or consuming any public REST endpoint |
 | | [specs/inference-api.md](specs/inference-api.md) | changing the backend ↔ Python contract |
 | Decisions | [adr/](adr/README.md) | you wonder *why* something is the way it is |
-| Guides | [guides/local-development.md](guides/local-development.md) | setting up, running and testing locally |
+| Guides | [guides/how-ved-works.md](guides/how-ved-works.md) | **start here**: a plain-language tour of the whole flow (documents, embeddings, search, lessons) |
+| | [guides/local-development.md](guides/local-development.md) | setting up, running and testing locally |
 | | [guides/configuration.md](guides/configuration.md) | switching AI vendors/models, OCR engines, or tuning retrieval, budgets and processing |
 | | [guides/ocr-engines.md](guides/ocr-engines.md) | switching OCR engines / running Unlimited-OCR on a GPU |
 | Planning | [roadmap.md](roadmap.md) | picking up the next piece of work; known limitations |
