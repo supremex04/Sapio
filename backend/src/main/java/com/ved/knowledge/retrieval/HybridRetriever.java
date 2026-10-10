@@ -101,6 +101,27 @@ public class HybridRetriever {
         List<Hit> hits = new ArrayList<>();
         best.forEach((id, r) -> hits.add(new Hit(id, r.nodeId(), scores.get(id), r.snippet())));
         hits.sort(Comparator.comparingDouble(Hit::score).reversed());
-        return hits.size() <= limit ? hits : hits.subList(0, limit);
+        if (hits.size() <= limit) {
+            return hits;
+        }
+        List<Hit> top = new ArrayList<>(hits.subList(0, limit));
+        // Each ranker's best result always survives the cut: an exact-term match (a command, an error code) that
+        // meaning search misses must not be pushed out by weighting.
+        for (List<Ranked> list : lists) {
+            if (list.isEmpty() || top.stream().anyMatch(h -> h.id().equals(list.getFirst().id()))) {
+                continue;
+            }
+            UUID id = list.getFirst().id();
+            Hit hit = hits.stream().filter(h -> h.id().equals(id)).findFirst().orElseThrow();
+            for (int i = top.size() - 1; i >= 0; i--) {
+                Hit last = top.get(i);
+                boolean protectedTop = lists.stream().anyMatch(l -> !l.isEmpty() && l.getFirst().id().equals(last.id()));
+                if (!protectedTop) {
+                    top.set(i, hit);
+                    break;
+                }
+            }
+        }
+        return top;
     }
 }

@@ -20,7 +20,8 @@ Restart the service after a change; nothing is hot-reloaded.
 1. Constructor arguments (tests only)
 2. Environment variables: prefix `VED_INFERENCE_`, nested keys joined with `__`
 3. `inference/.env` (same names)
-4. `settings.yaml` in the working directory, or the file named by `VED_INFERENCE_CONFIG`
+4. `settings.yaml` in the working directory, or the file(s) named by `VED_INFERENCE_CONFIG` (a base file followed
+   by overlays, see below)
 5. Defaults in [`config.py`](../../inference/src/ved_inference/config.py)
 
 Sources are **deep-merged**, so an override replaces one leaf and keeps the rest:
@@ -31,6 +32,7 @@ VED_INFERENCE_OCR__REMOTE__BASE_URL=http://gpu-host:10000/v1
 VED_INFERENCE_LLM__DEFAULT__PRIMARY__MODEL=gemini-3.8-flash
 VED_INFERENCE_PARSING__MAX_PAGES=300
 VED_INFERENCE_CONFIG=settings.prod.yaml          # pick another file per environment
+VED_INFERENCE_CONFIG=settings.yaml,settings.local-embedding.yaml   # base + overlay
 ```
 
 - Lists and objects are given as JSON: `VED_INFERENCE_LLM__DEFAULT__FALLBACKS='[{"provider":"gemini","model":"gemini-3.5-flash-lite"}]'`.
@@ -38,6 +40,11 @@ VED_INFERENCE_CONFIG=settings.prod.yaml          # pick another file per environ
 - An override can only change a route that exists: `VED_INFERENCE_LLM__TASKS__NOTES__PRIMARY__MODEL`
   fails validation unless `llm.tasks.notes` (with its `provider`) is defined somewhere.
 - For anything bigger than one or two values, use a separate settings file and `VED_INFERENCE_CONFIG`.
+- **Overlays:** `VED_INFERENCE_CONFIG` accepts a comma-separated list, base file first, then overlays. The files
+  are deep-merged in order (later wins; nested maps merge key by key, so an overlay can add one provider or change
+  one section and keep the rest). A missing overlay is a startup error. Shipped overlay:
+  [`settings.local-embedding.yaml`](../../inference/settings.local-embedding.yaml) (in-house embeddings, see
+  [below](#in-house-embeddings-provider-type-onnx)).
 - `VED_INFERENCE_API_KEY` (the shared backend ↔ inference secret) is a top-level setting; it must equal the backend's.
 
 ### Backend precedence
@@ -201,17 +208,43 @@ them), `max_tokens` (512), `batch_size` (8), `threads` (0 = all cores). Example 
 `nomic-ai/nomic-embed-text-v1.5` with `pooling: mean`, `query_prefix: "search_query: "`,
 `document_prefix: "search_document: "`.
 
+The configuration above ships as an overlay, so the default stays Gemini and in-house embeddings are one switch away:
+
+```bash
+./dev.sh --local-embedding                      # or: ./dev.sh -d --local-embedding
+VED_INFERENCE_CONFIG=settings.yaml,settings.local-embedding.yaml   # manual runs (from inference/)
+```
+
+Switching either way re-embeds each document in the background the first time it is searched with the other
+model (see "Switching the embedding model is safe" above); until then search runs on keywords for that document.
+
 ### Choosing an embedding model: measure on your own documents
 
 `inference/scripts/eval_embeddings.py` compares candidates (defined at the top of the script) on real material:
-it asks the LLM for one paraphrased student question per passage and figure (cached, so every model faces the same
+it asks the LLM for one student question per passage and figure (cached, so every model faces the same
 questions), then reports how often the right passage ranks first / in the top 3 / top 5 (hit@k, MRR), for meaning
 search alone and fused with keyword search as in production. Copies of the same image count as one answer.
+Question styles: `natural` (the student's own words, using the material's terms where a student would) and
+`paraphrase` (deliberately reworded, hard for keyword search).
 
 Export documents from Postgres into the script's JSON format (passages are prefixed with their breadcrumb, like
-the indexer does) and run `.venv/bin/python scripts/eval_embeddings.py export.json --questions questions.json`.
+the indexer does) and run from `inference/`:
 
-Results on 3 documents (125 passages, 11 figures, 134 questions; 2026-10-10):
+```bash
+.venv/bin/python scripts/eval_embeddings.py export.json \
+    --questions natural=natural.json --questions paraphrase=paraphrase.json --tune
+```
+
+| Option | Effect |
+|---|---|
+| `--questions STYLE=FILE` | question set, repeatable; generated with the LLM if `FILE` is missing (default `paraphrase=eval_questions.json`) |
+| `--models qwen,gemini` | substrings of candidate names to run (default: all) |
+| `--fusion KW,VW,K` | keyword weight, vector weight and k for the hybrid rows (default `1,1,60`) |
+| `--tune` | also grid-search the fusion (keyword 0.5-1, vector 1-3, k 10/30/60), ranked by mean passage MRR over the question sets |
+| `--cache DIR` | where vectors are cached (default `.eval_cache`), so re-runs and tuning make no embedding calls |
+
+Results on 3 documents (125 passages, 11 figures, 134 questions; 2026-10-10; hybrid rows with the fusion of
+then, 1 : 1, k=60):
 
 | Model | Search | Passage #1 | Top 3 | Top 5 | MRR | Embedding time |
 |---|---|---|---|---|---|---|
@@ -222,6 +255,19 @@ Results on 3 documents (125 passages, 11 figures, 134 questions; 2026-10-10):
 
 The questions deliberately avoid the source's wording, which makes keyword search look worse than it is with
 real students; treat the numbers as a comparison between models, not as absolute quality.
+
+**Fusion tuning** (`--tune`, 268 questions over the same 3 documents, natural + paraphrase; Qwen vectors, as
+Gemini's daily quota was exhausted during tuning, so to be re-checked on Gemini). Hybrid ranking, weights
+keyword : vector:
+
+| Fusion | Natural #1 | Natural top 3 | Paraphrase #1 | Paraphrase top 3 | Mean passage MRR | Figures #1 (natural / paraphrase) |
+|---|---|---|---|---|---|---|
+| 1 : 1, k=60 (previous) | 80% | 99% | 76% | 94% | 0.871 | 82% / 73% |
+| **1 : 2, k=10 (default)** | **85%** | 99% | **79%** | 93% | **0.895** | **91% / 82%** |
+
+Trade-off: a passage found only by keyword search, even at #1, now ranks below meaning search's top results.
+Safeguard: each ranker's #1 always survives the cut to `limit` results (it replaces the last slot), so exact-term
+matches (commands, error codes) are never dropped. Hence `ved.knowledge.retrieval.keyword-weight: 1.0`, `vector-weight: 2.0`, `rrf-k: 10`.
 
 ## OCR engine
 
@@ -412,7 +458,9 @@ All are `@ConfigurationProperties` records with `@Validated` constraints in `app
 | `figure-url-secret` | dev value (`VED_FIGURE_URL_SECRET`) | HMAC key for figure image URLs; **override in production** |
 | `figure-url-ttl` | `6h` | validity of a signed figure URL |
 | `retrieval.candidates` | `30` | results per ranker (keyword, vector) before fusion |
-| `retrieval.rrf-k` | `60` | Reciprocal Rank Fusion constant; higher flattens the weight of top ranks |
+| `retrieval.rrf-k` | `10` | Reciprocal Rank Fusion constant; higher flattens the weight of top ranks |
+| `retrieval.keyword-weight` | `1.0` | how much the keyword (full-text) ranking counts in the fusion: score = Σ weight / (k + rank) |
+| `retrieval.vector-weight` | `2.0` | how much the meaning (embedding) ranking counts. Weights and `rrf-k` were tuned with `eval_embeddings.py --tune` ([results](#choosing-an-embedding-model-measure-on-your-own-documents)) |
 | `reading.unit-min-chars` | `300` | smallest study unit of the Preview (sections that get Expand / Revision): less text than this gets no rewrite of its own |
 | `reading.unit-max-chars` | `6000` | largest study unit (~2-4 textbook pages, a 5-10 minute read); bigger sections split into their subsections. Keep below `ved.study.context.notes.chars` |
 | `retrieval.figure-min-similarity` | `0.48` | cosine similarity a figure needs to count as a semantic match (caption keyword matches always count). Calibrated on `gemini-embedding-2`: on-topic ~0.52–0.56, loosely related ~0.42–0.46, unrelated ~0.36–0.38. **Re-tune when switching embedding models** |

@@ -278,19 +278,25 @@ Each search returns its top **30** candidates, but their scores are on different
 and a cosine of 0.6 can't be added). So Ved ignores the scores and uses only the **positions** in each list:
 
 ```
-score(passage) = Σ over both lists of  1 / (60 + position)
+score(passage) = Σ over both lists of  weight / (10 + position)      weight: keyword 1, vector 2
 ```
 
 Worked example (positions start at 1):
 
 | Passage | Keyword position | Vector position | Score |
 |---|---|---|---|
-| "The scheduler assigns pods…" | 2 | 1 | 1/62 + 1/61 = **0.0325** |
-| "kube-scheduler config flags…" | 1 | not found | 1/61 = 0.0164 |
-| "Pods are the smallest unit…" | not found | 2 | 1/62 = 0.0161 |
+| "The scheduler assigns pods…" | 2 | 1 | 1/12 + 2/11 = **0.265** |
+| "Pods are the smallest unit…" | not found | 2 | 2/12 = 0.167 |
+| "kube-scheduler config flags…" | 1 | not found | 1/11 = 0.091 |
 
-A passage that **both** searches like wins clearly. The constant 60 is the standard value from the research
-paper that introduced the method; it stops the #1 spot from dominating everything else.
+A passage that **both** searches like wins clearly. Meaning search counts **twice** as much as keywords, and the
+small constant 10 lets the top positions stand out. Both were tuned by testing on 268 student questions over real
+documents (some in the material's own terms, some deliberately reworded): the right passage came first more often
+than with the textbook setting of equal weights and constant 60 (85% instead of 80% of natural questions, 79%
+instead of 76% of reworded ones). The price: a passage that only keyword
+search finds, like the third row, now ranks below meaning search's top results. So one safeguard: **each search's
+own #1 always makes the final list** (it takes the last slot if needed), so an exact command or error code that only
+the keyword index knows is never dropped.
 
 ### 4.4 Searching only part of a document
 
@@ -525,7 +531,7 @@ Full recipes: [configuration guide](configuration.md).
 | **Node** | One part of the document tree (chapter, section, subsection). |
 | **OCR** | Reading text from an image of a page. |
 | **pgvector** | Postgres extension that stores embeddings and searches by similarity. |
-| **RRF** | Reciprocal Rank Fusion: merging ranked lists by position, `1/(60+rank)`. |
+| **RRF** | Reciprocal Rank Fusion: merging ranked lists by position, `weight/(10+rank)` (keyword 1, vector 2). |
 | **Signed URL** | A link with a tamper-proof signature and expiry, so images load without logging in. |
 | **Small-to-big** | Find small passages, then add their neighbours and section summary for context. |
 | **Topic** | One 5-10 minute lesson in the learning path, linked to tree nodes. |

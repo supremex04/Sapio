@@ -234,7 +234,7 @@ See [guides/configuration.md](../guides/configuration.md) for env-var overrides.
 | `ved.knowledge.indexing.chunk-embed-batch` | 96 | chunks per embedding call / commit |
 | `ved.knowledge.indexing.figure-embed-batch` | 16 | figures per embedding call / commit |
 | `ved.knowledge.indexing.summary-text-chars` | 6000 | own text per node sent for summarising |
-| `ved.knowledge.retrieval.*` | `candidates: 30`, `rrf-k: 60`, `figure-min-similarity: 0.48` | search tuning, see [retrieval.md](retrieval.md) |
+| `ved.knowledge.retrieval.*` | `candidates: 30`, `rrf-k: 10`, `keyword-weight: 1.0`, `vector-weight: 2.0`, `figure-min-similarity: 0.48` | search tuning, see [retrieval.md](retrieval.md) |
 | `ved.documents.processing.auto-retry-delays` | `1m, 4m, 15m` | one automatic retry per entry; empty disables |
 | `ved.documents.processing.retry-poll` | `30s` (code default, not in yml) | how often due retries are checked |
 | `ved.documents.processing.core-pool-size` / `max-pool-size` / `queue-capacity` | 2 / 4 / 200 | worker pool shared by processing and re-embedding |

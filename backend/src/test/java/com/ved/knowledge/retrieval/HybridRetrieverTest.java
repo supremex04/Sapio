@@ -40,4 +40,18 @@ class HybridRetrieverTest {
         assertThat(HybridRetriever.fuse(List.of(keyword, vector), List.of(2.0, 1.0), 2, 10).getFirst().id())
                 .isEqualTo(keywordTop);
     }
+
+    @Test
+    void eachRankersBestResultSurvivesTheCut() {
+        UUID node = UUID.randomUUID();
+        UUID exactTerm = UUID.randomUUID();
+        List<Ranked> keyword = List.of(new Ranked(exactTerm, node, 5.0, "**kubectl** cluster-info"));
+        List<Ranked> vector = java.util.stream.IntStream.range(0, 15)
+                .mapToObj(i -> new Ranked(UUID.randomUUID(), node, 0.5, "v" + i)).toList();
+
+        List<HybridRetriever.Hit> hits = HybridRetriever.fuse(List.of(keyword, vector), List.of(1.0, 2.0), 10, 10);
+
+        assertThat(hits).hasSize(10);
+        assertThat(hits).extracting(HybridRetriever.Hit::id).contains(exactTerm, vector.getFirst().id());
+    }
 }

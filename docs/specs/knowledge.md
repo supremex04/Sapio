@@ -112,7 +112,7 @@ Figure files live in `DocumentStorage` (local disk today, key `yyyy/mm/dd/<uuid>
 
 ```
 query ─┬─ keyword: ts_rank_cd(tsv, websearch_to_tsquery)    ─┐
-       └─ vector:  embedding <=> embed(query, RETRIEVAL_QUERY) ─┴─ RRF (k=60) → top leaves
+       └─ vector:  embedding <=> embed(query, RETRIEVAL_QUERY) ─┴─ weighted RRF (keyword 1, vector 2, k=10) → top leaves
             → small-to-big: + neighbouring chunks (±1, same node) + the hit's node summary + breadcrumb
             → figures: anchored to retrieved chunks, plus figure search (keyword + vector, cosine ≥
               ved.knowledge.retrieval.figure-min-similarity = 0.48): always on the search endpoint (up to 4),

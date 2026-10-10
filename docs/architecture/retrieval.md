@@ -31,8 +31,8 @@ Callers pick the context mode that fits the use:
 
 ```
 query ─┬─ embed(query, RETRIEVAL_QUERY) ──► vectorChunks  (top 30, cosine, same model only) ─┐
-       └────────────────────────────────► keywordChunks (top 30, ts_rank_cd)               ─┴─ RRF(k=60) → top N chunks
-       (figures, only when asked for)     keywordFigures + vectorFigures (sim ≥ 0.48)       ─── RRF(k=60) → top M figures
+       └────────────────────────────────► keywordChunks (top 30, ts_rank_cd)               ─┴─ RRF(keyword 1, vector 2, k=10) → top N chunks
+       (figures, only when asked for)     keywordFigures + vectorFigures (sim ≥ 0.48)       ─── RRF(keyword 1, vector 2, k=10) → top M figures
 ```
 
 ### 1. Query embedding
@@ -68,16 +68,28 @@ Both chunk rankers accept `scopePaths` (ltree paths). The filter is `n.path <@ ?
 path in the array, GiST index on `document_nodes.path`); `null` means the whole document. Scope sources:
 `nodeId` on search and ask, the topic's node ids for the tutor. Figure search is not subtree-scoped.
 
-### 5. Reciprocal Rank Fusion
+### 5. Weighted Reciprocal Rank Fusion
 
 `HybridRetriever.fuse` merges the ranked lists:
 
 ```
-score(d) = Σ over lists containing d of  1 / (k + rank_d)      rank_d is 1-based, k = rrf-k = 60
+score(d) = Σ over lists containing d of  w_list / (k + rank_d)     rank_d is 1-based, k = rrf-k = 10,
+                                                                   w = keyword-weight 1.0 / vector-weight 2.0
 ```
 
 RRF uses ranks only, so the incomparable scales of `ts_rank_cd` and cosine similarity do not matter, and a chunk
-found by both rankers rises to the top. Each ranker contributes `candidates` (30) items. When a chunk appears in both
+found by both rankers rises to the top. The weights say how much each ranker is trusted.
+
+The values were tuned with `inference/scripts/eval_embeddings.py --tune` (grid over weights and k, see
+[configuration.md](../guides/configuration.md#choosing-an-embedding-model-measure-on-your-own-documents)) on 268
+questions over 3 documents, half in a student's natural wording, half deliberately reworded. Against plain RRF
+(1 : 1, k=60) the right passage ranked #1 for 85% instead of 80% (natural) and 79% instead of 76% (reworded), top-3
+unchanged at ~99% / ~93%, mean MRR 0.871 → 0.895; figures #1 rose from 82% to 91% (natural) and 73% to 82%
+(reworded). Measured with the in-house Qwen vectors (Gemini's daily quota ran out during tuning); to be re-checked
+on `gemini-embedding-2`. Trade-off: a chunk found only by keyword search, even at #1 (1/11 ≈ 0.091), now ranks
+below anything meaning search alone puts in its top 11 (2/21 ≈ 0.095). Safeguard in `HybridRetriever.fuse`: each
+ranker's #1 always survives the cut to `limit` (it replaces the last unprotected slot), so an exact-term match that
+meaning search misses is never dropped. Each ranker contributes `candidates` (30) items. When a chunk appears in both
 lists, the keyword hit's snippet is preferred if it contains a `**` highlight.
 
 ### 6. Figure search
@@ -227,7 +239,8 @@ the saved note).
 | Key | Default | Effect |
 |---|---|---|
 | `ved.knowledge.retrieval.candidates` | 30 | Items per ranker before fusion. Higher = better recall, more rows scanned. |
-| `ved.knowledge.retrieval.rrf-k` | 60 | RRF constant; higher flattens the advantage of top ranks. |
+| `ved.knowledge.retrieval.rrf-k` | 10 | RRF constant; higher flattens the advantage of top ranks. |
+| `ved.knowledge.retrieval.keyword-weight` / `vector-weight` | 1.0 / 2.0 | How much each ranker counts in the fusion. Tuned on our documents (section 5). |
 | `ved.knowledge.retrieval.figure-min-similarity` | 0.48 | Cosine floor for semantic figure matches; model-specific. |
 | `ved.knowledge.figure-url-ttl` | 6h | Signed figure URL validity (on top of hour alignment). |
 | `ved.study.context.<use>.chars` / `.figures` | see Budgets | Grounding vs latency/cost per use. |

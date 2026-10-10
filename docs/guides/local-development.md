@@ -22,7 +22,7 @@ What it does, in order:
 
 1. Checks prerequisites (Java 21+, Maven, Node, Python 3.12, a running Docker).
 2. **Installs only what changed.** It remembers a hash of each dependency manifest in `.dev/stamps/`:
-   `inference/pyproject.toml` → `pip install -e '.[rapid,dev]'`, `frontend/package*.json` → `npm ci`,
+   `inference/pyproject.toml` → `pip install -e '.[rapid,embed,dev]'`, `frontend/package*.json` → `npm ci`,
    `backend/pom.xml` → Maven dependency resolution. Unchanged manifests are skipped, so a normal start
    takes a few seconds. After a `git pull` that changes dependencies, the next `./dev.sh` updates them.
 3. Creates `inference/.env` from `.env.example` if missing and stops with a message if the Gemini key is empty.
@@ -40,6 +40,14 @@ What it does, in order:
 | `./dev.sh stop` | stop the services (database keeps running) |
 | `./dev.sh down` | stop services and the database container (data stays in the volume) |
 | `./dev.sh test` | run all three test suites |
+
+**`--local-embedding`** (combine with `./dev.sh`, `up` or `-d`): computes embeddings in-house
+(Qwen3-Embedding-0.6B on the CPU, no API calls) instead of the Gemini API, by starting inference with
+`VED_INFERENCE_CONFIG=settings.yaml,settings.local-embedding.yaml`
+([overlay](configuration.md#in-house-embeddings-provider-type-onnx)). Gemini stays the default. The startup summary
+prints the active embedding model. If inference is already running in the other mode, the script warns and keeps it
+running: `./dev.sh stop` first to switch. Switching either way re-embeds each document in the background the next
+time it is searched (the model, 614 MB, downloads on first use to `~/.cache/huggingface`).
 
 The rest of this guide describes the manual steps the script automates, for when you need one
 service on its own (e.g. running the backend from your IDE).
