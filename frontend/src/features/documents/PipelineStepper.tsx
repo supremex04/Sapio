@@ -6,7 +6,7 @@ import type { DocumentDto } from "./types";
  * Chunky step dots: Uploaded ✓ → Reading text → Building your course → Ready.
  * "Uploaded" is always done (endowed progress). The active dot pulses (reduced-motion aware).
  */
-export function PipelineStepper({ doc, compact }: { doc: Pick<DocumentDto, "status" | "textPages">; compact?: boolean }) {
+export function PipelineStepper({ doc, compact }: { doc: Pick<DocumentDto, "status" | "textPages" | "retryAt">; compact?: boolean }) {
   const state = pipelineState(doc);
   return (
     <div className={cx("pipeline", compact && "pipeline-compact")}>

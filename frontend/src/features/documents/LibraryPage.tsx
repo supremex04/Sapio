@@ -18,7 +18,8 @@ import { useToast } from "../../shared/ui/Toast";
 import { documentsApi } from "./api";
 import { pipelineState } from "./pipeline";
 import { PipelineStepper } from "./PipelineStepper";
-import { displayTitle, isTerminal, MAX_FILE_BYTES, type DocumentDto } from "./types";
+import { DocumentWorkbench } from "./DocumentWorkbench";
+import { displayTitle, isSettled, MAX_FILE_BYTES, type DocumentDto } from "./types";
 import { UploadDropzone } from "./UploadDropzone";
 import "./documents.css";
 
@@ -41,7 +42,7 @@ export function LibraryPage() {
     void load();
   }, [load]);
 
-  usePolling(load, 2500, documents?.some((d) => !isTerminal(d.status)) ?? false);
+  usePolling(load, 2500, documents?.some((d) => !isSettled(d)) ?? false);
 
   async function upload(files: File[]) {
     setErrors([]);
@@ -146,6 +147,8 @@ function DocumentCard({ doc, onRetry, onDelete }: { doc: DocumentDto; onRetry: (
           <Badge tone="success">Ready</Badge>
         ) : state.failed ? (
           <Badge tone="danger">Needs another try</Badge>
+        ) : state.paused ? (
+          <Badge tone="warning">Paused</Badge>
         ) : (
           <Badge tone="primary" icon={<span className="spinner" />}>
             Working
@@ -165,6 +168,7 @@ function DocumentCard({ doc, onRetry, onDelete }: { doc: DocumentDto; onRetry: (
         {formatRelative(doc.createdAt)}
       </p>
       {!state.done && <PipelineStepper doc={doc} compact />}
+      {!state.done && !state.failed && <DocumentWorkbench doc={doc} compact />}
       {state.failed && doc.errorMessage && <p className="small doc-error">{doc.errorMessage}</p>}
       <div className="doc-actions">
         {state.done && (

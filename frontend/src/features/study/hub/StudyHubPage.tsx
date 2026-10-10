@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { errorMessage } from "../../../shared/api/errors";
 import { usePolling } from "../../../shared/hooks/usePolling";
-import { Dia } from "../../../shared/illustrations/Dia";
 import { Emoji } from "../../../shared/illustrations/Emoji";
 import { formatPercent, formatRelative } from "../../../shared/lib/format";
 import { Alert } from "../../../shared/ui/Alert";
@@ -22,7 +21,8 @@ import { documentsApi } from "../../documents/api";
 import { ExtractedText } from "../../documents/ExtractedText";
 import { pipelineState } from "../../documents/pipeline";
 import { PipelineStepper } from "../../documents/PipelineStepper";
-import { displayTitle, hasExtractedText, isTerminal, type DocumentDto } from "../../documents/types";
+import { DocumentWorkbench } from "../../documents/DocumentWorkbench";
+import { displayTitle, hasExtractedText, isSettled, type DocumentDto } from "../../documents/types";
 import "../../documents/documents.css";
 import { studyApi } from "../api";
 import { reviewMinutes } from "../nextStep";
@@ -60,7 +60,7 @@ export function StudyHubPage() {
   useEffect(() => {
     void load();
   }, [load]);
-  usePolling(load, 2500, doc !== null && !isTerminal(doc.status));
+  usePolling(load, 2500, doc !== null && !isSettled(doc));
 
   async function retry() {
     try {
@@ -126,16 +126,10 @@ export function StudyHubPage() {
                 </Alert>
               </div>
             ) : (
-              <div className="hub-processing-body">
-                <Dia mood="thinking" size={88} />
-                <div className="stack" style={{ flex: 1, minWidth: 0 }}>
-                  <PipelineStepper doc={doc} />
-                  <p className="muted small center">
-                    {doc.status === "ANALYZING"
-                      ? "Reading done! I'm organising the material into topics. Usually under a minute."
-                      : "Reading your document. Scanned pages take a little longer."}
-                  </p>
-                </div>
+              <div className="stack">
+                <PipelineStepper doc={doc} />
+                <DocumentWorkbench doc={doc} />
+                <p className="muted small center">Most documents are ready in a minute or two. Feel free to look around meanwhile.</p>
               </div>
             )}
           </Card>

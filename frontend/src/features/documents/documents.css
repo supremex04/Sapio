@@ -261,3 +261,132 @@ a.doc-title:hover {
   overflow-wrap: anywhere;
   color: var(--text-2);
 }
+
+/* ---- Workbench: Dia visibly working on a processing document ------------------------------------ */
+.workbench {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-primary-soft);
+}
+.workbench.is-paused {
+  background: var(--color-xp-soft);
+}
+.workbench-compact {
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+}
+.workbench-scene {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+.workbench-prop {
+  position: absolute;
+  right: -10px;
+  bottom: -2px;
+  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.15));
+}
+.workbench-sparkle {
+  position: absolute;
+  top: 2px;
+  left: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-xp);
+  opacity: 0;
+}
+.workbench-body {
+  flex: 1;
+  min-width: 0;
+}
+.workbench-line {
+  margin: 0 0 var(--space-2);
+  font-weight: var(--weight-heading);
+  color: var(--color-primary-text);
+}
+.workbench.is-paused .workbench-line {
+  color: var(--color-xp-text);
+  font-weight: var(--weight-reading);
+}
+.workbench-compact .workbench-line {
+  font-size: var(--text-small);
+}
+.workbench-bar {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.workbench-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+  transition: width 1s linear;
+}
+.workbench.is-paused .workbench-fill {
+  background: var(--color-xp);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .workbench-prop {
+    animation: workbench-bob 1.6s ease-in-out infinite;
+  }
+  .workbench-sparkle {
+    animation: workbench-sparkle 2.4s ease-out infinite;
+  }
+  .workbench:not(.is-paused) .workbench-fill {
+    background-image: linear-gradient(110deg, transparent 30%, rgb(255 255 255 / 0.45) 50%, transparent 70%);
+    background-color: var(--color-primary);
+    background-size: 200% 100%;
+    animation: workbench-shimmer 1.6s linear infinite;
+  }
+  .workbench.is-paused .workbench-prop {
+    animation: workbench-snooze 3s ease-in-out infinite;
+  }
+}
+@keyframes workbench-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-6deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(6deg);
+  }
+}
+@keyframes workbench-sparkle {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.4);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-6px, -14px) scale(1);
+  }
+}
+@keyframes workbench-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+@keyframes workbench-snooze {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
