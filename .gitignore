@@ -20,3 +20,4 @@ inference/.venv/
 
 # Local dev runner state (logs, pids, install stamps)
 .dev/
+.DS_Store
