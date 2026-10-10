@@ -169,6 +169,41 @@ class KnowledgeFlowIT {
         assertThat(first.at("/sources/0/citation").asString()).isEqualTo("§1.1");
         getJson("/api/documents/{d}/nodes/{n}/notes", documentId, sectionId);
         verify(ai, times(1)).notes(any());
+
+        // Each style is generated (and cached) separately, and the model is told which one.
+        when(ai.notes(any())).thenAnswer(inv -> {
+            StudyAi.NotesSpec spec = inv.getArgument(0);
+            return spec == null ? null : FakeAi.notes("## " + spec.style());
+        });
+        JsonNode revision = getJson("/api/documents/{d}/nodes/{n}/notes?style=REVISION", documentId, sectionId);
+        assertThat(revision.get("style").asString()).isEqualTo("REVISION");
+        assertThat(revision.get("markdown").asString()).startsWith("## revision");
+        assertThat(getJson("/api/documents/{d}/nodes/{n}/notes", documentId, sectionId).get("markdown").asString())
+                .startsWith("## Osmosis notes");
+    }
+
+    @Test
+    void contentIsTheWholeDocumentInReadingOrderWithFiguresInPlace() throws Exception {
+        JsonNode content = getJson("/api/documents/{d}/content", documentId);
+        JsonNode sections = content.get("sections");
+        assertThat(sections.size()).isEqualTo(3);
+        assertThat(sections.get(1).get("path").asString()).isEqualTo("1.1");
+        JsonNode blocks = sections.get(1).get("blocks");
+        assertThat(blocks.get(0).get("type").asString()).isEqualTo("text");
+        String figureId = blocks.get(1).get("figureId").asString();
+        assertThat(content.at("/figures/" + figureId + "/url").asString()).startsWith("/api/figures/");
+    }
+
+    @Test
+    void theOriginalUploadIsServedInlineToItsOwnerOnly() throws Exception {
+        mvc.perform(get("/api/documents/{id}/original", documentId).header("Authorization", user.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "image/png"))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.startsWith("inline")))
+                .andExpect(content().bytes(DocumentFlowIT.PNG_BYTES));
+        Registered other = TestUsers.register(mvc, json);
+        mvc.perform(get("/api/documents/{id}/original", documentId).header("Authorization", other.bearer()))
+                .andExpect(status().isNotFound());
     }
 
     @Test

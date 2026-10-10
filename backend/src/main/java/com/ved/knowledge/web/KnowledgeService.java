@@ -46,6 +46,34 @@ public class KnowledgeService {
     }
 
     /** The node's own content in reading order, figures placed after the chunk they belong to. */
+    /** The whole document in reading order: every node with its text and (kept) figures in place. */
+    public KnowledgeResponses.ContentResponse content(UUID userId, UUID documentId) {
+        access.requireDocument(userId, documentId);
+        Map<UUID, List<ChunkRow>> chunksByNode = store.chunksOfDocument(documentId).stream()
+                .collect(Collectors.groupingBy(ChunkRow::nodeId, LinkedHashMap::new, Collectors.toList()));
+        List<FigureRow> shown = store.figuresOfDocument(documentId).stream().filter(f -> f.description() != null)
+                .toList();
+        Map<UUID, List<FigureRow>> byChunk = shown.stream().filter(f -> f.chunkId() != null)
+                .collect(Collectors.groupingBy(FigureRow::chunkId, LinkedHashMap::new, Collectors.toList()));
+        Map<UUID, List<FigureRow>> unanchored = shown.stream().filter(f -> f.chunkId() == null)
+                .collect(Collectors.groupingBy(FigureRow::nodeId, LinkedHashMap::new, Collectors.toList()));
+
+        List<KnowledgeResponses.ContentSection> sections = new ArrayList<>();
+        for (NodeRow n : store.nodes(documentId)) {
+            List<Block> blocks = new ArrayList<>();
+            for (ChunkRow c : chunksByNode.getOrDefault(n.id(), List.of())) {
+                blocks.add(new Block("text", c.content(), null, c.pageFrom()));
+                byChunk.getOrDefault(c.id(), List.of())
+                        .forEach(f -> blocks.add(new Block("figure", null, f.id(), f.page())));
+            }
+            unanchored.getOrDefault(n.id(), List.of())
+                    .forEach(f -> blocks.add(new Block("figure", null, f.id(), f.page())));
+            sections.add(new KnowledgeResponses.ContentSection(n.id(), n.parentId(), n.path(), n.label(), n.title(),
+                    n.level(), n.pageFrom(), n.pageTo(), blocks));
+        }
+        return new KnowledgeResponses.ContentResponse(documentId, sections, figures.toMap(shown));
+    }
+
     public KnowledgeResponses.NodeResponse node(UUID userId, UUID documentId, UUID nodeId) {
         NodeRow node = access.requireNode(userId, documentId, nodeId);
         List<NodeRow> all = store.nodes(documentId);

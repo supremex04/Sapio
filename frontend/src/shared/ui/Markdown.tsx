@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import "katex/dist/katex.min.css";
 import { linkCitations } from "./markdown/citations";
+import { inlineHtmlToMarkdown } from "./markdown/inlineHtml";
 
 /** A figure from the learner's document, as returned by the API (signed, expiring URL). */
 export interface FigureView {
@@ -71,7 +72,7 @@ export function Markdown({
         urlTransform={urlTransform}
         components={components}
       >
-        {linkCitations(children)}
+        {linkCitations(inlineHtmlToMarkdown(children))}
       </ReactMarkdown>
     </div>
   );

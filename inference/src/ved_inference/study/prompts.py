@@ -258,18 +258,42 @@ gently steer back.
 {context}"""
 
 
-def notes_prompt(*, material_title: str, kind: str, title: str, path: str, scope: str, context: str) -> str:
-    if scope == "overview":
-        task = (
-            f'Write the OVERVIEW notes for "{path}". The SECTIONS are its subsections (with summaries). Explain how the '
-            "parts fit together, the big ideas and their connections, in curriculum order, and end with a short recap list. "
-            "Do not repeat every detail: the student will read each subsection's own notes."
-        )
+def notes_prompt(
+    *, material_title: str, kind: str, title: str, path: str, scope: str, context: str, style: str = "expand"
+) -> str:
+    if style == "revision":
+        if scope == "overview":
+            task = (
+                f'Write REVISION notes for "{path}" from its subsections (SECTIONS): the big ideas and how they connect, '
+                "as a compact recap a student reads the night before an exam."
+            )
+        else:
+            task = (
+                f'Write REVISION notes for "{path}" from its SECTIONS: only what must be remembered (key points, '
+                "definitions, formulas, steps, common pitfalls), as short as possible without losing anything essential."
+            )
+        shape = """Format (Markdown): no introduction. Short headed groups (###) of terse bullet points (one fact each, no
+filler words), **bold** key terms, tables for comparisons, LaTeX for formulas. End with "Quick self-test": 3-5 short
+questions the student should be able to answer from memory (answers hidden, not given). Aim for under a third of the
+source's length. Include a figure only if it is essential to remember (e.g. the one diagram everything hangs on)."""
     else:
-        task = (
-            f'Write complete study notes for "{path}" from its SECTIONS: every important idea, definition, formula, process '
-            "and example, in the document's order, so the notes can replace re-reading the pages."
-        )
+        if scope == "overview":
+            task = (
+                f'Explain "{path}" in depth as an OVERVIEW. The SECTIONS are its subsections (with summaries): explain '
+                "how the parts fit together, why they matter, and the big ideas and their connections, in curriculum "
+                "order. Do not repeat every detail: the student can expand each subsection on its own."
+            )
+        else:
+            task = (
+                f'Explain "{path}" in depth, as a patient tutor would, from its SECTIONS. Cover every important idea in '
+                "the document's order and make it easier to understand than the original: break complex ideas into "
+                "small steps, explain why and how (not just what), define jargon in plain words, and add a concrete "
+                "example or everyday analogy for each abstract idea."
+            )
+        shape = """Format (Markdown): start with a 1-2 sentence "In short" line, then headed parts (##), short paragraphs and
+bullet points, **bold** key terms on first use, numbered steps for processes, tables for comparisons, LaTeX for formulas.
+Mark examples and analogies clearly (e.g. "Example:", "Think of it like…"). End with "Key terms" (term: one-line
+meaning)."""
     syllabus = (
         " The material is a syllabus: explain each listed concept at the level it implies."
         if kind == "SYLLABUS"
@@ -277,8 +301,7 @@ def notes_prompt(*, material_title: str, kind: str, title: str, path: str, scope
     )
     return f"""{task}{syllabus}
 
-Format (Markdown): start with a 1-2 sentence "In short" line, then headed parts (##), bullet points and short paragraphs,
-**bold** key terms on first use, tables for comparisons, LaTeX for formulas. End with "Key terms" (term: one-line meaning).
+{shape}
 {CONTEXT_RULES} Place figures right after the paragraph they illustrate.
 
 {context}"""

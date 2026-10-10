@@ -1,7 +1,7 @@
 import { apiJson, apiRequest } from "../../shared/api/http";
 import type { PageResponse } from "../../shared/api/types";
 import { filenameFromDisposition } from "../../shared/lib/download";
-import type { DocumentDto, DocumentResult } from "./types";
+import type { DocumentContent, DocumentDto, DocumentResult, NoteStyle, SectionNotes } from "./types";
 
 export const documentsApi = {
   upload(file: File): Promise<DocumentDto> {
@@ -21,4 +21,13 @@ export const documentsApi = {
     };
   },
   remove: (id: string) => apiRequest(`/documents/${id}`, { method: "DELETE" }),
+  /** The whole document in reading order (tree sections with text and figures in place). */
+  content: (id: string) => apiJson<DocumentContent>(`/documents/${id}/content`),
+  /** The uploaded file itself (fetched with auth, shown via an object URL). */
+  async original(id: string): Promise<Blob> {
+    return (await apiRequest(`/documents/${id}/original`)).blob();
+  },
+  /** AI rewrite of one section: EXPAND (in depth) or REVISION (condensed). Generated once, then cached. */
+  notes: (id: string, nodeId: string, style: NoteStyle) =>
+    apiJson<SectionNotes>(`/documents/${id}/nodes/${nodeId}/notes?style=${style}`),
 };

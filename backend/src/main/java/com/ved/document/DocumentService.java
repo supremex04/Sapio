@@ -8,6 +8,7 @@ import com.ved.common.error.ApplicationException;
 import com.ved.common.error.ErrorCode;
 import com.ved.document.storage.DocumentStorage;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -63,6 +64,16 @@ public class DocumentService {
     public Document get(UUID ownerId, UUID documentId) {
         return documents.findByIdAndOwnerId(documentId, ownerId)
                 .orElseThrow(() -> ApplicationException.notFound("Document"));
+    }
+
+    /** The uploaded file as the user sent it, for the "View original" preview. */
+    public record Original(Document document, Resource content) {
+    }
+
+    @Transactional(readOnly = true)
+    public Original getOriginal(UUID ownerId, UUID documentId) {
+        Document document = get(ownerId, documentId);
+        return new Original(document, storage.load(document.getStorageKey()));
     }
 
     @Transactional(readOnly = true)

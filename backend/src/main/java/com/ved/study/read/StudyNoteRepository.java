@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 interface StudyNoteRepository extends JpaRepository<StudyNote, UUID> {
 
-    Optional<StudyNote> findByNodeId(UUID nodeId);
+    Optional<StudyNote> findByNodeIdAndStyle(UUID nodeId, NoteStyle style);
 
-    List<StudyNote> findByNodeIdIn(Collection<UUID> nodeIds);
+    List<StudyNote> findByNodeIdInAndStyle(Collection<UUID> nodeIds, NoteStyle style);
 }

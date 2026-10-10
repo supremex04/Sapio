@@ -13,6 +13,27 @@ log = logging.getLogger(__name__)
 
 _HEADING = re.compile(r"^(#{1,6})\s+(.*)$", re.DOTALL)
 _DATA_URI = re.compile(r"!\[[^\]]*\]\(data:(image/[a-z+]+);base64,([A-Za-z0-9+/=]+)\)")
+# The layout model marks highlighted / underlined / styled spans with inline HTML; keep the emphasis as Markdown.
+_INLINE_HTML = [
+    (re.compile(r"<(mark|b|strong)>(.*?)</\1>", re.IGNORECASE | re.DOTALL), r"**\2**"),
+    (re.compile(r"<(i|em)>(.*?)</\1>", re.IGNORECASE | re.DOTALL), r"*\2*"),
+    (re.compile(r"</?(u|span|font|sup|sub)\b[^>]*>", re.IGNORECASE), ""),
+    (re.compile(r"<br\s*/?>", re.IGNORECASE), "\n"),
+    # Enclosed-letter symbols are slide bullet glyphs, not text.
+    (re.compile("[\U0001f130-\U0001f189]\ufe0f?\\s?"), ""),
+]
+_FENCE = re.compile(r"(```.*?```|`[^`\n]*`)", re.DOTALL)
+
+
+def inline_html_to_markdown(text: str) -> str:
+    """Converts simple inline HTML to Markdown, leaving code (fenced or inline) untouched."""
+    parts = _FENCE.split(text)
+    for i in range(0, len(parts), 2):  # even indexes are outside code
+        for pattern, repl in _INLINE_HTML:
+            parts[i] = pattern.sub(repl, parts[i])
+    return "".join(parts)
+
+
 _SKIP_CLASSES = {"page-header", "page-footer", "footnote-marker"}
 _HEADING_CLASSES = {"section-header", "title"}
 
@@ -49,7 +70,7 @@ def _blocks_from_chunk(page: int, chunk: dict) -> list[Block]:
         if cls in _SKIP_CLASSES:
             continue
         start, end = box.get("pos", (0, 0))
-        span = text[start:end].strip()
+        span = inline_html_to_markdown(text[start:end]).strip()
         bbox = _bbox(box.get("bbox"))
         if cls == "picture":
             match = _DATA_URI.search(span)

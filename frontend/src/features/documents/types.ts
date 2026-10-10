@@ -1,3 +1,5 @@
+import type { FigureView } from "../../shared/ui/Markdown";
+
 export type DocumentStatus = "PENDING" | "EXTRACTING" | "INDEXING" | "ANALYZING" | "READY" | "FAILED";
 
 export interface DocumentDto {
@@ -34,3 +36,41 @@ export const displayTitle = (doc: Pick<DocumentDto, "title" | "filename">) => do
 /** Keep in sync with backend SupportedFileType. */
 export const ACCEPTED_FILE_TYPES = ".pdf,.png,.jpg,.jpeg,.webp,.tif,.tiff,.bmp";
 export const MAX_FILE_BYTES = 25 * 1024 * 1024;
+
+// ---- Preview (knowledge store reading view)
+
+export interface ContentBlock {
+  type: "text" | "figure";
+  markdown: string | null;
+  figureId: string | null;
+  page: number;
+}
+
+export interface ContentSection {
+  id: string;
+  parentId: string | null;
+  path: string;
+  label: string;
+  title: string;
+  level: number;
+  pageFrom: number;
+  pageTo: number;
+  blocks: ContentBlock[];
+}
+
+export interface DocumentContent {
+  documentId: string;
+  sections: ContentSection[];
+  figures: Record<string, FigureView>;
+}
+
+export type NoteStyle = "EXPAND" | "REVISION";
+
+export interface SectionNotes {
+  nodeId: string;
+  style: NoteStyle;
+  scope: "section" | "overview";
+  markdown: string;
+  figures: Record<string, FigureView>;
+  generatedAt: string;
+}

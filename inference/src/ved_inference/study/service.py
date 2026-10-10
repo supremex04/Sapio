@@ -314,6 +314,7 @@ class StudyService:
                 title=request.title,
                 path=request.path,
                 scope=request.scope,
+                style=request.style,
                 context=prompts.render_context(request.sections, request.figures),
             ),
             schema=Notes,

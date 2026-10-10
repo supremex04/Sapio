@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import com.ved.common.web.PageResponse;
 import com.ved.security.CurrentUserId;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -69,6 +70,21 @@ class DocumentController {
                 .contentType(MARKDOWN)
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
                 .body(markdown.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /** Streams the original upload inline (the browser's own PDF/image viewer renders it). */
+    @GetMapping("/{id}/original")
+    ResponseEntity<Resource> original(@CurrentUserId UUID userId, @PathVariable UUID id) {
+        DocumentService.Original original = documentService.getOriginal(userId, id);
+        ContentDisposition disposition = ContentDisposition.inline()
+                .filename(original.document().getOriginalFilename(), StandardCharsets.UTF_8)
+                .build();
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(original.document().getContentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .header("X-Content-Type-Options", "nosniff")
+                .header(HttpHeaders.CACHE_CONTROL, "private, max-age=3600")
+                .body(original.content());
     }
 
     @PostMapping("/{id}/retry")

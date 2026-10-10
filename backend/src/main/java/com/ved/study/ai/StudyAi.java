@@ -138,8 +138,9 @@ public interface StudyAi {
     }
 
     /** @param scope "section" (full notes) or "overview" (chapter notes from its subsections) */
+    /** @param style "expand" (in-depth explanation) or "revision" (condensed revision notes) */
     record NotesSpec(String materialTitle, String language, MaterialKind kind, String title, String path, String scope,
-                     List<Section> sections, List<Figure> figures) {
+                     String style, List<Section> sections, List<Figure> figures) {
     }
 
     record NotesDraft(String markdown, List<String> figureIds, List<String> citedSectionIds, String model) {

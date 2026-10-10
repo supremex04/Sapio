@@ -26,6 +26,11 @@ class KnowledgeController {
         return knowledge.tree(userId, documentId);
     }
 
+    @GetMapping("/content")
+    KnowledgeResponses.ContentResponse content(@CurrentUserId UUID userId, @PathVariable UUID documentId) {
+        return knowledge.content(userId, documentId);
+    }
+
     @GetMapping("/nodes/{nodeId}")
     KnowledgeResponses.NodeResponse node(@CurrentUserId UUID userId, @PathVariable UUID documentId,
                                          @PathVariable UUID nodeId) {

@@ -201,6 +201,11 @@ public class KnowledgeStore {
                 + "WHERE c.document_id = ? AND n.path <@ ?::ltree ORDER BY c.ordinal", CHUNK, documentId, path);
     }
 
+    public List<ChunkRow> chunksOfDocument(UUID documentId) {
+        return jdbc.query("SELECT " + CHUNK_COLUMNS + " FROM document_chunks c WHERE c.document_id = ? ORDER BY c.ordinal",
+                CHUNK, documentId);
+    }
+
     public List<ChunkRow> chunksOfNode(UUID nodeId) {
         return jdbc.query("SELECT " + CHUNK_COLUMNS + " FROM document_chunks c WHERE c.node_id = ? ORDER BY c.ordinal",
                 CHUNK, nodeId);

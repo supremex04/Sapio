@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -64,7 +65,7 @@ public class ReadService {
         this.clock = clock;
     }
 
-    public NotesResponse notes(UUID userId, UUID documentId, UUID nodeId) {
+    public NotesResponse notes(UUID userId, UUID documentId, UUID nodeId, NoteStyle style) {
         StudyMaterial material = access.requireByDocument(userId, documentId);
         Map<UUID, NodeRow> nodes = nodeMap(documentId);
         NodeRow node = nodes.get(nodeId);
@@ -72,8 +73,9 @@ public class ReadService {
             throw ApplicationException.notFound("Section");
         }
         boolean overview = isLarge(documentId, node, nodes);
-        StudyNote note = notes.findByNodeId(nodeId).orElseGet(() -> generate(material, node, nodes, overview));
-        return new NotesResponse(nodeId, overview ? "overview" : "section", note.getMarkdown(),
+        StudyNote note = notes.findByNodeIdAndStyle(nodeId, style)
+                .orElseGet(() -> generate(material, node, nodes, overview, style));
+        return new NotesResponse(nodeId, style, overview ? "overview" : "section", note.getMarkdown(),
                 figures.byIds(note.getFigureIds()), refs(note.getSourceNodeIds(), nodes), note.getCreatedAt());
     }
 
@@ -106,12 +108,13 @@ public class ReadService {
 
     // ------------------------------------------------------------------------------- notes generation
 
-    private StudyNote generate(StudyMaterial material, NodeRow node, Map<UUID, NodeRow> nodes, boolean overview) {
+    private StudyNote generate(StudyMaterial material, NodeRow node, Map<UUID, NodeRow> nodes, boolean overview,
+                               NoteStyle style) {
         UUID documentId = material.getDocumentId();
         Context sources;
         if (overview) {
             List<NodeRow> children = nodes.values().stream().filter(n -> node.id().equals(n.parentId())).toList();
-            Map<UUID, String> childNotes = notes.findByNodeIdIn(children.stream().map(NodeRow::id).toList()).stream()
+            Map<UUID, String> childNotes = notes.findByNodeIdInAndStyle(children.stream().map(NodeRow::id).toList(), style).stream()
                     .collect(Collectors.toMap(StudyNote::getNodeId, StudyNote::getMarkdown));
             Context own = context.forNodes(documentId, List.of(node.id()), 3_000, 0);
             Context kids = context.childSummaries(documentId, node.id(),
@@ -127,17 +130,17 @@ public class ReadService {
         }
         StudyAi.NotesDraft draft = ai.notes(new StudyAi.NotesSpec(material.getTitle(), material.getLanguage(),
                 material.getKind(), node.title(), ContextAssembler.breadcrumb(nodes, node), overview ? "overview" : "section",
-                sources.sections(), sources.figures()));
+                style.name().toLowerCase(Locale.ROOT), sources.sections(), sources.figures()));
         Map<String, UUID> bySection = sources.sections().stream()
                 .collect(Collectors.toMap(Section::id, Section::nodeId, (a, b) -> a));
         List<UUID> cited = draft.citedSectionIds() == null ? List.of()
                 : draft.citedSectionIds().stream().map(bySection::get).filter(Objects::nonNull).distinct().toList();
-        StudyNote note = new StudyNote(node.id(), draft.markdown(), uuids(draft.figureIds()), cited, draft.model(),
+        StudyNote note = new StudyNote(node.id(), style, draft.markdown(), uuids(draft.figureIds()), cited, draft.model(),
                 clock.instant());
         try {
             return tx.execute(status -> notes.saveAndFlush(note));
         } catch (DataIntegrityViolationException e) {
-            return notes.findByNodeId(node.id()).orElseThrow(() -> e); // generated concurrently
+            return notes.findByNodeIdAndStyle(node.id(), style).orElseThrow(() -> e); // generated concurrently
         }
     }
 

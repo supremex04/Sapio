@@ -26,6 +26,14 @@ public final class KnowledgeResponses {
     public record Block(String type, String markdown, UUID figureId, int page) {
     }
 
+    /** One node of the whole-document reading view, in document order. */
+    public record ContentSection(UUID id, UUID parentId, String path, String label, String title, int level,
+                                 int pageFrom, int pageTo, List<Block> blocks) {
+    }
+
+    public record ContentResponse(UUID documentId, List<ContentSection> sections, Map<String, FigureView> figures) {
+    }
+
     public record NodeDetail(UUID id, String path, String label, String title, int level, int pageFrom, int pageTo,
                              String summary, List<String> keyTerms) {
     }

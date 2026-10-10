@@ -18,7 +18,7 @@ import { ProgressBar } from "../../../shared/ui/Progress";
 import { Skeleton, SkeletonText } from "../../../shared/ui/Skeleton";
 import { Tabs } from "../../../shared/ui/Tabs";
 import { documentsApi } from "../../documents/api";
-import { ExtractedText } from "../../documents/ExtractedText";
+import { DocumentPreview } from "../../documents/DocumentPreview";
 import { pipelineState } from "../../documents/pipeline";
 import { PipelineStepper } from "../../documents/PipelineStepper";
 import { DocumentWorkbench } from "../../documents/DocumentWorkbench";
@@ -30,7 +30,7 @@ import { recommendedTopic } from "../path";
 import type { AssessmentSummary, Material, Topic } from "../types";
 import "./hub.css";
 
-type Tab = "topics" | "text" | "tests";
+type Tab = "topics" | "preview" | "tests";
 
 /** Rough lesson length used for time estimates ("~6 min per topic"). */
 const MINUTES_PER_TOPIC = 6;
@@ -141,20 +141,20 @@ export function StudyHubPage() {
           <section>
             <Tabs
               label="Course sections"
-              value={ready ? tab : "text"}
+              value={ready ? tab : "preview"}
               onChange={setTab}
               items={[
                 ...(ready ? [{ value: "topics" as const, label: "Topics" }] : []),
-                { value: "text" as const, label: "Extracted text" },
+                { value: "preview" as const, label: "Preview" },
                 ...(ready ? [{ value: "tests" as const, label: `Tests${assessments?.length ? ` (${assessments.length})` : ""}` }] : []),
               ]}
             />
             <div className="hub-panel">
               {ready && tab === "topics" && material && <TopicList documentId={id} topics={material.topics} />}
               {ready && tab === "tests" && <AssessmentList documentId={id} items={assessments} />}
-              {(!ready || tab === "text") && (
+              {(!ready || tab === "preview") && (
                 <Card>
-                  <ExtractedText doc={doc} />
+                  <DocumentPreview doc={doc} ready={ready} />
                 </Card>
               )}
             </div>

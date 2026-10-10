@@ -242,6 +242,8 @@ class NotesRequest(ApiModel):
     title: str  # the node the notes are for
     path: str
     scope: Literal["section", "overview"]  # overview = chapter notes from child notes (reduce step)
+    # expand = in-depth explanation (elaboration); revision = condensed revision notes (quick recall)
+    style: Literal["expand", "revision"] = "expand"
     sections: list[SectionIn] = Field(min_length=1)
     figures: list[FigureRef] = Field(default_factory=list)
 

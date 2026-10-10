@@ -23,7 +23,7 @@ public final class ReadResponses {
     }
 
     /** @param scope "section" (full notes) or "overview" (chapter notes built from its subsections) */
-    public record NotesResponse(UUID nodeId, String scope, String markdown, Map<String, FigureView> figures,
+    public record NotesResponse(UUID nodeId, NoteStyle style, String scope, String markdown, Map<String, FigureView> figures,
                                 List<SourceRef> sources, Instant generatedAt) {
     }
 
