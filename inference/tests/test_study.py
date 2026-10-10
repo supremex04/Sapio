@@ -1,0 +1,16 @@
+from ved_inference.study import prompts
+
+
+def test_answer_prompt_puts_the_learners_screen_first():
+    prompt = prompts.answer_prompt(
+        material_title="Spring",
+        question="why?",
+        history="",
+        context="SECTIONS:",
+        style="tutor",
+        focus="Check question: How many queries for 100 lazy orders?\nCorrect answer: 101",
+    )
+    assert "ON THE LEARNER'S SCREEN" in prompt and "101" in prompt
+    assert "ON THE LEARNER'S SCREEN" not in prompts.answer_prompt(
+        material_title="S", question="q", history="", context="", style="tutor"
+    )

@@ -92,7 +92,7 @@ public class ReadService {
         List<StudyAi.ChatTurn> history = request.history() == null ? List.of()
                 : request.history().stream().map(t -> new StudyAi.ChatTurn(t.role(), t.text())).toList();
         StudyAi.AnswerDraft draft = ai.answer(new StudyAi.AnswerSpec(material.getTitle(), material.getLanguage(),
-                request.question(), history, sources.sections(), sources.figures(), "answer"));
+                request.question(), history, sources.sections(), sources.figures(), "answer", ""));
 
         Map<String, UUID> bySection = sources.sections().stream()
                 .collect(Collectors.toMap(Section::id, Section::nodeId, (a, b) -> a));

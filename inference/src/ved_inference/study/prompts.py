@@ -222,7 +222,9 @@ Write the narrative part of their report:
 - next_steps: 2-4 short, actionable next steps (e.g. review a topic, spaced review, retake in a few days)."""
 
 
-def answer_prompt(*, material_title: str, question: str, history: str, context: str, style: str) -> str:
+def answer_prompt(
+    *, material_title: str, question: str, history: str, context: str, style: str, focus: str = ""
+) -> str:
     if style == "tutor":
         shape = "Answer conversationally and concisely (usually under 200 words); give an example or analogy if it helps."
     else:
@@ -230,8 +232,18 @@ def answer_prompt(*, material_title: str, question: str, history: str, context: 
             "Write a thorough, well-structured answer in Markdown (short intro, headed parts or steps as needed, "
             "a brief recap). Explain why, not just what. Length should match the question: complete, never padded."
         )
+    on_screen = (
+        f"""
+ON THE LEARNER'S SCREEN (their message refers to this unless it clearly says otherwise; short messages such as
+"why?" or "I don't get it" are about it):
+{focus}
+If it is a question they have not answered yet, guide them with hints and questions; do not reveal the answer.
+"""
+        if focus.strip()
+        else ""
+    )
     return f"""A student studying "{material_title}" asks a question.
-
+{on_screen}
 Conversation so far:
 {history or "(none)"}
 

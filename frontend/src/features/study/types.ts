@@ -99,6 +99,16 @@ export interface TutorTurn {
   text: string;
 }
 
+/** What the learner is looking at when they ask the tutor (ids only; the server resolves the content). */
+export interface TutorFocus {
+  sectionIndex?: number;
+  questionId?: string;
+  /** Short human label shown in the tutor ("About: …"). */
+  label: string;
+  /** For questions: whether the learner has answered it yet. */
+  answered?: boolean;
+}
+
 export interface TutorAnswer {
   answer: string;
   grounded: boolean;

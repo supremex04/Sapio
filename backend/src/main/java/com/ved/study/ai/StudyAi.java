@@ -125,9 +125,12 @@ public interface StudyAi {
     record ChatTurn(String role, String text) {
     }
 
-    /** @param style "tutor" (short, conversational) or "answer" (long-form) */
+    /**
+     * @param style "tutor" (short, conversational) or "answer" (long-form)
+     * @param focus what the learner is looking at (a lesson section, or a check question and their answer); "" if none
+     */
     record AnswerSpec(String materialTitle, String language, String question, List<ChatTurn> history,
-                      List<Section> sections, List<Figure> figures, String style) {
+                      List<Section> sections, List<Figure> figures, String style, String focus) {
     }
 
     record AnswerDraft(String answer, boolean grounded, List<String> citedSectionIds, List<String> figureIds,

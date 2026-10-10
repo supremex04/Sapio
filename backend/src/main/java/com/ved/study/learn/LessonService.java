@@ -141,20 +141,84 @@ public class LessonService {
         List<StudyAi.ChatTurn> history = request.history() == null ? List.of() : request.history().stream()
                 .map(t -> new StudyAi.ChatTurn(t.role(), t.text())).toList();
         StudyProperties.Budget budget = access.budgets().tutor();
-        ContextAssembler.Context sources = context.forQuestion(ctx.material().getDocumentId(), request.question(),
+        Focus focus = focus(userId, ctx, request.focus());
+        // Search with what's on screen too: "why?" alone would retrieve nothing useful.
+        String query = focus.searchHint().isEmpty() ? request.question() : focus.searchHint() + "\n" + request.question();
+        ContextAssembler.Context sources = context.forQuestion(ctx.material().getDocumentId(), query,
                 ctx.topic().getNodeIds(), budget.chars(), budget.figures());
         if (sources.isEmpty()) {
             sources = access.sources(ctx.material(), ctx.topic(), budget);
         }
         StudyAi.AnswerDraft reply = ai.answer(new StudyAi.AnswerSpec(ctx.material().getTitle(),
                 ctx.material().getLanguage(), request.question(), history, sources.sections(), sources.figures(),
-                "tutor"));
+                "tutor", focus.text()));
         tx.executeWithoutResult(status -> publish(userId, LearningActivityEvent.Type.TUTOR_QUESTION, ctx.material(),
                 ctx.topic(), b -> b));
         return new AskResponse(reply.answer(), reply.grounded(), figures.byIds(uuids(reply.figureIds())));
     }
 
     // ---- internals
+
+    /** @param text shown to the model as "on the learner's screen"; @param searchHint added to the retrieval query */
+    record Focus(String text, String searchHint) {
+        static final Focus NONE = new Focus("", "");
+    }
+
+    private static final int FOCUS_SECTION_CHARS = 3_000;
+
+    /** Resolves what the learner is looking at from ids, server-side (never trusting client-sent content). */
+    Focus focus(UUID userId, TopicContext ctx, AskRequest.Focus requested) {
+        if (requested == null) {
+            return Focus.NONE;
+        }
+        if (requested.questionId() != null) {
+            return questions.findById(requested.questionId())
+                    .filter(q -> ctx.topic().getId().equals(q.getTopicId()))
+                    .map(q -> questionFocus(q, attempts.findByUserIdAndQuestionIdInOrderByCreatedAtDesc(userId,
+                            List.of(q.getId())).stream().findFirst().orElse(null)))
+                    .orElse(Focus.NONE);
+        }
+        if (requested.sectionIndex() != null) {
+            return lessons.findByTopicId(ctx.topic().getId())
+                    .flatMap(l -> json.readValue(l.getSectionsJson(), SECTIONS).stream()
+                            .filter(s -> s.index() == requested.sectionIndex()).findFirst())
+                    .map(s -> {
+                        String body = s.body().length() > FOCUS_SECTION_CHARS
+                                ? s.body().substring(0, FOCUS_SECTION_CHARS) + "…" : s.body();
+                        return new Focus("Lesson section \"" + s.heading() + "\":\n" + body, s.heading());
+                    })
+                    .orElse(Focus.NONE);
+        }
+        return Focus.NONE;
+    }
+
+    /** The question, the learner's answer and verdict; the correct answer only once they have answered. */
+    static Focus questionFocus(StudyQuestion q, QuestionAttempt attempt) {
+        StringBuilder sb = new StringBuilder("Check question: ").append(q.getPrompt());
+        List<String> options = q.getOptions();
+        for (int i = 0; i < options.size(); i++) {
+            sb.append("\n  ").append((char) ('A' + i)).append(") ").append(options.get(i));
+        }
+        if (attempt == null) {
+            sb.append("\nThe learner has not answered it yet.");
+        } else {
+            sb.append("\nLearner's answer: ").append(attempt.getSelectedOption() != null
+                    && attempt.getSelectedOption() < options.size()
+                    ? (char) ('A' + attempt.getSelectedOption()) + ") " + options.get(attempt.getSelectedOption())
+                    : String.valueOf(attempt.getAnswerText()));
+            sb.append(" (").append(attempt.getVerdict()).append(")");
+            if (q.getCorrectOption() != null && q.getCorrectOption() < options.size()) {
+                sb.append("\nCorrect answer: ").append((char) ('A' + q.getCorrectOption())).append(") ")
+                        .append(options.get(q.getCorrectOption()));
+            } else if (q.getReferenceAnswer() != null) {
+                sb.append("\nReference answer: ").append(q.getReferenceAnswer());
+            }
+            if (q.getExplanation() != null && !q.getExplanation().isBlank()) {
+                sb.append("\nExplanation shown to the learner: ").append(q.getExplanation());
+            }
+        }
+        return new Focus(sb.toString(), q.getPrompt());
+    }
 
     private StudyLesson generate(TopicContext ctx) {
         List<StudyTopic> path = topics.findByMaterialIdOrderByPosition(ctx.material().getId());

@@ -22,7 +22,7 @@ import { GeneratingState } from "../components/GeneratingState";
 import { ResultStat } from "../components/ResultStat";
 import { QuestionCard } from "../components/QuestionCard";
 import { buildLessonSteps, initialRevealCount, nextTopicAfter, type LessonStep } from "../path";
-import type { AnswerResult, Lesson, LessonCheck, Material, SectionKind } from "../types";
+import type { AnswerResult, Lesson, LessonCheck, Material, SectionKind, TutorFocus } from "../types";
 import { TutorPanel } from "./TutorPanel";
 import "./learn.css";
 
@@ -41,6 +41,7 @@ export function LessonPage() {
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [focus, setFocus] = useState<TutorFocus | null>(null);
 
   useEffect(() => {
     studyApi.material(documentId).then(setMaterial, () => undefined);
@@ -64,7 +65,7 @@ export function LessonPage() {
         progressLabel="Lesson progress"
         right={
           <>
-            {lesson && <TutorPanel topicId={topicId} topicTitle={lesson.title} />}
+            {lesson && <TutorPanel topicId={topicId} topicTitle={lesson.title} focus={focus} />}
             {summary && (
               <Chip emoji="high-voltage" tone="xp" label={`${summary.xp.total} XP`}>
                 {summary.xp.total}
@@ -88,7 +89,7 @@ export function LessonPage() {
       ) : !lesson ? (
         <GeneratingState title={topic ? `Preparing "${topic.title}"` : "Preparing your lesson"} subtitle="Your tutor is reading the source and writing a lesson just for this topic." />
       ) : (
-        <LessonFlow key={lesson.topicId} lesson={lesson} documentId={documentId} material={material} xpTotal={summary?.xp.total ?? null} onProgress={refresh} onStepProgress={setProgress} />
+        <LessonFlow key={lesson.topicId} lesson={lesson} documentId={documentId} material={material} xpTotal={summary?.xp.total ?? null} onProgress={refresh} onStepProgress={setProgress} onFocus={setFocus} />
       )}
     </>
   );
@@ -101,10 +102,12 @@ interface FlowProps {
   xpTotal: number | null;
   onProgress: () => Promise<void>;
   onStepProgress: (fraction: number) => void;
+  /** What's on screen, so the tutor understands "why?" without the learner retyping the question. */
+  onFocus: (focus: TutorFocus | null) => void;
 }
 
 /** One step at a time: warm-up → sections with their checks → takeaways → complete. */
-function LessonFlow({ lesson, documentId, material, xpTotal, onProgress, onStepProgress }: FlowProps) {
+function LessonFlow({ lesson, documentId, material, xpTotal, onProgress, onStepProgress, onFocus }: FlowProps) {
   const steps = useMemo(() => buildLessonSteps(lesson), [lesson]);
   const alreadyCompleted = lesson.status === "COMPLETED";
   const [index, setIndex] = useState(() => (alreadyCompleted ? 0 : Math.min(steps.length - 1, initialRevealCount(steps, false) - 1)));
@@ -125,6 +128,11 @@ function LessonFlow({ lesson, documentId, material, xpTotal, onProgress, onStepP
   useEffect(() => {
     onStepProgress(done ? 1 : last > 0 ? index / last : 0);
   }, [index, last, done, onStepProgress]);
+
+  const answeredStep = step && step.kind !== "section" && step.kind !== "finish" ? !!answers[step.check.id] : false;
+  useEffect(() => {
+    onFocus(stepFocus(step, answeredStep));
+  }, [step, answeredStep, onFocus]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -265,6 +273,15 @@ function LessonFlow({ lesson, documentId, material, xpTotal, onProgress, onStepP
       </AnimatePresence>
     </div>
   );
+}
+
+function stepFocus(step: LessonStep | undefined, answered: boolean): TutorFocus | null {
+  if (!step || step.kind === "finish") return null;
+  if (step.kind === "section") {
+    return { sectionIndex: step.section.index, label: step.section.heading || "this section" };
+  }
+  const prompt = step.check.prompt.length > 90 ? `${step.check.prompt.slice(0, 87)}…` : step.check.prompt;
+  return { questionId: step.check.id, label: prompt, answered };
 }
 
 function stepKey(step: LessonStep): string {

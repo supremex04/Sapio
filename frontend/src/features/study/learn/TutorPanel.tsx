@@ -10,7 +10,7 @@ import { Button, IconButton } from "../../../shared/ui/Button";
 import { Markdown } from "../../../shared/ui/Markdown";
 import { useProgress } from "../../progress/ProgressContext";
 import { studyApi } from "../api";
-import type { TutorAnswer, TutorTurn } from "../types";
+import type { TutorAnswer, TutorFocus, TutorTurn } from "../types";
 
 interface Message extends TutorTurn {
   grounded?: boolean;
@@ -19,12 +19,19 @@ interface Message extends TutorTurn {
 
 const MAX_HISTORY = 10;
 const STARTERS = ["Can you explain this more simply?", "Why does this matter?", "Give me another example"];
+const QUESTION_STARTERS = ["Give me a hint", "What is this question really asking?"];
+const ANSWERED_STARTERS = ["Why is that the answer?", "Where did my thinking go wrong?", "Give me a similar example"];
+
+function starters(focus?: TutorFocus | null): string[] {
+  if (focus?.questionId) return focus.answered ? ANSWERED_STARTERS : QUESTION_STARTERS;
+  return STARTERS;
+}
 
 /**
  * "Ask the tutor": elaboration on demand, grounded in the document. Renders its own trigger (for the
  * lesson's focus header) and a solid slide-over panel. History stays on the client.
  */
-export function TutorPanel({ topicId, topicTitle }: { topicId: string; topicTitle: string }) {
+export function TutorPanel({ topicId, topicTitle, focus }: { topicId: string; topicTitle: string; focus?: TutorFocus | null }) {
   const { refresh } = useProgress();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -63,7 +70,7 @@ export function TutorPanel({ topicId, topicTitle }: { topicId: string; topicTitl
     setSending(true);
     setError(null);
     try {
-      const res = await studyApi.ask(topicId, q, history);
+      const res = await studyApi.ask(topicId, q, history, focus);
       setMessages((m) => [...m, { role: "tutor", text: res.answer, grounded: res.grounded, figures: res.figures }]);
       void refresh();
     } catch (e) {
@@ -104,6 +111,11 @@ export function TutorPanel({ topicId, topicTitle }: { topicId: string; topicTitl
                   <div>
                     <strong>Ask the tutor</strong>
                     <p className="xs muted break">From your document · {topicTitle}</p>
+                    {focus && (
+                      <p className="tutor-focus xs break" title="The tutor knows what's on your screen">
+                        About: {focus.label}
+                      </p>
+                    )}
                   </div>
                   <IconButton label="Close" onClick={close}>
                     <X size={20} strokeWidth={2.5} />
@@ -116,7 +128,7 @@ export function TutorPanel({ topicId, topicTitle }: { topicId: string; topicTitl
                         <Dia mood="happy" size={40} still />
                         <div className="chat-msg chat-tutor">Asking "why" and "how" helps ideas connect. What would you like to know?</div>
                       </div>
-                      {STARTERS.map((s) => (
+                      {starters(focus).map((s) => (
                         <button key={s} type="button" className="chip" onClick={() => void ask(s)}>
                           {s}
                         </button>

@@ -222,6 +222,9 @@ class AnswerRequest(ApiModel):
     sections: list[SectionIn] = Field(min_length=1)
     figures: list[FigureRef] = Field(default_factory=list)
     style: Literal["tutor", "answer"] = "answer"  # tutor = short conversational; answer = long-form
+    # What the learner is looking at (a lesson section, or a check question with their answer), so short
+    # follow-ups like "why?" are understood. Empty when unknown.
+    focus: str = Field(default="", max_length=8000)
 
 
 class AnswerResponse(ApiModel):

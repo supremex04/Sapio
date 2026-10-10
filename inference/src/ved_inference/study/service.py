@@ -288,6 +288,7 @@ class StudyService:
                 history=history,
                 context=prompts.render_context(request.sections, request.figures),
                 style=request.style,
+                focus=request.focus,
             ),
             schema=LongAnswer,
             temperature=0.3,

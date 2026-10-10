@@ -15,6 +15,7 @@ import com.ved.study.ai.StudyAi;
 import com.ved.study.ai.StudyAiException;
 import com.ved.study.question.Verdict;
 import org.junit.jupiter.api.BeforeEach;
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -26,6 +27,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -223,6 +225,39 @@ class StudyFlowIT {
         assertThat(getJson("/api/progress/summary").at("/totals/assessmentsCompleted").asInt()).isEqualTo(1);
         // All three questions, including the skipped one, are now in spaced review.
         assertThat(getJson("/api/reviews/summary").get("total").asLong()).isEqualTo(3);
+    }
+
+    @Test
+    void tutorKnowsWhatTheLearnerIsLookingAt() throws Exception {
+        when(ai.answer(any())).thenReturn(FakeAi.answer("none"));
+        JsonNode checks = getJson("/api/topics/{id}/lesson", demandTopic).get("checks");
+        UUID trueFalse = UUID.fromString(checks.get(1).get("id").asString());
+        String focusOnCheck = "{\"question\":\"why?\",\"focus\":{\"questionId\":\"" + trueFalse + "\"}}";
+
+        // Before answering: the question is in focus, but the correct answer is withheld (hints, not spoilers).
+        answer("/api/topics/{id}/ask", demandTopic, focusOnCheck).andExpect(status().isOk());
+        assertThat(lastAnswerSpec().focus()).contains("Osmosis needs ATP.", "has not answered")
+                .doesNotContain("Correct answer");
+
+        // After a wrong answer: "why?" is about their answer versus the correct one.
+        answer("/api/questions/{id}/answer", trueFalse, "{\"optionIndex\":0}").andExpect(status().isOk());
+        answer("/api/topics/{id}/ask", demandTopic, focusOnCheck).andExpect(status().isOk());
+        assertThat(lastAnswerSpec().focus()).contains("Learner's answer: A) True (INCORRECT)",
+                "Correct answer: B) False", "It is passive");
+
+        answer("/api/topics/{id}/ask", demandTopic, "{\"question\":\"why?\",\"focus\":{\"sectionIndex\":0}}")
+                .andExpect(status().isOk());
+        assertThat(lastAnswerSpec().focus()).startsWith("Lesson section \"What is osmosis?\"");
+
+        // A question from another topic is ignored rather than leaked into this conversation.
+        answer("/api/topics/{id}/ask", supplyTopic, focusOnCheck).andExpect(status().isOk());
+        assertThat(lastAnswerSpec().focus()).isEmpty();
+    }
+
+    private StudyAi.AnswerSpec lastAnswerSpec() {
+        ArgumentCaptor<StudyAi.AnswerSpec> spec = ArgumentCaptor.forClass(StudyAi.AnswerSpec.class);
+        verify(ai, atLeastOnce()).answer(spec.capture());
+        return spec.getValue();
     }
 
     @Test

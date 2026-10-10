@@ -1,26 +1,19 @@
 import { apiJson } from "../../shared/api/http";
-import type {
-  AnswerInput,
-  AnswerResult,
-  Assessment,
-  AssessmentSummary,
-  CreateAssessmentInput,
-  Lesson,
-  Material,
-  NextStep,
-  ReviewItem,
-  ReviewSummary,
-  TopicCompletion,
-  TutorAnswer,
-  TutorTurn,
-} from "./types";
+import type { AnswerInput, AnswerResult, Assessment, AssessmentSummary, CreateAssessmentInput, Lesson, Material, NextStep, ReviewItem, ReviewSummary, TopicCompletion, TutorAnswer, TutorFocus, TutorTurn } from "./types";
 
 export const studyApi = {
   material: (documentId: string) => apiJson<Material>(`/documents/${documentId}/material`),
   lesson: (topicId: string) => apiJson<Lesson>(`/topics/${topicId}/lesson`),
   completeTopic: (topicId: string) => apiJson<TopicCompletion>(`/topics/${topicId}/complete`, { method: "POST" }),
-  ask: (topicId: string, question: string, history: TutorTurn[]) =>
-    apiJson<TutorAnswer>(`/topics/${topicId}/ask`, { method: "POST", body: { question, history } }),
+  ask: (topicId: string, question: string, history: TutorTurn[], focus?: TutorFocus | null) =>
+    apiJson<TutorAnswer>(`/topics/${topicId}/ask`, {
+      method: "POST",
+      body: {
+        question,
+        history,
+        focus: focus ? { sectionIndex: focus.sectionIndex ?? null, questionId: focus.questionId ?? null } : null,
+      },
+    }),
   answerQuestion: (questionId: string, input: AnswerInput) =>
     apiJson<AnswerResult>(`/questions/${questionId}/answer`, { method: "POST", body: input }),
 

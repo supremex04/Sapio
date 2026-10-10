@@ -503,3 +503,15 @@
 .lp-recommended {
   margin-top: 2.5rem;
 }
+
+/* What the tutor is answering about (the step on screen) */
+.tutor-focus {
+  display: inline-block;
+  margin-top: var(--space-1);
+  padding: 0.1em 0.6em;
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-text);
+  font-weight: var(--weight-heading);
+  max-width: 100%;
+}
