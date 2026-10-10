@@ -141,14 +141,16 @@ rendered at `parsing.dpi`, and inserted into the reading order by vertical posit
 
 | Rule | Setting (default) | Purpose |
 |---|---|---|
-| Same 8×8 average hash on ≥ N distinct pages | `repeat_pages` (3) | logos, watermarks, page ornaments (several copies on one page are kept) |
+| Same 8×8 average hash on ≥ N distinct pages **and** largest copy < fraction of page | `repeat_pages` (3), `logo_max_area_fraction` (0.08) | logos, watermarks, page ornaments (several copies on one page are kept) |
+| Same hash again within one section (a heading starts a new section) | — | larger repeated images are reused content (e.g. an architecture diagram on every slide that discusses it): kept once per section |
 | Short side < N px | `min_side_px` (100) | icons, bullets, tiny glyph images |
 | Long/short side > N | `max_aspect` (6.0) | rules, borders, banners |
 | bbox area < fraction of page | `min_page_area_fraction` (0.012) | small decorations (needs a bbox) |
 | bbox area > fraction of page on a native page | `background_area_fraction` (0.85) | full-page backgrounds behind text |
 | More than N kept figures | `max_figures` (400) | bounds storage and vision-description cost |
 
-A second, semantic filter runs later in the backend: the vision model marks non-educational figures, which are deleted
+A second, semantic filter runs later in the backend: the vision model gives each figure a role; `DECORATIVE` figures are
+deleted and `TEXTUAL` ones (terminal output, code) are replaced by a text transcript
 ([knowledge-storage.md](knowledge-storage.md#indexing-stages)).
 
 **Linking.** Each figure belongs to the node it appears in. Its caption is the first `caption` block (or short
@@ -203,7 +205,8 @@ Override any key with `VED_INFERENCE_<SECTION>__<KEY>` (see [guides/configuratio
 | `parsing.figures.min_side_px` | 100 | smaller figures dropped |
 | `parsing.figures.min_page_area_fraction` | 0.012 | smaller figures dropped; also min size of scanned-page figures |
 | `parsing.figures.max_aspect` | 6.0 | more elongated figures dropped |
-| `parsing.figures.repeat_pages` | 3 | repeated images dropped |
+| `parsing.figures.repeat_pages` | 3 | small repeated images (logos) dropped |
+| `parsing.figures.logo_max_area_fraction` | 0.08 | repeated images at least this large are kept once per section |
 | `parsing.figures.background_area_fraction` | 0.85 | page-sized images on text pages dropped |
 | `parsing.figures.max_figures` | 400 | cap per document |
 | `ocr.engine` | `rapid` | `rapid` / `unlimited-remote` / `unlimited-local` |
@@ -231,6 +234,7 @@ PDF is needed.
 |---|---|
 | `tests/test_tree.py` | numbering vs font levels, unit shift, `Introduction` node, page-group fallback, noise headings, chunk sizes, caption + figure anchoring, language detection |
 | `tests/test_parser.py` | a generated textbook PDF → expected tree; raster + vector figure kept, repeated logo dropped; scanned PDF via layout OCR; model engine path; page limit and corrupt files |
+| `tests/test_figures.py` | small repeated image dropped as a logo, large reused figure kept once per section |
 | `tests/test_api.py` | `/v1/extract` wire shape (pages + tree + figures), API-key check (401), unreadable file (422) |
 | `tests/test_markdown.py`, `tests/test_unlimited_remote.py` | Unlimited-OCR markup cleanup and HTTP contract |
 

@@ -27,7 +27,7 @@
 
 ## Next: hardening M2
 
-- [ ] Frontend **Read mode**: tree navigation, search, term index, notes, ask-your-document (API exists), and figures in lessons
+- [ ] Frontend **Read mode**: tree navigation, search, term index, notes, ask-your-document (API exists)
 - [ ] Rate limits / quotas on AI endpoints per user (cost control); per-request cost logging
 - [ ] Generate the first lesson right after analysis (removes the first-open wait)
 - [ ] Stream lesson generation (SSE) instead of a 10–30 s spinner
@@ -60,5 +60,4 @@
 | Onboarding "goal set" is tracked per device (localStorage) | may re-show on a new device | frontend `/welcome` |
 | Access tokens stay valid up to 15 min after logout/ban | short window | ADR-0002 |
 | RapidOCR output is plain text | weaker structure on scans | ocr-engines guide |
-| Lesson figure embeds (`figure:<id>`) and the `figures` map are not rendered by the frontend yet | figures missing in lessons | above: frontend Read mode |
 | Files on local disk | not shared between hosts | `DocumentStorage` port: add S3/MinIO adapter |

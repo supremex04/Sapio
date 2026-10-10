@@ -58,11 +58,14 @@ Also returns the document tree (details: [knowledge.md](knowledge.md)).
 
 | Endpoint | Task | Request | Response |
 |---|---|---|---|
-| `POST /figures` | `figures` (vision) | `{language, figures:[{key, imageBase64, mime, caption, context}]}` (1–60) | `{figures:[{key, kind, educational, description}], model}` |
+| `POST /figures` | `figures` (vision) | `{language, figures:[{key, imageBase64, mime, caption, context}]}` (1–60) | `{figures:[{key, kind, role, description, transcript}], model}` |
 | `POST /summaries` | `summaries` | `{language, nodes:[{key, path, text, childSummaries}]}` (1–120) | `{summaries:[{key, summary, keyTerms}], model}` |
 | `POST /embed` | (embeddings) | `{task: RETRIEVAL_DOCUMENT \| RETRIEVAL_QUERY, items:[{text?, imageBase64?, mime?}]}` (1–256) | `{vectors, model, dimensions}` |
 
-- `figures`: one entry per input key or 503; `educational` is false for decorative figures (the backend deletes them).
+- `figures`: one entry per input key or 503; `role` is `VISUAL` (shown to students), `TEXTUAL` (its text carries the
+  meaning: terminal output, code, text-only slides; `transcript` holds the key text verbatim, at most
+  `indexing.transcript_chars`) or `DECORATIVE` (the backend deletes it). When unsure the model is told to choose
+  `VISUAL`; kind `DECORATIVE` always forces role `DECORATIVE`. `transcript` is empty unless the role is `TEXTUAL`.
 - `summaries`: one entry per key or 503; at most 8 deduplicated `keyTerms`.
 - `embed`: `model` (`provider:model`) is stored with every vector; images are used only when the
   embedding model is multimodal, otherwise items are embedded from their text. A vector of a

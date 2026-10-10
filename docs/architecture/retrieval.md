@@ -109,7 +109,7 @@ embedding models.
 3. Chunks are grouped per node, and nodes become **sections** sorted by document order, each carrying the node's
    summary (from indexing) and breadcrumb, so the model sees the "big" context around a small passage.
 4. Figures: those anchored to any selected chunk (`figuresOfChunks`) first, then figure search hits; only figures
-   with a description (indexed and educational) survive, capped at the budget's `figures`.
+   with a description (indexed and `VISUAL`) survive, capped at the budget's `figures`.
 
 ### Node-driven (`forNodes`)
 
@@ -172,7 +172,9 @@ helpful figure on its own line as `![short caption](figure:ID)`, never inventing
 `ReadService` maps `citedSectionIds` to node ids → `SourceRef(citation, nodeId, label, title, pages)`, and
 `FigureViews.byIds(figureIds)` returns a `figures` map (`id → {url, caption, description, …}`) with **HMAC-signed,
 expiring URLs** (`FigureUrlSigner`, `/api/figures/{id}/image?exp=&sig=`, TTL `ved.knowledge.figure-url-ttl`, expiry
-aligned to the hour so URLs are cacheable). The markdown keeps `figure:<id>`; the client swaps in the signed URL.
+aligned to the hour so URLs are cacheable). The markdown keeps `figure:<id>`; the shared frontend `Markdown` renderer resolves it from the `figures` map as an
+inline figure (caption, click to enlarge; unknown ids are dropped) and shows `[§x]` citations as small source chips
+(`shared/ui/markdown/citations.ts`: each section once per paragraph, at its last mention).
 
 ## "Ask your document"
 

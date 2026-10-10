@@ -123,7 +123,7 @@ A route is a `primary` model plus ordered `fallbacks`, which may be on **differe
 | `feedback` | Test report narrative (summary, strengths, weak areas, next steps) | `/v1/study/assessment-feedback` |
 | `answer` | lesson AI tutor (`style: tutor`) and ask-your-document (`style: answer`) | `/v1/study/answer` |
 | `notes` | study notes per section and chapter overviews | `/v1/study/notes` |
-| `figures` | figure descriptions + educational filter (**vision**: every model in this route must accept images) | `/v1/index/figures` |
+| `figures` | figure descriptions + role (visual / textual / decorative) (**vision**: every model in this route must accept images) | `/v1/index/figures` |
 | `summaries` | node summaries and key terms while indexing (high volume) | `/v1/index/summaries` |
 
 ### Fallbacks and quota exhaustion
@@ -337,7 +337,8 @@ Add the same fallback to every route in `llm.tasks`; a task route does not inher
 | `min_side_px` | `100` | smaller images are dropped |
 | `min_page_area_fraction` | `0.012` | minimum share of the page area |
 | `max_aspect` | `6.0` | thinner strips (rules, banners) are dropped |
-| `repeat_pages` | `3` | the same image on ≥ N pages is a logo/background |
+| `repeat_pages` | `3` | the same small image on ≥ N pages is a logo/ornament |
+| `logo_max_area_fraction` | `0.08` | repeated images at least this share of the page are reused content, kept once per section |
 | `background_area_fraction` | `0.85` | images covering more of the page behind text are backgrounds |
 | `max_figures` | `400` | per document |
 
@@ -348,6 +349,7 @@ Add the same fallback to every route in `llm.tasks`; a task route does not inher
 | `indexing.figures_per_call` | `6` | images per vision request (`figures` task) |
 | `indexing.nodes_per_call` | `12` | sections per summary request (`summaries` task) |
 | `indexing.node_text_chars` | `6000` | text per section sent for summarising (truncated here as well as by the backend) |
+| `indexing.transcript_chars` | `2000` | max text kept from a text-only image (terminal output, code) in place of the image |
 | `study.max_topics` | `12` | upper bound on learning-path topics |
 | `study.outline_summary_chars` | `400` | summary characters per node in the outline prompt |
 

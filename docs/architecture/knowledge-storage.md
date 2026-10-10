@@ -158,7 +158,7 @@ stateDiagram-v2
 
 | # | Stage | Selects | Calls | Writes |
 |---|---|---|---|---|
-| 1 | Figure descriptions | figures with `description IS NULL` | `describeFigures` (vision; image + caption + breadcrumb), `figure-batch` per call | `description`, `kind`; figures judged **not educational** are deleted, their file removed after commit |
+| 1 | Figure descriptions | figures with `description IS NULL` | `describeFigures` (vision; image + caption + breadcrumb), `figure-batch` per call | `description`, `kind` for `VISUAL` figures; `DECORATIVE` ones are deleted, `TEXTUAL` ones are deleted after their transcript is appended to their passage (`appendToFigurePassage`); files removed after commit |
 | 2 | Summaries + key terms | nodes with `summary IS NULL`, `ORDER BY level DESC` | `summarize`, `summary-batch` per call, one level at a time | `summary`, `key_terms`; each term → `document_terms` |
 | 3 | Chunk embeddings | chunks with `embedding IS NULL`, `chunk-embed-batch` at a time | `embed(RETRIEVAL_DOCUMENT)` on `breadcrumb + "\n" + content` | `embedding`, `embedding_model` |
 | 4 | Figure embeddings | figures with `embedding IS NULL AND description IS NOT NULL` | `embed(RETRIEVAL_DOCUMENT)` with image bytes + `caption\ndescription` | `embedding`, `embedding_model` |
@@ -172,6 +172,10 @@ Details:
   (`Chapter 2 Energy › 2.3 Osmosis`), so a chunk's vector carries its section context.
 - **Multimodal figures**: the inference service embeds the image itself when `embeddings.multimodal` is on and the
   provider supports image embeddings, otherwise the caption and description text.
+- **Text-only figures** (role `TEXTUAL`: terminal output, code, text-only slides): `KnowledgeIndexer.annotation` builds
+  `*Screenshot:* <description>` (`*Image:*` unless the kind is `SCREENSHOT`) followed by a fenced code block of the
+  transcript; `KnowledgeStore.appendToFigurePassage` appends it to the figure's anchor chunk (else its node's last
+  chunk, else a new chunk) and clears that chunk's embedding, so stage 3 re-embeds it and the text is searchable.
 - A description the model did not return is simply left `NULL` and retried on the next run.
 - Prompts use the document language (`und` → `en`). Backend batch sizes are per inference call and per commit; the
   inference service splits them further (`indexing.figures_per_call`, `nodes_per_call`).

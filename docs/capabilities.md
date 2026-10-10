@@ -12,7 +12,7 @@ frontend routes, inference endpoints) as of 2026-10-10. Details live in the link
 | Accounts & sessions | ✅ |
 | Document upload & extraction (PDF, images, native text + OCR) | ✅ |
 | Knowledge store: tree, term index, figures, hybrid search | 🔌 (used internally by Learn/Test; endpoints not in the UI) |
-| Learn mode: learning path, lessons with checks, AI tutor | ✅ (figures inside lessons: 🔌) |
+| Learn mode: learning path, lessons with checks, AI tutor, figures and source chips | ✅ |
 | Test mode: assessments, grading, report | ✅ |
 | Spaced review | ✅ |
 | Study notes & ask-your-document (Read mode) | 🔌 (frontend Read mode not built yet) |
@@ -58,7 +58,7 @@ Every document is parsed **once** into a structure all features reuse
 |---|---|---|
 | Document tree | chapter → section → subsection with the book's own labels (`2.3`), page ranges, small leaf chunks | 🔌 `GET /api/documents/{id}/tree`, `/nodes/{nodeId}` |
 | Summaries + key terms | every node summarised bottom-up; key terms form a back-of-book **term index** | 🔌 `GET /api/documents/{id}/terms` |
-| Figures | raster images and vector diagrams extracted, decorative ones (logos, backgrounds) dropped, described by a vision model, served via signed URLs | 🔌 `GET /api/figures/{id}/image` |
+| Figures | raster images and vector diagrams extracted, decorative ones (logos, backgrounds) dropped, described by a vision model, served via signed URLs; text-only images (terminal output, code) become searchable text transcripts instead | 🔌 `GET /api/figures/{id}/image` |
 | Hybrid search | Postgres full-text + pgvector, fused with RRF, small-to-big expansion, figure matches, optional subtree scope | 🔌 `GET /api/documents/{id}/search` |
 | Embedding model tracking | each vector records its model; after a model switch only matching vectors are compared and the document is re-embedded in the background | ✅ (automatic) |
 
@@ -75,7 +75,8 @@ never the whole document. *Why:* compact, structured context keeps generation gr
 | Comprehension checks | multiple choice / true-false between sections, graded server-side with elaborative feedback and optional confidence | Retrieval practice, immediate elaborative feedback, hypercorrection |
 | Explain-it-back | a final short answer graded by the AI against the source | Elaboration & self-explanation |
 | AI tutor | "Ask the tutor" panel on a lesson, grounded in the topic's sections; says when the document doesn't cover something | Self-explanation for "why" questions |
-| Figures in lessons | lessons may embed document figures; the API returns a `figures` map with signed URLs | 🔌 the frontend does not render them yet |
+| Figures in lessons | lessons and tutor answers show document figures inline with caption; click to enlarge | Dual coding |
+| Source chips | `[§2.3]` citations render as small source chips (each section once per paragraph) | Grounding: learners can see where a claim comes from |
 
 Spec: [specs/study.md](specs/study.md).
 
@@ -159,7 +160,7 @@ Guides: [guides/local-development.md](guides/local-development.md), [guides/conf
 
 | Gap | Status |
 |---|---|
-| Frontend **Read mode** (tree, notes, search, ask the document) and figures inside lessons | 🧪 next |
+| Frontend **Read mode** (tree, notes, search, ask the document) | 🧪 next |
 | Teacher features: classes & sharing, teacher analytics, personalised assignments, exams | 🧪 later |
 | Role-specific behaviour (teacher vs student), admin user management | 🧪 |
 | Per-user AI quotas and cost logging; login rate limiting, password reset, refresh-token reuse detection | 🧪 |

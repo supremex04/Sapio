@@ -67,8 +67,9 @@ Details: [knowledge-storage.md](../architecture/knowledge-storage.md#pipeline-st
 4. **Leaf chunks**: blocks are packed per node into chunks of ~900 characters (max 1,400), never splitting
    a table or formula and never separating a caption from its figure; each chunk records its page range.
 5. **Figures**: kept when ≥ 100 px on the short side, ≥ 1.2 % of the page area, aspect ≤ 6:1, not
-   repeated on ≥ 3 distinct pages (logos), not a background covering > 85 % of a text page, and at most 400
-   per document. Caption = the adjacent `caption` block. Images are re-encoded (PNG for line art, JPEG for
+   a small image (< 8 % of the page) repeated on ≥ 3 distinct pages (logos), not a background covering > 85 % of a
+   text page, and at most 400 per document. A larger image repeated across pages is reused content (e.g. an
+   architecture diagram on every slide that discusses it) and is kept once per section. Caption = the adjacent `caption` block. Images are re-encoded (PNG for line art, JPEG for
    photos, ≤ 1,600 px). All thresholds are `parsing.*` settings: see
    [document-parsing.md](../architecture/document-parsing.md#tuning-knobs-inferencesettingsyaml).
 
@@ -79,7 +80,7 @@ Response (camelCase JSON): `tree: {nodes[], chunks[], figures[]}` with string ke
 
 | Step | Inference endpoint | Stored |
 |---|---|---|
-| Figure description + educational filter | `POST /v1/index/figures` (Gemini vision, batched) | `description`, `kind`; non-educational figures deleted |
+| Figure description + role | `POST /v1/index/figures` (Gemini vision, batched) | `description`, `kind`; `VISUAL` figures kept, `DECORATIVE` deleted, `TEXTUAL` (terminal output, code, text-only slides) deleted and replaced by an annotated transcript appended to their passage |
 | Node summaries + key terms, bottom-up (leaves first, parents from child summaries) | `POST /v1/index/summaries` (batched by depth) | `summary`, `key_terms`, term index |
 | Embeddings: chunks (breadcrumb + text), figures (image + caption + description) | `POST /v1/index/embed` (configured model, default `gemini-embedding-2`, 768-d, multimodal) | `embedding vector(768)` + `embedding_model` |
 
