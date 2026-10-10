@@ -1,3 +1,6 @@
+import type { FigureView } from "../../shared/ui/Markdown";
+
+export type { FigureView };
 /** Mirrors docs/specs/study.md. */
 
 export type TopicStatus = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
@@ -81,6 +84,8 @@ export interface Lesson {
   keyTakeaways: string[];
   checks: LessonCheck[];
   status: Exclude<TopicStatus, "NOT_STARTED">;
+  /** Figures embedded in section bodies as `![caption](figure:<id>)`, by id. */
+  figures: Record<string, FigureView>;
 }
 
 export interface TopicCompletion {
@@ -97,6 +102,7 @@ export interface TutorTurn {
 export interface TutorAnswer {
   answer: string;
   grounded: boolean;
+  figures: Record<string, FigureView>;
 }
 
 export interface QuestionView {

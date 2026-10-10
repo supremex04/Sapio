@@ -46,6 +46,7 @@ const lesson = (checks: LessonCheck[]): Lesson => ({
   keyTakeaways: [],
   checks,
   status: "IN_PROGRESS",
+  figures: {},
 });
 
 describe("nodeState", () => {

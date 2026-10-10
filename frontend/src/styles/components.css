@@ -979,3 +979,76 @@ button.chip {
   color: var(--color-primary);
   text-decoration: none;
 }
+
+/* ---- Markdown: source citations and document figures ---------------------------------------- */
+.md-cite {
+  display: inline-block;
+  margin-left: 0.2em;
+  padding: 0 0.45em;
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-text);
+  font-size: 0.68em;
+  font-weight: var(--weight-heading);
+  line-height: 1.6;
+  vertical-align: 0.2em;
+  cursor: help;
+  white-space: nowrap;
+}
+.md-figure {
+  display: block;
+  margin: 1em auto;
+  max-width: min(100%, 560px);
+  text-align: center;
+}
+.md-figure-open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-md);
+  background: #fff; /* figures are drawn for paper */
+  overflow: hidden;
+  cursor: zoom-in;
+}
+.md-figure-open:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.md-figure-open img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.md-figure-caption {
+  display: block;
+  margin-top: 0.5em;
+  color: var(--text-muted);
+  font-size: var(--text-small);
+  line-height: 1.45;
+}
+.md-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  background: rgb(10 14 20 / 0.82);
+  cursor: zoom-out;
+}
+.md-lightbox img {
+  max-width: 100%;
+  max-height: 85vh;
+  border-radius: var(--radius-md);
+  background: #fff;
+}
+.md-lightbox-caption {
+  max-width: 60ch;
+  color: #fff;
+  font-size: var(--text-small);
+  text-align: center;
+}

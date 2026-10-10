@@ -10,10 +10,11 @@ import { Button, IconButton } from "../../../shared/ui/Button";
 import { Markdown } from "../../../shared/ui/Markdown";
 import { useProgress } from "../../progress/ProgressContext";
 import { studyApi } from "../api";
-import type { TutorTurn } from "../types";
+import type { TutorAnswer, TutorTurn } from "../types";
 
 interface Message extends TutorTurn {
   grounded?: boolean;
+  figures?: TutorAnswer["figures"];
 }
 
 const MAX_HISTORY = 10;
@@ -63,7 +64,7 @@ export function TutorPanel({ topicId, topicTitle }: { topicId: string; topicTitl
     setError(null);
     try {
       const res = await studyApi.ask(topicId, q, history);
-      setMessages((m) => [...m, { role: "tutor", text: res.answer, grounded: res.grounded }]);
+      setMessages((m) => [...m, { role: "tutor", text: res.answer, grounded: res.grounded, figures: res.figures }]);
       void refresh();
     } catch (e) {
       setError(errorMessage(e));
@@ -126,7 +127,7 @@ export function TutorPanel({ topicId, topicTitle }: { topicId: string; topicTitl
                     <motion.div key={i} className={m.role === "user" ? "chat-row chat-row-user" : "chat-row"} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
                       {m.role === "tutor" && <Dia mood={m.grounded === false ? "thinking" : "happy"} size={32} still />}
                       <div className={m.role === "user" ? "chat-msg chat-user" : "chat-msg chat-tutor"}>
-                        {m.role === "tutor" ? <Markdown>{m.text}</Markdown> : <p>{m.text}</p>}
+                        {m.role === "tutor" ? <Markdown figures={m.figures}>{m.text}</Markdown> : <p>{m.text}</p>}
                         {m.role === "tutor" && m.grounded === false && (
                           <Badge tone="warning" className="chat-badge">
                             Not covered in your document

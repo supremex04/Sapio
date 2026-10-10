@@ -205,7 +205,7 @@ function LessonFlow({ lesson, documentId, material, xpTotal, onProgress, onStepP
         <motion.div key={stepKey(step)} className="ls-step" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}>
           {step.kind === "section" && (
             <>
-              <SectionCard section={step.section} />
+              <SectionCard section={step.section} figures={lesson.figures} />
               <div className="ls-sheet-space" aria-hidden />
               <FeedbackSheet
                 tone="neutral"
@@ -273,7 +273,7 @@ function stepKey(step: LessonStep): string {
   return `c${step.check.id}`;
 }
 
-function SectionCard({ section }: { section: Lesson["sections"][number] }) {
+function SectionCard({ section, figures }: { section: Lesson["sections"][number]; figures: Lesson["figures"] }) {
   const meta = KIND_META[section.kind] ?? KIND_META.CONCEPT;
   return (
     <article className={`ls-section ls-kind-${(section.kind ?? "CONCEPT").toLowerCase()}`}>
@@ -283,7 +283,7 @@ function SectionCard({ section }: { section: Lesson["sections"][number] }) {
       </div>
       <div className="ls-section-body">
         {section.heading && <h2>{section.heading}</h2>}
-        <Markdown>{section.body}</Markdown>
+        <Markdown figures={figures}>{section.body}</Markdown>
       </div>
     </article>
   );
