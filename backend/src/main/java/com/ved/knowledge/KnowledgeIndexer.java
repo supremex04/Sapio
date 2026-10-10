@@ -127,7 +127,12 @@ class KnowledgeIndexer implements DocumentIndexer {
                 if (d == null) {
                     return; // retried on the next run
                 }
-                if (!d.educational()) {
+                if (d.role() == KnowledgeAi.FigureRole.TEXTUAL) {
+                    // Text-only image (terminal output, code): its words matter, not its pixels.
+                    store.appendToFigurePassage(f, annotation(d));
+                    store.deleteFigure(f.id());
+                    afterCommit(() -> deleteQuietly(f.storageKey()));
+                } else if (d.role() != KnowledgeAi.FigureRole.VISUAL) {
                     store.deleteFigure(f.id());
                     afterCommit(() -> deleteQuietly(f.storageKey()));
                 } else {
@@ -217,6 +222,14 @@ class KnowledgeIndexer implements DocumentIndexer {
     }
 
     // ------------------------------------------------------------------------------- helpers
+
+    /** "Screenshot (terminal output of minikube start): …" followed by the transcript as a code block. */
+    static String annotation(KnowledgeAi.FigureDescription d) {
+        String label = "SCREENSHOT".equals(d.kind()) ? "Screenshot" : "Image";
+        String text = "*" + label + ":* " + d.description().strip();
+        String transcript = d.transcript() == null ? "" : d.transcript().strip().replace("```", "` ` `");
+        return transcript.isEmpty() ? text : text + "\n\n```\n" + transcript + "\n```";
+    }
 
     private static <T> Map<UUID, float[]> byId(List<T> batch, Function<T, UUID> id, KnowledgeAi.Embeddings e) {
         Map<UUID, float[]> updates = new LinkedHashMap<>();

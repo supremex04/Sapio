@@ -140,6 +140,20 @@ class KnowledgeFlowIT {
     }
 
     @Test
+    void textOnlyFiguresBecomeSearchableAnnotatedText() throws Exception {
+        KnowledgeStore.FigureRow figure = store.figuresOfDocument(documentId).getFirst();
+        String note = KnowledgeIndexer.annotation(new KnowledgeAi.FigureDescription("k", "SCREENSHOT",
+                KnowledgeAi.FigureRole.TEXTUAL, "Terminal output of minikube start.", "$ minikube start\nDone!"));
+        store.appendToFigurePassage(figure, note);
+
+        assertThat(note).startsWith("*Screenshot:* Terminal output").contains("```\n$ minikube start\nDone!\n```");
+        assertThat(store.chunksWithoutEmbedding(documentId, 10)).singleElement()
+                .satisfies(c -> assertThat(c.content()).endsWith(note));
+        assertThat(getJson("/api/documents/{d}/search?q=minikube", documentId).at("/hits/0/snippet").asString())
+                .contains("minikube");
+    }
+
+    @Test
     void termIndexMapsTermsToSections() throws Exception {
         JsonNode terms = getJson("/api/documents/{d}/terms", documentId).get("terms");
         assertThat(terms.toString()).contains("\"term\":\"osmosis\"").contains("\"term\":\"membrane\"");

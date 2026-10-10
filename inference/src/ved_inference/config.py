@@ -120,7 +120,8 @@ class FigureFilterConfig(BaseModel):
     min_side_px: int = 100
     min_page_area_fraction: float = 0.012
     max_aspect: float = 6.0
-    repeat_pages: int = 3  # the same image on this many pages is a logo/background
+    repeat_pages: int = 3  # the same SMALL image on this many pages is a logo/ornament
+    logo_max_area_fraction: float = 0.08  # repeated images larger than this are reused content, not logos
     background_area_fraction: float = 0.85
     max_figures: int = 400
 
@@ -145,6 +146,7 @@ class IndexingConfig(BaseModel):
     figures_per_call: int = Field(default=6, ge=1)  # images per vision request
     nodes_per_call: int = Field(default=12, ge=1)  # sections per summary request
     node_text_chars: int = 6_000  # text per section sent for summarising
+    transcript_chars: int = 2_000  # max text kept from a text-only image (terminal, code)
 
 
 class StudyConfig(BaseModel):

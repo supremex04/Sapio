@@ -23,7 +23,18 @@ public interface KnowledgeAi {
     record FigureInput(String key, byte[] image, String mime, String caption, String context) {
     }
 
-    record FigureDescription(String key, String kind, boolean educational, String description) {
+    /**
+     * How a figure is used. VISUAL: shown to students. TEXTUAL: its text carries the meaning (terminal output,
+     * code), so it is kept as an annotated {@code transcript} in the section text instead of an image.
+     * DECORATIVE: dropped.
+     */
+    enum FigureRole {
+        VISUAL,
+        TEXTUAL,
+        DECORATIVE
+    }
+
+    record FigureDescription(String key, String kind, FigureRole role, String description, String transcript) {
     }
 
     record SummaryInput(String key, String path, String text, List<String> childSummaries) {

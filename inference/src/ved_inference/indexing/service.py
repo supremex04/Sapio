@@ -11,7 +11,12 @@ from ved_inference.study import prompts
 
 DESCRIBE_SYSTEM = """You index figures from a student's study material so they can be found and explained later.
 Describe what each image shows precisely (labels, axes, steps, relationships) using the document's terminology.
-Mark logos, decorative clip-art, icons, page ornaments and stock backgrounds as educational=false."""
+Give each a role:
+- VISUAL: a student learns from seeing it (diagrams, charts, photos, maps, annotated interfaces).
+- TEXTUAL: its text alone carries the meaning (terminal output, code, text-only slides or screenshots of text).
+  Transcribe the important text verbatim; the image itself will not be shown.
+- DECORATIVE: logos, clip-art, icons, page ornaments, stock backgrounds.
+When unsure between VISUAL and TEXTUAL choose VISUAL. Use kind SCREENSHOT for terminal, code or app captures."""
 
 SUMMARY_SYSTEM = """You index a student's study material. For each section write a faithful summary of what it teaches,
 using only its text (and its subsections' summaries), and list its key terms exactly as written. Write in {language}."""
@@ -46,10 +51,15 @@ class IndexingService:
                 d = by_index.get(i)
                 if d is None:
                     raise EngineError("Figure description incomplete. Please retry.")
-                educational = d.educational and d.kind != "DECORATIVE"
+                role = "DECORATIVE" if d.kind == "DECORATIVE" else d.role
+                transcript = d.transcript.strip() if role == "TEXTUAL" else ""
                 out.append(
                     api.FigureDescriptionOut(
-                        key=f.key, kind=d.kind, educational=educational, description=d.description.strip()
+                        key=f.key,
+                        kind=d.kind,
+                        role=role,
+                        description=d.description.strip(),
+                        transcript=transcript[: self._config.transcript_chars],
                     )
                 )
         return api.DescribeFiguresResponse(figures=out, model=self._llm.model_name)

@@ -11,12 +11,31 @@ from ved_inference.indexing.service import IndexingService
 IMG = base64.b64encode(png_bytes()).decode()
 
 
-def test_figures_are_described_in_batches_and_decorations_flagged():
+def test_figures_are_described_and_labelled_visual_textual_or_decorative():
     llm = FakeLlm(
         {
             "figures": [
-                {"index": 0, "kind": "DIAGRAM", "educational": True, "description": "A plant cell."},
-                {"index": 1, "kind": "DECORATIVE", "educational": True, "description": "A logo."},
+                {
+                    "index": 0,
+                    "kind": "DIAGRAM",
+                    "role": "VISUAL",
+                    "description": "A plant cell.",
+                    "transcript": "x",
+                },
+                {
+                    "index": 1,
+                    "kind": "DECORATIVE",
+                    "role": "VISUAL",
+                    "description": "A logo.",
+                    "transcript": "",
+                },
+                {
+                    "index": 2,
+                    "kind": "SCREENSHOT",
+                    "role": "TEXTUAL",
+                    "description": "Terminal output of minikube start.",
+                    "transcript": "$ minikube start\nDone!",
+                },
             ]
         }
     )
@@ -25,11 +44,16 @@ def test_figures_are_described_in_batches_and_decorations_flagged():
             figures=[
                 s.FigureIn(key="a", image_base64=IMG, caption="Fig 1"),
                 s.FigureIn(key="b", image_base64=IMG),
+                s.FigureIn(key="c", image_base64=IMG),
             ]
         )
     )
-    assert [(f.key, f.educational) for f in result.figures] == [("a", True), ("b", False)]
-    assert llm.images == [2]
+    assert [(f.key, f.role, f.transcript) for f in result.figures] == [
+        ("a", "VISUAL", ""),
+        ("b", "DECORATIVE", ""),
+        ("c", "TEXTUAL", "$ minikube start\nDone!"),
+    ]
+    assert llm.images == [3]
     assert llm.tasks == ["figures"]
 
 

@@ -27,8 +27,9 @@ class DescribeFiguresRequest(ApiModel):
 class FigureDescriptionOut(ApiModel):
     key: str
     kind: str
-    educational: bool
+    role: Literal["VISUAL", "TEXTUAL", "DECORATIVE"]
     description: str
+    transcript: str = ""  # TEXTUAL figures: their important text, replacing the image
 
 
 class DescribeFiguresResponse(ApiModel):

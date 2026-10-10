@@ -50,9 +50,10 @@ public final class FakeAi {
 
     public static List<KnowledgeAi.FigureDescription> describe(List<KnowledgeAi.FigureInput> inputs) {
         return inputs.stream().map(f -> f.caption().isBlank()
-                ? new KnowledgeAi.FigureDescription(f.key(), "DECORATIVE", false, "A logo.")
-                : new KnowledgeAi.FigureDescription(f.key(), "DIAGRAM", true,
-                        "Diagram of water moving through a membrane into a plant cell.")).toList();
+                ? new KnowledgeAi.FigureDescription(f.key(), "DECORATIVE", KnowledgeAi.FigureRole.DECORATIVE, "A logo.",
+                        "")
+                : new KnowledgeAi.FigureDescription(f.key(), "DIAGRAM", KnowledgeAi.FigureRole.VISUAL,
+                        "Diagram of water moving through a membrane into a plant cell.", "")).toList();
     }
 
     public static List<KnowledgeAi.NodeSummary> summarize(List<KnowledgeAi.SummaryInput> inputs) {

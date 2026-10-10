@@ -56,9 +56,15 @@ def filter_figures(
     text_pages: set[int],
     config: FigureFilterConfig = DEFAULT,
 ) -> list[Block]:
-    """Removes decorative figures (tiny, extreme aspect, repeated logos, page backgrounds)."""
+    """Removes decorative figures (tiny, extreme aspect, repeated logos, page backgrounds).
+
+    The same image on many pages is a logo only when it is also small; large repeated images are content the
+    document reuses (e.g. an architecture diagram shown again on each slide that discusses it). Those are kept
+    once per section, so every section that shows the figure can use it.
+    """
     hashes: dict[int, int] = {}
     pages_by_hash: defaultdict[int, set[int]] = defaultdict(set)
+    largest_by_hash: defaultdict[int, float] = defaultdict(float)
     for i, b in enumerate(blocks):
         if b.kind == "figure" and b.image:
             img = decode(b.image.data)
@@ -66,16 +72,26 @@ def filter_figures(
                 h = average_hash(img)
                 hashes[i] = h
                 pages_by_hash[h].add(b.page)
-    # The same image on many pages is a logo / header ornament (several copies on one page are not).
-    repeated = {h for h, pages in pages_by_hash.items() if len(pages) >= config.repeat_pages}
+                largest_by_hash[h] = max(largest_by_hash[h], _area_fraction(b, page_areas))
+    logos = {
+        h
+        for h, pages in pages_by_hash.items()
+        if len(pages) >= config.repeat_pages and largest_by_hash[h] < config.logo_max_area_fraction
+    }
 
     kept: list[Block] = []
     figures = 0
+    section = 0
+    seen_in_section: set[int] = set()
     for i, b in enumerate(blocks):
+        if b.kind == "heading":
+            section += 1
+            seen_in_section = set()
         if b.kind != "figure":
             kept.append(b)
             continue
-        if b.image is None or figures >= config.max_figures or hashes.get(i) in repeated:
+        h = hashes.get(i)
+        if b.image is None or figures >= config.max_figures or h in logos or h in seen_in_section:
             continue
         if min(b.image.width, b.image.height) < config.min_side_px:
             continue
@@ -91,7 +107,16 @@ def filter_figures(
                 continue  # background image behind a text page
         kept.append(b)
         figures += 1
+        if h is not None:
+            seen_in_section.add(h)
     return kept
+
+
+def _area_fraction(b: Block, page_areas: dict[int, float]) -> float:
+    if b.bbox is None:
+        return 1.0  # unknown placement: never treat as a logo on size grounds
+    area = (b.bbox[2] - b.bbox[0]) * (b.bbox[3] - b.bbox[1])
+    return area / max(page_areas.get(b.page, 1.0), 1.0)
 
 
 def detect_scanned_figures(

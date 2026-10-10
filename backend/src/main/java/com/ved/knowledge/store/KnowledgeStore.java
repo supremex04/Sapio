@@ -309,6 +309,28 @@ public class KnowledgeStore {
                 });
     }
 
+    /**
+     * Adds text to the section passage where a figure appears (its chunk, else its node's last chunk, else a
+     * new chunk), so the content stays searchable; the passage is re-embedded.
+     */
+    public void appendToFigurePassage(FigureRow figure, String text) {
+        int updated = jdbc.update("""
+                        UPDATE document_chunks SET content = content || ?, embedding = NULL, embedding_model = NULL
+                        WHERE id = coalesce(?, (SELECT id FROM document_chunks WHERE node_id = ?
+                                                ORDER BY ordinal DESC LIMIT 1))""",
+                "\n\n" + text, figure.chunkId(), figure.nodeId());
+        if (updated == 0) {
+            jdbc.update("""
+                            INSERT INTO document_chunks (id, document_id, node_id, ordinal, content, page_from, page_to,
+                                                         search_config)
+                            SELECT ?, f.document_id, f.node_id,
+                                   (SELECT coalesce(max(ordinal), -1) + 1 FROM document_chunks WHERE document_id = f.document_id),
+                                   ?, f.page, f.page, f.search_config
+                            FROM document_figures f WHERE f.id = ?""",
+                    UUID.randomUUID(), text, figure.id());
+        }
+    }
+
     public void deleteFigure(UUID figureId) {
         jdbc.update("DELETE FROM document_figures WHERE id = ?", figureId);
     }

@@ -95,7 +95,8 @@ parsing:
     min_side_px: 100
     min_page_area_fraction: 0.012
     max_aspect: 6.0
-    repeat_pages: 3        # same image on >= N pages = logo / background
+    repeat_pages: 3        # same SMALL image on >= N pages = logo / ornament
+    logo_max_area_fraction: 0.08  # larger repeated images are reused content: kept once per section
     background_area_fraction: 0.85
     max_figures: 400
 
@@ -104,6 +105,7 @@ indexing:
   figures_per_call: 6      # images per vision request
   nodes_per_call: 12       # sections per summary request
   node_text_chars: 6000
+  transcript_chars: 2000   # text kept from a text-only image (terminal output, code) instead of the image
 study:
   max_topics: 12
   outline_summary_chars: 400
