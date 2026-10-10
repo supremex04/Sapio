@@ -68,6 +68,12 @@ class GeminiClient(LlmClient):
                     return result
                 except _Retryable as exc:
                     last_error = exc
+                    if _quota_exhausted(exc):
+                        # A daily quota won't reset within any sensible wait: use the next model now.
+                        log.warning(
+                            "Gemini %s quota exhausted (retry in %.0fs); falling back", model, exc.delay
+                        )
+                        break
                     log.warning("Gemini %s attempt %d failed: %s", model, attempt + 1, exc)
                     if attempt < self._max_retries:
                         time.sleep(_backoff(attempt, exc))
@@ -75,6 +81,8 @@ class GeminiClient(LlmClient):
                     last_error = exc
                     log.warning("Gemini model %s unavailable: %s", model, exc)
                     break
+        if last_error is not None and _quota_exhausted(last_error):
+            raise EngineError("The AI quota for today is used up. Please try again later.") from last_error
         raise EngineError("The AI service is busy right now. Please try again in a moment.") from last_error
 
     def _call(self, model: str, body: dict, schema: type[T]) -> T:
@@ -174,6 +182,10 @@ class GeminiEmbedder(Embedder):
                 return vectors
             except (_Retryable, httpx.HTTPError, KeyError, ValueError) as exc:
                 last = exc
+                if _quota_exhausted(exc):
+                    raise EngineError(
+                        "The AI quota for today is used up. Processing will continue later."
+                    ) from exc
                 log.warning("Embedding attempt %d failed: %s", attempt + 1, exc)
                 if attempt < self._max_retries:
                     time.sleep(_backoff(attempt, exc))
@@ -194,6 +206,12 @@ class _Retryable(Exception):
 
 
 MAX_BACKOFF_SECONDS = 45.0
+
+
+def _quota_exhausted(error: Exception) -> bool:
+    """The server asks us to wait far longer than any backoff (e.g. a per-day quota)."""
+    delay = getattr(error, "delay", None)
+    return delay is not None and delay > MAX_BACKOFF_SECONDS * 2
 
 
 def _backoff(attempt: int, error: Exception) -> float:

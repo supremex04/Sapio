@@ -215,3 +215,11 @@ def test_grade_clamps_score_and_skips_llm_for_empty_answers():
         StudyService(llm).grade(request.model_copy(update={"answer": "  "})).verdict == "INCORRECT"
         and llm.prompts == []
     )
+
+
+def test_figure_embeds_are_normalised_and_external_images_removed():
+    used: list[str] = []
+    text = "a ![A](fig-1) b ![B](figure://fig-2) c ![C](https://evil.example/x.png) d ![D](figure:fig-1)"
+    out = clean_markdown(text, {"fig-1", "fig-2"}, set(), used)
+    assert out == "a ![A](figure:fig-1) b ![B](figure:fig-2) c  d"
+    assert used == ["fig-1", "fig-2"]

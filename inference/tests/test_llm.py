@@ -136,9 +136,21 @@ def test_rate_limits_wait_for_the_servers_retry_delay(monkeypatch):
         },
     )
     calls = iter(
-        [limited, httpx.Response(503, headers={"retry-after": "120"}), ok({"title": "t", "value": 1})]
+        [limited, httpx.Response(503, headers={"retry-after": "60"}), ok({"title": "t", "value": 1})]
     )
     s = Settings(gemini_api_key="k", llm_max_retries=3, gemini_fallback_models=[])
     c = GeminiClient(s, transport=httpx.MockTransport(lambda _r: next(calls)))
     assert c.generate(system="s", prompt="p", schema=Answer).title == "t"
     assert sleeps == [31.0, 45.0]  # server hint, then capped
+
+
+def test_daily_quota_falls_back_immediately_without_waiting(monkeypatch):
+    sleeps = []
+    monkeypatch.setattr("ved_inference.llm.gemini.time.sleep", sleeps.append)
+    quota = httpx.Response(429, json={"error": {"code": 429, "details": [{"retryDelay": "63049s"}]}})
+    c, urls = client(
+        lambda r: quota if "primary" in str(r.url) else ok({"title": "lite", "value": 1}),
+        gemini_model="primary",
+    )
+    assert c.generate(system="s", prompt="p", schema=Answer).title == "lite"
+    assert sleeps == [] and len(urls) == 2

@@ -27,7 +27,8 @@ from ved_inference.study.models import (
 MAX_TOPICS = 12
 OUTLINE_SUMMARY_CHARS = 400
 
-_FIGURE_EMBED = re.compile(r"!\[([^\]]*)\]\(figure:([A-Za-z0-9_-]+)\)")
+# Every markdown image the model writes; the target is validated against the figures we provided.
+_IMAGE = re.compile(r"!\[([^\]]*)\]\(\s*<?([^)\s>]*)>?(?:\s+\"[^\"]*\")?\s*\)")
 _CITATION = re.compile(r"\[§([^\]\s]+)\]")
 
 
@@ -353,10 +354,16 @@ class StudyService:
 
 
 def clean_markdown(text: str, allowed_figures: set[str], section_ids: set[str], used: list[str]) -> str:
-    """Removes invented figure ids and citations; keeps each figure once; records the figures used."""
+    """Normalises figure embeds to ![caption](figure:<id>) and removes anything else.
 
-    def figure(m: re.Match[str]) -> str:
-        fid = m.group(2)
+    Models sometimes drop the "figure:" prefix, add slashes, or invent URLs; every image is untrusted:
+    known figure ids (in any of those forms) are kept once, all other images (including external URLs)
+    are removed. Citations to unknown sections are removed too.
+    """
+
+    def image(m: re.Match[str]) -> str:
+        target = m.group(2).strip()
+        fid = re.sub(r"^figure:/{0,2}", "", target)
         if fid not in allowed_figures or fid in used:
             return ""
         used.append(fid)
@@ -365,7 +372,7 @@ def clean_markdown(text: str, allowed_figures: set[str], section_ids: set[str], 
     def citation(m: re.Match[str]) -> str:
         return m.group(0) if m.group(1) in section_ids or f"§{m.group(1)}" in section_ids else ""
 
-    out = _FIGURE_EMBED.sub(figure, text)
+    out = _IMAGE.sub(image, text)
     out = _CITATION.sub(citation, out)
     return re.sub(r"\n{3,}", "\n\n", out).strip()
 
