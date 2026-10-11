@@ -31,7 +31,7 @@ XP, streaks and learning analytics. Every design decision is grounded in learnin
 **Requirement:** Bash 4.0 or higher.
 
 ```bash
-./dev.sh          # installs what's missing or changed, starts everything → http://localhost:5173
+./docker-app.sh          # installs what's missing or changed, starts everything → http://localhost:5173
 ```
 
 The first run installs all dependencies and creates `inference/.env`: put your Gemini key in it
