@@ -11,6 +11,7 @@ inference/.venv/
 
 # Local config / secrets
 .env
+.env.docker
 *.local
 
 # IDE

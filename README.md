@@ -1,3 +1,12 @@
+---
+title: Ved Learning Platform
+emoji: 📚
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+---
+
 # Ved
 
 An interactive learning platform. Students learn and practise; teachers track progress and
@@ -32,6 +41,9 @@ service's dependencies only when its manifest changed. `./dev.sh help` lists the
 
 Full guide: [docs/guides/local-development.md](docs/guides/local-development.md).
 Start reading at [docs/README.md](docs/README.md).
+
+To run the full stack in Docker, follow [docs/guides/docker.md](docs/guides/docker.md). The
+Docker setup and its change log are documented there.
 
 ## Configuration
 

@@ -1,0 +1,16 @@
+.git
+.dev
+docker-backup
+**/node_modules
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/target
+**/dist
+**/.DS_Store
+inference/.env
+.env
+.env.docker
+*.log
+var
