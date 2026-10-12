@@ -196,9 +196,17 @@ class StudyFlowIT {
                 }
             };
             if (body != null) {
-                answer("/api/assessments/" + id + "/items/{p}/answer", position, body).andExpect(status().isOk());
+                // Saved, but nothing about correctness is revealed during the test.
+                String saved = answer("/api/assessments/" + id + "/items/{p}/answer", position, body)
+                        .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+                assertThat(saved).contains("selectedOptionIndex").doesNotContain("verdict")
+                        .doesNotContain("correctOptionIndex").doesNotContain("explanation");
             }
         }
+        String open = mvc.perform(get("/api/assessments/{id}", id).header("Authorization", user.bearer()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(open).contains("\"submitted\"").doesNotContain("verdict").doesNotContain("correctOptionIndex")
+                .doesNotContain("referenceAnswer");
         answer("/api/assessments/" + id + "/items/{p}/answer", 1, "{\"optionIndex\":0}")
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("ALREADY_ANSWERED"));
         // The short-answer item is skipped on purpose.

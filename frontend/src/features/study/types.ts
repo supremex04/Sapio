@@ -124,9 +124,18 @@ export interface QuestionView {
   topicTitle: string;
 }
 
+/** What the learner answered on a test item; results are revealed only in the report. */
+export interface SubmittedAnswer {
+  selectedOptionIndex: number | null;
+  answerText: string | null;
+  confidence: Confidence | null;
+}
+
 export interface AssessmentItem {
   position: number;
   question: QuestionView;
+  submitted: SubmittedAnswer | null;
+  /** Verdict, answer key and feedback: only once the test is completed. */
   answer: AnswerResult | null;
 }
 

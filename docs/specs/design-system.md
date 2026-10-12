@@ -108,7 +108,7 @@ Nunito Variable (OFL), one family only. Hierarchy via weight and size:
 | `ProgressBar` | thick rounded bar with a highlight stripe; colour by hue |
 | `ProgressRing` | for goals and mastery |
 | `OptionTile` | answer choice: key badge, selected/correct/incorrect states |
-| `FeedbackSheet` | the slide-up footer after "Check": verdict colour, Dia mood, explanation, Continue |
+| `FeedbackSheet` | the bottom bar of question flows: neutral while answering (Check, Submit, Next or "Tap an answer"), then verdict colour, Dia mood, explanation, Continue |
 | `SpeechBubble` | Dia's voice |
 | `Tabs`, `Segmented`, `Toast`, `Skeleton`, `Spinner`, `EmptyState`, `ConfirmButton`, `Alert`, `FormField`, `Markdown` | as named |
 | `Emoji` | `<Emoji name="fire" size={28} />` |
@@ -135,7 +135,7 @@ on wide screens (≥ 1200 px), top stat bar + bottom tab bar on mobile.
 | Learning path | Unit banner in blue with an amber progress bar and "Test yourself". Nodes wind on a sine (`pathWave`, amplitude 78 px, 54 px on phones). States: done = amber + check mark (crown at mastery ≥ 0.8), recommended = blue + glowing star + bobbing "START / CONTINUE / STRENGTHEN" bubble + Dia beside it, in progress = blue-soft, not started = grey + open book. Purple ring = mastery. Ends in a purple trophy node. |
 | Lesson | Focus mode. One step at a time; the action is always in the bottom sheet (Continue / Check / Complete topic). Section kinds: CONCEPT blue (light-bulb illustration), EXAMPLE green (test-tube), ANALOGY pink (puzzle-piece), SUMMARY purple (memo) (tinted header + kind label). Warm-up shows Dia + bubble until answered. Enter continues. "Ask" chip in the header opens the tutor slide-over (portalled; chat rows with Dia as the tutor's avatar). |
 | Results | `ResultStat` cards (coloured header label, emoji + big number) on lesson complete (XP, accuracy, time), recall complete (recalled, back soon, cards) and the test report (correct, partly, to recall). |
-| Test | Purple is Test's hue: setup tiles, Start button, runner badges. Runner: focus mode, counter + Finish in the header, verdict dots below. Report: Dia mood by score (≥ 80% cheer, ≥ 50% happy, else encourage). |
+| Test | Purple is Test's hue: setup tiles, Start button, runner badges. Runner: focus mode, counter + Finish in the header, answered dots below (purple, pulsing while saving; no verdict colours until the report); no feedback sheet, just Next / Finish test. Report: Dia mood by score (≥ 80% cheer, ≥ 50% happy, else encourage). |
 | Review | Teal throughout; sleepy Dia when nothing is due. |
 | Generating | Dia thinking (floating), estimated progress bar easing to 92%, rotating learning-science tips in a speech bubble. |
 

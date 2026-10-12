@@ -41,7 +41,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Test mode: generate an interleaved assessment, grade answers one by one, then build the report. */
+/**
+ * Test mode: generate an interleaved assessment, grade each answer as it is saved (revealing nothing while the test
+ * is open), then build the report, which is where results and explanations are shown.
+ */
 @Service
 public class AssessmentService {
 
@@ -149,7 +152,8 @@ public class AssessmentService {
         return tx.execute(status -> view(requireOwned(userId, assessmentId), userId));
     }
 
-    public AnswerResult answer(UUID userId, UUID assessmentId, int position, AnswerRequest request) {
+    /** Grades and records the answer, but reveals nothing about it: results come with the report. */
+    public SubmittedAnswer answer(UUID userId, UUID assessmentId, int position, AnswerRequest request) {
         Assessment assessment = requireOwned(userId, assessmentId);
         AssessmentItem item = items.findByAssessmentIdAndPosition(assessmentId, position)
                 .orElseThrow(() -> ApplicationException.notFound("Assessment item"));
@@ -171,7 +175,7 @@ public class AssessmentService {
                     .assessment(assessmentId)
                     .answer(ctx.question().getId(), graded.verdict(), request.confidence(), recorded.firstCorrect())
                     .build());
-            return AnswerResult.of(ctx.question(), recorded.attempt(), recorded.nextReviewAt());
+            return SubmittedAnswer.of(recorded.attempt());
         });
     }
 
@@ -248,14 +252,18 @@ public class AssessmentService {
         int position = 1;
         int answeredCount = 0;
         for (ReportBuilder.Answered x : answered) {
+            SubmittedAnswer submitted = null;
             AnswerResult result = null;
             if (x.attempt() != null) {
                 answeredCount++;
-                result = AnswerResult.of(x.question(), x.attempt(), cards.findByUserIdAndQuestionId(userId,
-                        x.question().getId()).map(ReviewCard::getDueAt).orElse(null));
+                submitted = SubmittedAnswer.of(x.attempt());
+                if (!a.isOpen()) { // results only once the test is over
+                    result = AnswerResult.of(x.question(), x.attempt(), cards.findByUserIdAndQuestionId(userId,
+                            x.question().getId()).map(ReviewCard::getDueAt).orElse(null));
+                }
             }
             views.add(new AssessmentResponse.Item(position++, QuestionView.of(x.question(), x.topic().getTitle()),
-                    result));
+                    submitted, result));
         }
         AssessmentReport report = a.getReportJson() == null ? null
                 : json.readValue(a.getReportJson(), AssessmentReport.class);

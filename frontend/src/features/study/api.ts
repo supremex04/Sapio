@@ -1,5 +1,5 @@
 import { apiJson } from "../../shared/api/http";
-import type { AnswerInput, AnswerResult, Assessment, AssessmentSummary, CreateAssessmentInput, Lesson, Material, NextStep, ReviewItem, ReviewSummary, TopicCompletion, TutorAnswer, TutorFocus, TutorTurn } from "./types";
+import type { AnswerInput, AnswerResult, Assessment, AssessmentSummary, CreateAssessmentInput, Lesson, Material, NextStep, ReviewItem, ReviewSummary, SubmittedAnswer, TopicCompletion, TutorAnswer, TutorFocus, TutorTurn } from "./types";
 
 export const studyApi = {
   material: (documentId: string) => apiJson<Material>(`/documents/${documentId}/material`),
@@ -22,7 +22,7 @@ export const studyApi = {
   assessments: (documentId: string) => apiJson<AssessmentSummary[]>(`/documents/${documentId}/assessments`),
   assessment: (id: string) => apiJson<Assessment>(`/assessments/${id}`),
   answerItem: (id: string, position: number, input: AnswerInput) =>
-    apiJson<AnswerResult>(`/assessments/${id}/items/${position}/answer`, { method: "POST", body: input }),
+    apiJson<SubmittedAnswer>(`/assessments/${id}/items/${position}/answer`, { method: "POST", body: input }),
   completeAssessment: (id: string) => apiJson<Assessment>(`/assessments/${id}/complete`, { method: "POST" }),
 
   reviewSummary: () => apiJson<ReviewSummary>("/reviews/summary"),

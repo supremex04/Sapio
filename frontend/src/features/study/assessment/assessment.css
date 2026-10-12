@@ -170,17 +170,25 @@
   border-color: var(--purple-main);
   box-shadow: 0 0 0 3px var(--purple-soft);
 }
-.ar-dot.is-correct {
-  border-color: var(--green-main);
-  background: var(--green-main);
+/* Answered, without revealing how: results only come in the report. */
+.ar-dot.is-answered {
+  border-color: var(--purple-main);
+  background: var(--purple-main);
 }
-.ar-dot.is-partial {
-  border-color: var(--amber-main);
-  background: var(--amber-main);
+.ar-dot.is-saving {
+  border-color: var(--purple-main);
+  background: var(--purple-soft);
+  animation: ar-saving 1s var(--ease-out) infinite alternate;
 }
-.ar-dot.is-incorrect {
-  border-color: var(--red-main);
-  background: var(--red-main);
+@keyframes ar-saving {
+  to {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ar-dot.is-saving {
+    animation: none;
+  }
 }
 
 /* ======================================================== Report */
@@ -393,4 +401,25 @@
 }
 .qr-body-inner {
   padding: 0 0 var(--space-4) calc(22px + var(--space-3));
+}
+.qr-title {
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.qr-options .option {
+  cursor: default;
+}
+.qr-yours {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--text-muted);
+  font-weight: var(--weight-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.qr-written {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
 }

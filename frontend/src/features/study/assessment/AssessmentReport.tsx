@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react";
+import { Check, ChevronDown, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState, type CSSProperties } from "react";
 import { Dia, type DiaMood } from "../../../shared/illustrations/Dia";
@@ -12,7 +12,10 @@ import { cx } from "../../../shared/ui/cx";
 import { FocusHeader } from "../../../shared/ui/FocusHeader";
 import { Markdown } from "../../../shared/ui/Markdown";
 import { ProgressBar, ProgressRing } from "../../../shared/ui/Progress";
+import { Segmented } from "../../../shared/ui/Segmented";
+import { FeedbackBody } from "../components/QuestionCard";
 import { ResultStat } from "../components/ResultStat";
+import "../components/question.css";
 import { optionLetter } from "../feedback";
 import type { Assessment, AssessmentItem, Calibration, TopicLevel } from "../types";
 import "./assessment.css";
@@ -231,63 +234,103 @@ const VERDICT_EMOJI: Record<string, IconName> = {
   SKIPPED: "hourglass-not-done",
 };
 
+type ReviewFilter = "mistakes" | "all";
+
+/**
+ * Every question with its full check: the options marked right / wrong (or the written answer), the grader's
+ * feedback, a strong answer and the explanation. Tests reveal nothing while running, so this is where
+ * the learning from the test happens; mistakes come first and open.
+ */
 function QuestionReview({ items }: { items: AssessmentItem[] }) {
-  const [open, setOpen] = useState<number | null>(null);
+  const isMistake = (it: AssessmentItem) => it.answer?.verdict !== "CORRECT";
+  const mistakes = items.filter(isMistake);
+  const [filter, setFilter] = useState<ReviewFilter>(mistakes.length > 0 ? "mistakes" : "all");
+  const [open, setOpen] = useState<Set<number>>(() => new Set(mistakes.map((it) => it.position)));
+  const shown = filter === "mistakes" ? mistakes : items;
+  const toggle = (position: number) =>
+    setOpen((s) => {
+      const next = new Set(s);
+      if (!next.delete(position)) next.add(position);
+      return next;
+    });
+
   return (
     <Card>
-      <SectionTitle emoji="magnifying-glass-tilted-left" title="Review every question" />
-      <ul className="qr">
-        {items.map((it) => {
-          const a = it.answer;
-          const isOpen = open === it.position;
-          const verdict = a?.verdict ?? "SKIPPED";
-          return (
-            <li key={it.position} className="qr-item">
-              <button type="button" className="qr-head" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : it.position)}>
-                <Emoji name={VERDICT_EMOJI[verdict] ?? "cross-mark"} size={22} label={verdict.toLowerCase()} />
-                <span className="qr-prompt">
-                  {it.position}. <Markdown className="qr-md">{it.question.prompt}</Markdown>
-                </span>
-                <ChevronDown size={18} strokeWidth={2.5} className={cx("qr-chev", isOpen && "is-open")} aria-hidden />
-              </button>
-              <AnimatePresence initial={false}>
-                {isOpen && (
-                  <motion.div className="qr-body" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
-                    <div className="stack-sm qr-body-inner">
-                      {!a ? (
-                        <p className="small muted">Skipped. It's in your recall deck.</p>
-                      ) : (
-                        <>
-                          {a.selectedOptionIndex != null && (
-                            <p className="small">
-                              <span className="muted">Your answer: </span>
-                              {optionLetter(a.selectedOptionIndex)}. {it.question.options[a.selectedOptionIndex]}
-                            </p>
-                          )}
-                          {a.answerText && (
-                            <p className="small">
-                              <span className="muted">Your answer: </span>
-                              {a.answerText}
-                            </p>
-                          )}
-                          {a.correctOptionIndex != null && a.correctOptionIndex !== a.selectedOptionIndex && (
-                            <p className="small">
-                              <span className="muted">Correct: </span>
-                              {optionLetter(a.correctOptionIndex)}. {it.question.options[a.correctOptionIndex]}
-                            </p>
-                          )}
-                          {a.referenceAnswer && <Markdown className="small">{`**A strong answer:** ${a.referenceAnswer}`}</Markdown>}
-                          {a.explanation && <Markdown className="small text-2">{a.explanation}</Markdown>}
-                        </>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </li>
-          );
-        })}
-      </ul>
+      <div className="row-between qr-title">
+        <SectionTitle emoji="magnifying-glass-tilted-left" title="Go through your answers" />
+        <Segmented<ReviewFilter>
+          label="Show"
+          value={filter}
+          onChange={setFilter}
+          options={[
+            { value: "mistakes", label: `To strengthen (${mistakes.length})` },
+            { value: "all", label: `All (${items.length})` },
+          ]}
+        />
+      </div>
+      {shown.length === 0 ? (
+        <p className="small muted">Nothing to strengthen: every answer was right.</p>
+      ) : (
+        <ul className="qr">
+          {shown.map((it) => {
+            const a = it.answer;
+            const isOpen = open.has(it.position);
+            const verdict = a?.verdict ?? "SKIPPED";
+            return (
+              <li key={it.position} className="qr-item">
+                <button type="button" className="qr-head" aria-expanded={isOpen} onClick={() => toggle(it.position)}>
+                  <Emoji name={VERDICT_EMOJI[verdict] ?? "cross-mark"} size={22} label={verdict.toLowerCase()} />
+                  <span className="qr-prompt">
+                    {it.position}. <Markdown className="qr-md">{it.question.prompt}</Markdown>
+                  </span>
+                  <ChevronDown size={18} strokeWidth={2.5} className={cx("qr-chev", isOpen && "is-open")} aria-hidden />
+                </button>
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div className="qr-body" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
+                      <div className="stack-sm qr-body-inner">
+                        {!a ? (
+                          <p className="small muted">Skipped. It's in your recall deck, so it will come back soon.</p>
+                        ) : (
+                          <>
+                            {it.question.options.length > 0 ? (
+                              <div className="options qr-options" aria-label="Options">
+                                {it.question.options.map((option, i) => {
+                                  const correct = a.correctOptionIndex === i;
+                                  const wrongPick = a.selectedOptionIndex === i && !correct;
+                                  return (
+                                    <div key={i} className={cx("option", correct && "is-correct", wrongPick && "is-incorrect", !correct && !wrongPick && "is-muted")}>
+                                      <span className="option-key" aria-hidden>
+                                        {correct ? <Check size={18} strokeWidth={3.5} /> : wrongPick ? <X size={18} strokeWidth={3.5} /> : optionLetter(i)}
+                                      </span>
+                                      <span className="option-text">
+                                        <Markdown>{option}</Markdown>
+                                        {a.selectedOptionIndex === i && <span className="xs qr-yours">Your answer</span>}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              a.answerText && (
+                                <div className="qr-written">
+                                  <p className="eyebrow">Your answer</p>
+                                  <p className="small">{a.answerText}</p>
+                                </div>
+                              )
+                            )}
+                            <FeedbackBody result={a} />
+                          </>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </Card>
   );
 }

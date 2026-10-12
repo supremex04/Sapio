@@ -1,8 +1,8 @@
 import { Flag } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router";
-import { errorMessage } from "../../../shared/api/errors";
+import { ApiError, errorMessage } from "../../../shared/api/errors";
 import { celebrate } from "../../../shared/lib/celebrate";
 import { Alert } from "../../../shared/ui/Alert";
 import { Badge } from "../../../shared/ui/Badge";
@@ -13,9 +13,9 @@ import { Skeleton } from "../../../shared/ui/Skeleton";
 import { useProgress } from "../../progress/ProgressContext";
 import { studyApi } from "../api";
 import { GeneratingState } from "../components/GeneratingState";
-import { QuestionCard } from "../components/QuestionCard";
-import type { AnswerResult, Assessment } from "../types";
+import type { AnswerInput, Assessment, AssessmentItem } from "../types";
 import { AssessmentReportView } from "./AssessmentReport";
+import { TestQuestion } from "./TestQuestion";
 import "./assessment.css";
 
 /** Test runner (focus mode): one question at a time, resumes at the first unanswered question. */
@@ -23,6 +23,9 @@ export function AssessmentPage() {
   const { id = "" } = useParams();
   const { refresh } = useProgress();
   const [assessment, setAssessment] = useState<Assessment | null>(null);
+  const [saving, setSaving] = useState<Set<number>>(new Set());
+  const pending = useRef(new Map<number, Promise<void>>());
+  const failed = useRef(new Set<number>());
   const [error, setError] = useState<string | null>(null);
   const [index, setIndex] = useState(0);
   const [finishing, setFinishing] = useState(false);
@@ -32,7 +35,7 @@ export function AssessmentPage() {
     studyApi.assessment(id).then(
       (a) => {
         setAssessment(a);
-        const firstOpen = a.items.findIndex((it) => !it.answer);
+        const firstOpen = a.items.findIndex((it) => !it.submitted);
         setIndex(firstOpen === -1 ? Math.max(0, a.items.length - 1) : firstOpen);
       },
       (e) => setError(errorMessage(e)),
@@ -46,6 +49,8 @@ export function AssessmentPage() {
   async function finish() {
     setFinishing(true);
     try {
+      await Promise.allSettled(pending.current.values()); // answers still saving in the background
+      if (failed.current.size > 0) return; // an answer didn't save: the learner answers it again first
       const done = await studyApi.completeAssessment(id);
       setAssessment(done);
       setJustFinished(true);
@@ -57,6 +62,9 @@ export function AssessmentPage() {
       setFinishing(false);
     }
   }
+
+  const setItems = (update: (items: AssessmentItem[]) => AssessmentItem[]) =>
+    setAssessment((a) => (a ? { ...a, items: update(a.items) } : a));
 
   if (error && !assessment) return <Alert>{error}</Alert>;
   if (!assessment) {
@@ -72,18 +80,51 @@ export function AssessmentPage() {
 
   const items = assessment.items;
   const item = items[index];
-  const answered = items.filter((it) => it.answer).length;
-  const allAnswered = answered === items.length;
+  const answered = items.filter((it) => it.submitted).length;
+  const remaining = items.filter((it) => !it.submitted && it.position !== item?.position).length;
 
-  function recordAnswer(position: number, result: AnswerResult) {
-    setAssessment((a) => (a ? { ...a, answeredCount: a.answeredCount + 1, items: a.items.map((it) => (it.position === position ? { ...it, answer: result } : it)) } : a));
-    void refresh();
+  /** Records the answer locally and saves it in the background, so the next question appears at once. */
+  function save(position: number, input: AnswerInput) {
+    const local = { selectedOptionIndex: input.optionIndex ?? null, answerText: input.text ?? null, confidence: input.confidence ?? null };
+    setItems((list) => list.map((it) => (it.position === position ? { ...it, submitted: local } : it)));
+    setSaving((s) => new Set(s).add(position));
+    const request = studyApi
+      .answerItem(id, position, input)
+      .then(
+        (saved) => {
+          failed.current.delete(position);
+          setItems((list) => list.map((it) => (it.position === position ? { ...it, submitted: saved } : it)));
+        },
+        (e) => {
+          if (e instanceof ApiError && e.code === "ALREADY_ANSWERED") return; // saved by an earlier attempt
+          failed.current.add(position);
+          setItems((list) => list.map((it) => (it.position === position ? { ...it, submitted: null } : it)));
+          setError(`Question ${position} didn't save (${errorMessage(e)}). Please answer it again.`);
+          setIndex(items.findIndex((it) => it.position === position));
+        },
+      )
+      .finally(() => {
+        pending.current.delete(position);
+        setSaving((s) => {
+          const next = new Set(s);
+          next.delete(position);
+          return next;
+        });
+      });
+    pending.current.set(position, request);
+    if (remaining === 0) {
+      void finish();
+    } else {
+      goNext(position);
+    }
   }
 
-  function goNext() {
-    const nextOpen = items.findIndex((it, i) => i > index && !it.answer);
-    const firstOpen = items.findIndex((it) => !it.answer);
-    setIndex(nextOpen !== -1 ? nextOpen : firstOpen !== -1 ? firstOpen : Math.min(index + 1, items.length - 1));
+  function goNext(from: number) {
+    const at = items.findIndex((it) => it.position === from);
+    const open = (i: number) => !items[i]?.submitted && items[i]?.position !== from;
+    const after = items.findIndex((_, i) => i > at && open(i));
+    const first = items.findIndex((_, i) => open(i));
+    setIndex(after !== -1 ? after : first !== -1 ? first : Math.min(at + 1, items.length - 1));
   }
 
   return (
@@ -105,6 +146,8 @@ export function AssessmentPage() {
         }
       />
 
+      {error && <Alert>{error}</Alert>}
+
       {item && (
         <AnimatePresence mode="wait">
           <motion.div key={item.position} className="ar-question" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}>
@@ -114,14 +157,12 @@ export function AssessmentPage() {
               </span>
               <Badge tone="mastery">{item.question.topicTitle}</Badge>
             </div>
-            <QuestionCard
+            <TestQuestion
               key={item.position}
               question={item.question}
-              initialResult={item.answer}
-              onSubmit={(input) => studyApi.answerItem(assessment.id, item.position, input)}
-              onAnswered={(r) => recordAnswer(item.position, r)}
-              onContinue={allAnswered ? finish : goNext}
-              continueLabel={allAnswered ? "See my results" : "Continue"}
+              submitted={item.submitted}
+              onSave={(input) => save(item.position, input)}
+              nextLabel={remaining === 0 ? "Finish test" : "Next"}
             />
           </motion.div>
         </AnimatePresence>
@@ -132,14 +173,13 @@ export function AssessmentPage() {
           <button
             key={it.position}
             type="button"
-            className={cx("ar-dot", i === index && "is-current", it.answer && `is-${it.answer.verdict.toLowerCase()}`)}
-            aria-label={`Question ${it.position}${it.answer ? ` (answered: ${it.answer.verdict.toLowerCase()})` : ""}`}
+            className={cx("ar-dot", i === index && "is-current", saving.has(it.position) ? "is-saving" : it.submitted && "is-answered")}
+            aria-label={`Question ${it.position}${it.submitted ? " (answered)" : ""}`}
             aria-current={i === index ? "step" : undefined}
             onClick={() => setIndex(i)}
           />
         ))}
       </nav>
-      {error && <Alert>{error}</Alert>}
     </>
   );
 }

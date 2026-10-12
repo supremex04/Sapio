@@ -13,8 +13,11 @@ list of *topics*. Once the material is ready, the user picks a mode:
   analogies built **only from the document**, with comprehension checks between sections and a
   "ask the tutor" box.
 - **Test my knowledge**: an assessment with AI-generated questions grounded in the material.
-  Each answer gets immediate feedback; at the end the user gets a report with score,
-  per-topic performance, weak areas and next steps.
+  No feedback during the test (answers are saved and the next question appears at once); the report at
+  the end has the score, per-topic performance, weak areas, next steps and **every question with its full
+  check**: options marked right / wrong (or the written answer), grader feedback, a strong answer and the
+  explanation, mistakes first. While a test is open the API returns only what was answered
+  (`submitted`), never verdicts or answer keys; `answer` appears on items once it is completed.
 
 Both modes read the **same study material** (chunks + topics). Topics link to the chunks they
 were derived from, and lessons and questions are generated only from those chunks.

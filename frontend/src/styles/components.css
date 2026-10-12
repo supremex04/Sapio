@@ -462,7 +462,7 @@ button.chip {
   opacity: 0.55;
 }
 
-/* ======================================================== Feedback sheet (after "Check") */
+/* ======================================================== Feedback sheet (bottom bar of question flows) */
 .sheet {
   position: fixed;
   left: 0;

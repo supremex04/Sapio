@@ -215,8 +215,9 @@ Conventions:
 - A feature owns its API calls (`api.ts`), types (`types.ts`, mirroring the spec exactly) and pages.
 - Pure logic (path state, lesson step ordering, level math, pipeline mapping, feedback copy) lives in
   plain `.ts` modules with Vitest tests; components stay thin.
-- One `QuestionCard` serves lesson checks, assessments and reviews, so answering always feels the same
-  (answer → confidence → check → elaborative feedback).
+- `QuestionCard` serves lesson checks and recall with immediate elaborative feedback: lessons tap an option to
+  answer (`instant`), recall keeps answer → confidence → Check. Tests use `TestQuestion`, which only collects
+  answers; results come in the report.
 - After any learning action, call `useProgress().refresh()`: the provider diffs the summary and
   announces XP, level-ups and goal completion.
 - The access token lives in memory only; on reload the session is restored with the HttpOnly

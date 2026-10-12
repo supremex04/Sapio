@@ -7,7 +7,6 @@ import jakarta.validation.Valid;
 
 import com.ved.security.CurrentUserId;
 import com.ved.study.question.AnswerRequest;
-import com.ved.study.question.AnswerResult;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -43,7 +42,7 @@ class AssessmentController {
     }
 
     @PostMapping("/api/assessments/{id}/items/{position}/answer")
-    AnswerResult answer(@CurrentUserId UUID userId, @PathVariable UUID id, @PathVariable int position,
+    SubmittedAnswer answer(@CurrentUserId UUID userId, @PathVariable UUID id, @PathVariable int position,
                         @Valid @RequestBody AnswerRequest body) {
         return assessments.answer(userId, id, position, body);
     }

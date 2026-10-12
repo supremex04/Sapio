@@ -21,6 +21,11 @@ public record AssessmentResponse(
         List<Item> items,
         AssessmentReport report) {
 
-    public record Item(int position, QuestionView question, AnswerResult answer) {
+    /**
+     * @param submitted what the learner answered (null if not yet)
+     * @param answer    verdict, answer key and feedback: only once the test is completed (results are revealed
+     *                  in the report, never during the test)
+     */
+    public record Item(int position, QuestionView question, SubmittedAnswer submitted, AnswerResult answer) {
     }
 }

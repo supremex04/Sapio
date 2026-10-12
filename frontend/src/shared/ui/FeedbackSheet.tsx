@@ -19,7 +19,7 @@ interface Props {
 }
 
 /**
- * The sticky bottom bar of every question flow. Neutral while answering (holds "Check"), then
+ * The sticky bottom bar of every question flow. Neutral while answering (holds "Check", "Submit" or "Next"), then
  * slides up in the verdict colour with Dia's reaction and the explanation (immediate, elaborative
  * feedback). One pattern for lessons, tests and reviews.
  */

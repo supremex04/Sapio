@@ -74,7 +74,7 @@ never the whole document. *Why:* compact, structured context keeps generation gr
 | Learning path (document page → Topics) | 3–12 ordered topics built from the tree: an overview strip (one segment per topic, coloured by state) and a vertical timeline whose rail fills as topics are completed, with per-topic mastery bars and one recommended "Start / Continue" | Mastery learning: advance on mastery, not time |
 | Lessons (`/documents/:id/learn/:topicId`) | generated on first open and cached; CONCEPT / EXAMPLE / ANALOGY sections ending in SUMMARY, key takeaways | Concrete examples & dual coding; cognitive load (one section at a time) |
 | Warm-up question | a pretest before the first section | Pretesting / generation effect |
-| Comprehension checks | multiple choice / true-false between sections, graded server-side with elaborative feedback and optional confidence | Retrieval practice, immediate elaborative feedback, hypercorrection |
+| Comprehension checks | multiple choice / true-false between sections: tapping an option answers it and shows the verdict with elaborative feedback at once, then Continue | Retrieval practice, immediate elaborative feedback, hypercorrection |
 | Explain-it-back | a final short answer graded by the AI against the source | Elaboration & self-explanation |
 | AI tutor | "Ask the tutor" panel on a lesson, grounded in the topic's sections; says when the document doesn't cover something | Self-explanation for "why" questions |
 | Figures in lessons | lessons and tutor answers show document figures inline with caption; click to enlarge | Dual coding |
@@ -87,9 +87,12 @@ Spec: [specs/study.md](specs/study.md).
 - Setup (`/documents/:id/test`): question count (3–20), difficulty `EASY | MIXED | HARD`, topic selection.
 - Questions are grounded in retrieved sections, **interleaved** across topics, and avoid prompts
   from the learner's earlier tests of the same document. *Why:* interleaving improves discrimination and transfer.
+- Runner: answer (with optional confidence) and move on; answers save in the background and nothing about
+  correctness is shown until the end. *Why:* a test measures; feedback mid-test changes later answers.
 - Grading: choice questions deterministic; short answers graded by the AI (score clamped to the verdict band).
 - Report (`/assessments/:id`): score, per-topic level (STRONG / DEVELOPING / WEAK), strengths first,
-  weak areas with advice, next steps, and **confidence calibration**. *Why:* peak-end rule, growth-mindset feedback, metacognition.
+  weak areas with advice, next steps, **confidence calibration**, and every question with its full check
+  (marked options or written answer, feedback, strong answer, explanation; "To strengthen" first). *Why:* peak-end rule, growth-mindset feedback, metacognition.
 - Falls back to a deterministic narrative if the AI is unavailable when the report is written.
 
 Spec: [specs/study.md](specs/study.md#test-my-knowledge).

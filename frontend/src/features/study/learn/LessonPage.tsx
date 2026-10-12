@@ -357,6 +357,7 @@ function CheckStep({
         onAnswered={(r) => onAnswered(check, r)}
         onContinue={onContinue}
         continueLabel={continueLabel}
+        instant
       />
     </>
   );

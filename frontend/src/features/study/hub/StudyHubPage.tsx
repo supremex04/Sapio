@@ -226,7 +226,7 @@ function ModeCards({ documentId, material }: { documentId: string; material: Mat
           </span>
           <div className="mode-text">
             <h2>Test my knowledge</h2>
-            <p className="text-2">Questions from your material, instant feedback and a report on what to strengthen.</p>
+            <p className="text-2">Questions from your material, then a report with every answer explained and what to strengthen.</p>
           </div>
           <div className="mode-meta">
             <div className="row-between small">

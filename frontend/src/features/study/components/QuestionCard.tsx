@@ -37,6 +37,11 @@ interface Props {
   /** Shown as the sheet's primary button after answering (e.g. go to the next step). */
   onContinue?: () => void;
   continueLabel?: string;
+  /**
+   * Lesson checks: tapping an option submits it at once (no Check step, no confidence prompt). Written answers
+   * still need Submit. Recall keeps the deliberate answer → confidence → Check flow.
+   */
+  instant?: boolean;
 }
 
 const SHEET_TONE: Record<Verdict, SheetTone> = { CORRECT: "correct", PARTIAL: "partial", INCORRECT: "incorrect" };
@@ -49,9 +54,10 @@ function moodFor(result: AnswerResult, context: "warmup" | "normal"): DiaMood {
 }
 
 /**
- * One question: answer → (optional) confidence → Check → immediate elaborative feedback.
- * Shared by lesson checks, tests and reviews so the interaction is always the same.
- * Keyboard: 1–9 pick an option, Enter checks / continues (Ctrl+Enter inside the text box).
+ * One question with immediate elaborative feedback: answer → (optional) confidence → Check, or in `instant`
+ * mode (lessons) tap an option and see the feedback at once. Used by lesson checks and recall.
+ * Keyboard: 1–9 pick an option (and submit it in instant mode), Enter checks / continues (Ctrl+Enter in the
+ * text box).
  */
 export function QuestionCard({
   question,
@@ -65,6 +71,7 @@ export function QuestionCard({
   presentation = "sheet",
   onContinue,
   continueLabel = "Continue",
+  instant = false,
 }: Props) {
   const [selected, setSelected] = useState<number | null>(initialResult?.selectedOptionIndex ?? null);
   const [text, setText] = useState(initialResult?.answerText ?? "");
@@ -76,13 +83,16 @@ export function QuestionCard({
   const isShort = question.type === "SHORT_ANSWER";
   const canSubmit = !result && !submitting && (isShort ? text.trim().length > 0 : selected !== null);
   const sheet = presentation === "sheet";
+  const tapToAnswer = instant && !isShort;
 
-  async function submit() {
-    if (!canSubmit) return;
+  /** @param option the option just tapped (instant mode), before the selection state has updated */
+  async function submit(option?: number) {
+    const choice = option ?? selected;
+    if (result || submitting || (isShort ? !text.trim() : choice === null)) return;
     setSubmitting(true);
     setError(null);
     try {
-      const input: AnswerInput = isShort ? { text: text.trim() } : { optionIndex: selected ?? 0 };
+      const input: AnswerInput = isShort ? { text: text.trim() } : { optionIndex: choice ?? 0 };
       if (confidence) input.confidence = confidence;
       const r = await onSubmit(input);
       setResult(r);
@@ -102,8 +112,8 @@ export function QuestionCard({
   }
 
   // Keyboard shortcuts for the active question.
-  const latest = useRef({ submit, onContinue, result, canSubmit, isShort, optionCount: question.options.length });
-  latest.current = { submit, onContinue, result, canSubmit, isShort, optionCount: question.options.length };
+  const latest = useRef({ submit, onContinue, result, canSubmit, isShort, tapToAnswer, optionCount: question.options.length });
+  latest.current = { submit, onContinue, result, canSubmit, isShort, tapToAnswer, optionCount: question.options.length };
   useEffect(() => {
     if (!sheet) return;
     function onKey(e: KeyboardEvent) {
@@ -121,7 +131,10 @@ export function QuestionCard({
       }
       if (!inText && !s.result && !s.isShort && /^[1-9]$/.test(e.key)) {
         const i = Number(e.key) - 1;
-        if (i < s.optionCount) setSelected(i);
+        if (i < s.optionCount) {
+          setSelected(i);
+          if (s.tapToAnswer) void s.submit(i);
+        }
       }
     }
     window.addEventListener("keydown", onKey);
@@ -158,7 +171,10 @@ export function QuestionCard({
                 aria-checked={isSelected}
                 disabled={!!result || submitting}
                 className={cx("option", !result && isSelected && "is-selected", isCorrect && "is-correct", isWrongPick && "is-incorrect", result && !isCorrect && !isWrongPick && "is-muted")}
-                onClick={() => setSelected(i)}
+                onClick={() => {
+                  setSelected(i);
+                  if (tapToAnswer) void submit(i);
+                }}
                 animate={isWrongPick ? { x: [0, -6, 6, -4, 4, 0] } : isCorrect ? { scale: [1, 1.03, 1] } : {}}
                 transition={{ duration: 0.4 }}
               >
@@ -174,7 +190,7 @@ export function QuestionCard({
         </div>
       )}
 
-      {!result && (
+      {!result && !instant && (
         <div className="confidence" role="radiogroup" aria-label="How sure are you?">
           <span className="confidence-label">How sure are you?</span>
           {CONFIDENCE_OPTIONS.map((c) => (
@@ -226,11 +242,19 @@ export function QuestionCard({
           ) : (
             <FeedbackSheet
               tone="neutral"
-              aside={isShort && <span className="sheet-note">Ctrl + Enter to submit</span>}
+              aside={
+                isShort ? (
+                  <span className="sheet-note">Ctrl + Enter to submit</span>
+                ) : (
+                  tapToAnswer && <span className="sheet-note">{submitting ? "Checking…" : "Tap an answer to check it"}</span>
+                )
+              }
               actions={
-                <Button variant="primary" size="lg" onClick={submit} disabled={!canSubmit} loading={submitting}>
-                  {isShort ? (submitting ? "Reading…" : "Submit") : "Check"}
-                </Button>
+                !tapToAnswer && (
+                  <Button variant="primary" size="lg" onClick={() => submit()} disabled={!canSubmit} loading={submitting}>
+                    {isShort ? (submitting ? "Reading…" : "Submit") : "Check"}
+                  </Button>
+                )
               }
             />
           )}
@@ -248,7 +272,8 @@ export function QuestionCard({
   );
 }
 
-function FeedbackBody({ result }: { result: AnswerResult }) {
+/** The elaborative feedback after an answer: grader feedback, a strong answer, the explanation. */
+export function FeedbackBody({ result }: { result: AnswerResult }) {
   const showFeedback = result.feedback && result.feedback.trim() !== result.explanation.trim();
   return (
     <div className="feedback-body">
@@ -266,7 +291,7 @@ function FeedbackBody({ result }: { result: AnswerResult }) {
 }
 
 /** Reserves space at the end of the page equal to the fixed sheet's height, so nothing hides under it. */
-function SheetSlot({ children }: { children: ReactNode }) {
+export function SheetSlot({ children }: { children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(0);
   useLayoutEffect(() => {
