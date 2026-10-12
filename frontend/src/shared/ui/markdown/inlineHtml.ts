@@ -1,3 +1,5 @@
+import { repairTables } from "./tables";
+
 /**
  * Document text can carry simple inline HTML from PDF extraction (<mark>, <u>, <b>, <br>…). The renderer never
  * executes HTML, so these are turned into Markdown emphasis or dropped. Code (fenced or inline) is left as is.
@@ -16,7 +18,8 @@ const RULES: [RegExp, string][] = [
 const CODE = /(```[\s\S]*?```|`[^`\n]*`)/;
 
 export function inlineHtmlToMarkdown(text: string): string {
-  return text
+  // Tables first: their rows must stay single lines before <br> elsewhere becomes a line break.
+  return repairTables(text)
     .split(CODE)
     .map((part, i) => (i % 2 === 1 ? part : RULES.reduce((s, [pattern, repl]) => s.replace(pattern, repl), part)))
     .join("");

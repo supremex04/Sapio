@@ -63,6 +63,12 @@ export function Markdown({
       }
       return null; // external images are not loaded
     },
+    // The wrapper scrolls sideways on narrow screens, so the table itself can fill the available width.
+    table: ({ children: rows }) => (
+      <div className="md-table">
+        <table>{rows}</table>
+      </div>
+    ),
   };
   return (
     <div className={className ? `markdown ${className}` : "markdown"}>

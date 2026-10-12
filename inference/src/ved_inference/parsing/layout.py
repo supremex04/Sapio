@@ -8,6 +8,7 @@ import pymupdf
 
 from ved_inference.parsing.figures import decode, encode
 from ved_inference.parsing.models import BBox, Block
+from ved_inference.parsing.tables import repair_tables
 
 log = logging.getLogger(__name__)
 
@@ -27,7 +28,8 @@ _FENCE = re.compile(r"(```.*?```|`[^`\n]*`)", re.DOTALL)
 
 def inline_html_to_markdown(text: str) -> str:
     """Converts simple inline HTML to Markdown, leaving code (fenced or inline) untouched."""
-    parts = _FENCE.split(text)
+    # Tables first: their rows must stay single lines before <br> elsewhere becomes a line break.
+    parts = _FENCE.split(repair_tables(text))
     for i in range(0, len(parts), 2):  # even indexes are outside code
         for pattern, repl in _INLINE_HTML:
             parts[i] = pattern.sub(repl, parts[i])

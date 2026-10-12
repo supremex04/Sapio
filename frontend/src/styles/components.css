@@ -886,7 +886,7 @@ button.chip {
 .markdown ol,
 .markdown blockquote,
 .markdown pre,
-.markdown table {
+.markdown .md-table {
   margin: 0 0 0.85em;
 }
 .markdown strong {
@@ -942,17 +942,36 @@ button.chip {
   padding: 0.2em 0 0.2em 1em;
   color: var(--text-2);
 }
-.markdown table {
-  display: block;
+/* Tables fill the column; on narrow screens the wrapper scrolls instead of squeezing cells to a few letters. */
+.markdown .md-table {
   overflow-x: auto;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-md);
+}
+.markdown table {
+  width: 100%;
+  min-width: 36rem;
   border-collapse: collapse;
   font-size: var(--text-small);
+  line-height: 1.45;
 }
 .markdown th,
 .markdown td {
-  border: var(--border-width) solid var(--border);
-  padding: 0.45rem 0.7rem;
+  border-bottom: var(--border-width) solid var(--border);
+  padding: 0.55rem 0.8rem;
   text-align: left;
+  vertical-align: top;
+  overflow-wrap: break-word;
+}
+.markdown th + th,
+.markdown td + td {
+  border-left: var(--border-width) solid var(--border);
+}
+.markdown tbody tr:last-child td {
+  border-bottom: 0;
+}
+.markdown td code {
+  overflow-wrap: anywhere;
 }
 .markdown th {
   background: var(--surface-2);

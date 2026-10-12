@@ -81,6 +81,13 @@ newline) becomes Markdown and enclosed-letter slide bullet glyphs (U+1F130 to U+
 untouched. The frontend renderer (`shared/ui/markdown/inlineHtml.ts`) applies the same rules, and also hides HTML
 comments (including "picture text" blocks), so text stored before this cleanup displays cleanly too.
 
+Tables are repaired first (`parsing/tables.py`, mirrored by `shared/ui/markdown/tables.ts`), because extraction
+wraps long cell text: a `<br>` inside a table row becomes a space (a row must stay on one line); a row with an empty
+cell that follows a complete row is the wrapped tail of that row and is merged into it cell by cell; and a table
+continued after a page break (same header, separated only by blank lines or `---`) becomes one table. Tables that
+genuinely contain empty cells are left as they are. The renderer shows tables full width in a horizontally
+scrolling wrapper.
+
 With `embed_images=True` the layout model renders each `picture` region, so raster images and vector drawings both arrive
 as images. With `use_ocr=True` pymupdf4llm uses RapidOCR (`rapid` extra: `rapidocr_onnxruntime`) and still returns
 headings and captions, but not pictures; `figures.detect_scanned_figures` fills that gap (see below).
