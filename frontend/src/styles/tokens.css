@@ -55,7 +55,7 @@
 
   /* ---------- Layout ---------- */
   --content-width: 1080px;
-  --main-width: 960px;
+  --main-width: 1200px; /* pages fill the space between sidebar and rail on wide screens; prose keeps its own cap */
   --reading-width: 860px; /* lessons: wide, yet lines stay readable (~85 characters) */
   --sidebar-width: 248px;
   --rail-width: 340px;

@@ -580,8 +580,12 @@ button.chip {
 .tabs {
   display: flex;
   gap: var(--space-1);
-  border-bottom: var(--border-width) solid var(--border);
+  /* Scrolls sideways on narrow screens only. The baseline is drawn inside the strip (an inset shadow, not a
+     border) so the active indicator can sit on it without overflowing, which would add a vertical scrollbar. */
   overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  box-shadow: inset 0 calc(-1 * var(--border-width)) 0 var(--border);
 }
 .tabs button {
   position: relative;
@@ -603,7 +607,7 @@ button.chip {
   position: absolute;
   left: var(--space-2);
   right: var(--space-2);
-  bottom: -2px;
+  bottom: 0;
   height: 4px;
   border-radius: 4px 4px 0 0;
   background: var(--color-primary);
