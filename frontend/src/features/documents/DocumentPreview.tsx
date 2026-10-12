@@ -33,7 +33,6 @@ export function DocumentPreview({ doc, ready }: { doc: DocumentDto; ready: boole
   };
   return (
     <div className="preview">
-      {/* Sticky, so the text size is always at hand while reading. */}
       <div className="preview-toolbar">
         <Segmented
           label="Preview mode"
@@ -45,8 +44,8 @@ export function DocumentPreview({ doc, ready }: { doc: DocumentDto; ready: boole
             { value: "raw", label: "Raw text" },
           ]}
         />
-        {mode !== "original" && <TextSizeControl step={textStep} onChange={changeTextStep} />}
       </div>
+      {mode !== "original" && <TextSizeControl step={textStep} onChange={changeTextStep} />}
       <div className="preview-scale" style={{ "--text-scale": 1 + textStep / 100 } as CSSProperties}>
         {mode === "reading" && <ReadingView doc={doc} ready={ready} />}
         {mode === "original" && <OriginalView doc={doc} />}
