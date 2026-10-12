@@ -58,9 +58,9 @@ export function AssessmentReportView({ assessment, fresh }: { assessment: Assess
         </motion.section>
 
         <div className="result-stats">
-          <ResultStat tone="green" label="Correct" emoji="check-mark-button" value={report.correctCount} />
+          <ResultStat tone="green" label="Correct" emoji="check-mark" value={report.correctCount} />
           <ResultStat tone="amber" label="Partly" emoji="thinking-face" value={report.partialCount} />
-          <ResultStat tone="teal" label="To review" emoji="repeat-button" value={toReview} />
+          <ResultStat tone="teal" label="To review" emoji="card-index" value={toReview} />
         </div>
 
         <div className="rp-actions">
@@ -225,7 +225,7 @@ function CalCell({ n, title, tone, total }: { n: number; title: string; tone: "g
 }
 
 const VERDICT_EMOJI: Record<string, EmojiName> = {
-  CORRECT: "check-mark-button",
+  CORRECT: "check-mark",
   PARTIAL: "thinking-face",
   INCORRECT: "cross-mark",
   SKIPPED: "hourglass-not-done",

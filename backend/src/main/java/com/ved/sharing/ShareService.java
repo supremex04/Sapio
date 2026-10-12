@@ -84,6 +84,7 @@ class ShareService {
 
     private MyShare toMyShare(DocumentShare s) {
         return new MyShare(s.getId(), s.getDocumentId(), categories.find(s.getCategory()).orElseThrow(),
-                s.getDescription(), s.getImportCount(), s.getCreatedAt(), s.getUpdatedAt());
+                s.getDescription(), s.getImportCount(), s.getUpvotes(), s.getDownvotes(), s.getCommentCount(),
+                s.getCreatedAt(), s.getUpdatedAt());
     }
 }

@@ -17,7 +17,7 @@ interface ToastApi {
 
 const ToastContext = createContext<ToastApi | null>(null);
 
-const ICONS: Record<ToastKind, EmojiName> = { success: "check-mark-button", error: "cross-mark", info: "light-bulb", xp: "high-voltage", level: "crown" };
+const ICONS: Record<ToastKind, EmojiName> = { success: "check-mark", error: "cross-mark", info: "light-bulb", xp: "high-voltage", level: "crown" };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);

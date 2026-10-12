@@ -91,7 +91,7 @@ export function DashboardPage() {
         <Card>{days ? <ActivityChart days={days} goalMinutes={summary?.goal.dailyMinutes ?? null} /> : <Skeleton height={260} />}</Card>
 
         <Card>
-          <CardHeader icon={<Emoji name="chart-increasing" size={24} />} title="Recent activity" />
+          <CardHeader icon={<Emoji name="bar-chart" size={24} />} title="Recent activity" />
           <ActivityFeed items={activity} />
         </Card>
       </div>
@@ -101,7 +101,7 @@ export function DashboardPage() {
 
 /** One recommended action (avoids choice overload; learning-science.md §2). Hue = the job. */
 const STEP_STYLE: Record<NextStepKind, { emoji: EmojiName; tone: string; button: "review" | "primary" | "mastery" | "accent" }> = {
-  REVIEW: { emoji: "repeat-button", tone: "teal", button: "review" },
+  REVIEW: { emoji: "card-index", tone: "teal", button: "review" },
   CONTINUE_TOPIC: { emoji: "open-book", tone: "blue", button: "primary" },
   START_TOPIC: { emoji: "light-bulb", tone: "blue", button: "primary" },
   TAKE_TEST: { emoji: "bullseye", tone: "purple", button: "mastery" },
@@ -151,11 +151,11 @@ const ACTIVITY: Record<string, { label: string; emoji: EmojiName }> = {
   LESSON_STARTED: { label: "Started a lesson", emoji: "open-book" },
   LESSON_COMPLETED: { label: "Completed a topic", emoji: "graduation-cap" },
   TOPIC_COMPLETED: { label: "Completed a topic", emoji: "graduation-cap" },
-  CHECK_ANSWERED: { label: "Answered a check", emoji: "check-mark-button" },
+  CHECK_ANSWERED: { label: "Answered a check", emoji: "check-mark" },
   ASSESSMENT_ANSWERED: { label: "Answered a test question", emoji: "memo" },
   ASSESSMENT_STARTED: { label: "Started a test", emoji: "bullseye" },
   ASSESSMENT_COMPLETED: { label: "Finished a test", emoji: "trophy" },
-  REVIEW_ANSWERED: { label: "Reviewed a card", emoji: "repeat-button" },
+  REVIEW_ANSWERED: { label: "Reviewed a card", emoji: "card-index" },
   TUTOR_QUESTION: { label: "Asked the tutor", emoji: "thinking-face" },
   DAILY_GOAL_REACHED: { label: "Reached the daily goal", emoji: "party-popper" },
 };
@@ -254,10 +254,10 @@ function ContinueLearning({ items }: { items: ContinueItem[] | null }) {
         return (
           <Link key={doc.id} to={`/documents/${doc.id}`} className="card card-interactive continue-card">
             <div className="row-between">
-              <Emoji name="books" size={40} />
+              <Emoji name="ledger" size={40} />
               <div className="row" style={{ gap: "var(--space-1)" }}>
                 {material && material.stats.reviewsDue > 0 && (
-                  <Chip emoji="repeat-button" tone="review" label={`${material.stats.reviewsDue} reviews due`}>
+                  <Chip emoji="card-index" tone="review" label={`${material.stats.reviewsDue} reviews due`}>
                     {material.stats.reviewsDue}
                   </Chip>
                 )}

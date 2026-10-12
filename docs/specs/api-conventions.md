@@ -31,16 +31,17 @@ Every non-2xx response has this shape:
 
 | Code | HTTP | Meaning |
 |---|---|---|
-| `VALIDATION_FAILED` | 400 | Malformed or invalid input |
+| `VALIDATION_FAILED` | 400 | Malformed or invalid input (including a body that isn't valid JSON) |
 | `UNAUTHENTICATED` | 401 | Missing/invalid/expired access token |
 | `INVALID_CREDENTIALS` | 401 | Wrong email or password (deliberately not saying which) |
 | `INVALID_REFRESH_TOKEN` | 401 | Refresh cookie missing, expired, revoked or already rotated |
-| `ACCESS_DENIED` | 403 | Authenticated but not allowed (role checks) |
+| `ACCESS_DENIED` | 403 | Authenticated but not allowed (role checks, deleting someone else's comment) |
 | `NOT_FOUND` | 404 | Doesn't exist **or belongs to someone else** |
 | `EMAIL_ALREADY_REGISTERED` | 409 | Sign-up with an existing email |
 | `RESULT_NOT_READY` | 409 | Document result requested before conversion completed |
 | `FILE_TOO_LARGE` | 413 | Upload above the size limit |
 | `UNSUPPORTED_FILE_TYPE` | 415 | Extension not allowed or content doesn't match it |
+| `RATE_LIMITED` | 429 | Too many actions in a short time (e.g. comments per minute) |
 | `AI_INPUT_REJECTED` | 422 | The AI refused the input itself (e.g. unreadable content); retrying the same input will not help |
 | `AI_UNAVAILABLE` | 503 | The AI is busy, out of quota or misconfigured; retry later. Carries `Retry-After: <seconds>` when the reset time is known |
 | `INTERNAL_ERROR` | 500 | Bug; details only in server logs (the UI shows the first 8 characters of `requestId` as "ref") |

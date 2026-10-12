@@ -93,7 +93,7 @@ export function StudyHubPage() {
           <BackToLibrary />
           <div className="hub-title-row">
             <span className="hub-art" aria-hidden>
-              <Emoji name={ready ? "books" : "page-facing-up"} size={44} />
+              <Emoji name={ready ? "ledger" : "page-facing-up"} size={44} />
             </span>
             <div className="hub-title-text">
               <p className="eyebrow">Your course</p>
@@ -243,7 +243,7 @@ function ModeCards({ documentId, material }: { documentId: string; material: Mat
 
       {reviewsDue > 0 && (
         <Link to={`/review?documentId=${documentId}`} className="card card-tight card-interactive card-teal hub-review">
-          <Emoji name="repeat-button" size={36} />
+          <Emoji name="card-index" size={36} />
           <span className="hub-review-text">
             <strong>
               {reviewsDue} review{reviewsDue === 1 ? "" : "s"} due · ~{reviewMinutes(reviewsDue)} min

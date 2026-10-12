@@ -14,9 +14,37 @@ export interface MyShare {
   category: Category;
   description: string;
   importCount: number;
+  upvotes: number;
+  downvotes: number;
+  commentCount: number;
   sharedAt: string;
   updatedAt: string;
 }
+
+/** 1 = up, -1 = down, 0 = no vote. */
+export type VoteValue = 1 | -1 | 0;
+
+export interface Votes {
+  upvotes: number;
+  downvotes: number;
+  myVote: VoteValue;
+}
+
+export interface ShareComment {
+  id: string;
+  body: string;
+  author: string;
+  createdAt: string;
+  /** Written by the person who shared the document. */
+  bySharer: boolean;
+  mine: boolean;
+  /** The viewer wrote it, or shared the document. */
+  canDelete: boolean;
+}
+
+/** Share of upvotes, when anyone voted. */
+export const helpfulPercent = (v: Votes): number | null =>
+  v.upvotes + v.downvotes === 0 ? null : Math.round((100 * v.upvotes) / (v.upvotes + v.downvotes));
 
 export interface ShareSummary {
   id: string;
@@ -30,7 +58,9 @@ export interface ShareSummary {
   sharedBy: string;
   sharedAt: string;
   importCount: number;
-  /** Shared by the viewer (cannot be imported). */
+  votes: Votes;
+  commentCount: number;
+  /** Shared by the viewer (cannot be imported or voted on). */
   mine: boolean;
   /** The viewer's copy, if they imported it already. */
   importedDocumentId: string | null;
@@ -48,10 +78,10 @@ export interface ImportResult {
   alreadyImported: boolean;
 }
 
-export type ExploreSort = "new" | "popular";
+export type ExploreSort = "new" | "top" | "popular";
 
 export const categoryEmoji = (c: Pick<Category, "emoji">): EmojiName =>
-  (EMOJI_NAMES as readonly string[]).includes(c.emoji) ? (c.emoji as EmojiName) : "books";
+  (EMOJI_NAMES as readonly string[]).includes(c.emoji) ? (c.emoji as EmojiName) : "ledger";
 
 const KIND_LABELS: Record<string, string> = {
   SYLLABUS: "Syllabus",

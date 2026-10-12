@@ -165,7 +165,8 @@ Guide: [guides/configuration.md](guides/configuration.md), [ADR-0010](adr/0010-v
   and the embedding size fits the database.
 - **Sharing and Explore**: learners share their own ready documents under a category; others browse Explore
   (filter, search, newest / most imported) and import an independent copy with its lessons, questions and notes,
-  ready instantly and tagged "Imported". Neither side's changes affect the other
+  ready instantly and tagged "Imported". Learners rate shares up or down ("Top rated" uses the Wilson lower
+  bound) and discuss them in comments, which the author or sharer can delete. Neither side's changes affect the other
   ([sharing.md](specs/sharing.md), [ADR-0012](adr/0012-import-shared-documents-as-independent-copies.md)).
 
 Guides: [guides/local-development.md](guides/local-development.md), [guides/configuration.md](guides/configuration.md),
@@ -176,7 +177,7 @@ Guides: [guides/local-development.md](guides/local-development.md), [guides/conf
 | Gap | Status |
 |---|---|
 | Frontend **Read mode** (tree navigation, search, term index, ask the document) | 🧪 next |
-| Explore: upvotes / downvotes and comments on shared documents | 🧪 next |
+| Explore moderation: reporting shares and comments, admin review | 🧪 next |
 | Teacher features: classes & sharing, teacher analytics, personalised assignments, exams | 🧪 later |
 | Role-specific behaviour (teacher vs student), admin user management | 🧪 |
 | Per-user AI quotas and cost logging; login rate limiting, password reset, refresh-token reuse detection | 🧪 |

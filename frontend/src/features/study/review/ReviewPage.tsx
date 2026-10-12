@@ -63,7 +63,7 @@ export function ReviewPage() {
       progressLabel={label}
       right={
         items && items.length > 0 && !done ? (
-          <Chip emoji="repeat-button" tone="review" label={`${total - index} cards left`}>
+          <Chip emoji="card-index" tone="review" label={`${total - index} cards left`}>
             {total - index}
           </Chip>
         ) : undefined
@@ -125,7 +125,7 @@ export function ReviewPage() {
           </div>
           <div className="result-stats">
             <ResultStat tone="green" label="Recalled" emoji="brain" value={recalled} />
-            <ResultStat tone="teal" label="Back soon" emoji="repeat-button" value={all.length - recalled} />
+            <ResultStat tone="teal" label="Back soon" emoji="card-index" value={all.length - recalled} />
             <ResultStat tone="blue" label="Cards" emoji="card-index-dividers" value={all.length} />
           </div>
           <div className="stack-sm" style={{ width: "100%", alignItems: "center" }}>

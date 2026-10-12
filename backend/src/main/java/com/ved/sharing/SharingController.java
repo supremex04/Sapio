@@ -11,11 +11,15 @@ import com.ved.common.error.ErrorCode;
 import com.ved.common.web.PageResponse;
 import com.ved.security.CurrentUserId;
 import com.ved.sharing.SharingResponses.Category;
+import com.ved.sharing.SharingResponses.Comment;
+import com.ved.sharing.SharingResponses.CommentRequest;
 import com.ved.sharing.SharingResponses.ImportResult;
 import com.ved.sharing.SharingResponses.MyShare;
 import com.ved.sharing.SharingResponses.ShareDetail;
 import com.ved.sharing.SharingResponses.ShareRequest;
 import com.ved.sharing.SharingResponses.ShareSummary;
+import com.ved.sharing.SharingResponses.VoteRequest;
+import com.ved.sharing.SharingResponses.Votes;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -37,8 +41,11 @@ class SharingController {
     private final ShareService shares;
     private final ExploreService explore;
     private final ShareCategories categories;
+    private final ShareFeedbackService feedback;
 
-    SharingController(ShareService shares, ExploreService explore, ShareCategories categories) {
+    SharingController(ShareService shares, ExploreService explore, ShareCategories categories,
+                      ShareFeedbackService feedback) {
+        this.feedback = feedback;
         this.shares = shares;
         this.explore = explore;
         this.categories = categories;
@@ -71,6 +78,30 @@ class SharingController {
         return ResponseEntity.status(result.alreadyImported() ? HttpStatus.OK : HttpStatus.CREATED).body(result);
     }
 
+    @PutMapping("/api/explore/{shareId}/vote")
+    Votes vote(@CurrentUserId UUID userId, @PathVariable UUID shareId, @RequestBody VoteRequest request) {
+        return feedback.vote(userId, shareId, request.value());
+    }
+
+    @GetMapping("/api/explore/{shareId}/comments")
+    PageResponse<Comment> comments(@CurrentUserId UUID userId, @PathVariable UUID shareId,
+                                   @RequestParam(defaultValue = "0") int page,
+                                   @RequestParam(defaultValue = "20") int size) {
+        return feedback.comments(userId, shareId, Math.max(page, 0), Math.clamp(size, 1, MAX_PAGE_SIZE));
+    }
+
+    @PostMapping("/api/explore/{shareId}/comments")
+    @ResponseStatus(HttpStatus.CREATED)
+    Comment comment(@CurrentUserId UUID userId, @PathVariable UUID shareId, @RequestBody CommentRequest request) {
+        return feedback.comment(userId, shareId, request.body());
+    }
+
+    @DeleteMapping("/api/explore/{shareId}/comments/{commentId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void deleteComment(@CurrentUserId UUID userId, @PathVariable UUID shareId, @PathVariable UUID commentId) {
+        feedback.deleteComment(userId, shareId, commentId);
+    }
+
     @GetMapping("/api/shares")
     List<MyShare> mine(@CurrentUserId UUID userId) {
         return shares.mine(userId);
@@ -92,7 +123,7 @@ class SharingController {
         try {
             return ExploreService.Sort.valueOf(value.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
-            throw new ApplicationException(ErrorCode.VALIDATION_FAILED, "sort must be 'new' or 'popular'");
+            throw new ApplicationException(ErrorCode.VALIDATION_FAILED, "sort must be 'new', 'top' or 'popular'");
         }
     }
 }

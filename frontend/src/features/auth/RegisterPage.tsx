@@ -15,7 +15,7 @@ import type { RegisterInput } from "./types";
 
 const ROLES: { value: RegisterInput["role"]; label: string; hint: string; emoji: EmojiName }[] = [
   { value: "STUDENT", label: "I'm learning", hint: "Study my own material", emoji: "graduation-cap" },
-  { value: "TEACHER", label: "I'm teaching", hint: "Build courses for a class", emoji: "books" },
+  { value: "TEACHER", label: "I'm teaching", hint: "Build courses for a class", emoji: "ledger" },
 ];
 
 export function RegisterPage() {

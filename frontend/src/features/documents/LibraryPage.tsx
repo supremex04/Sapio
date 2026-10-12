@@ -132,7 +132,7 @@ export function LibraryPage() {
           </div>
         ) : documents.length === 0 ? (
           <Card>
-            <EmptyState icon={<Emoji name="books" size={64} />} title="Your shelf is empty">
+            <EmptyState icon={<Emoji name="card-file-box" size={64} />} title="Your shelf is empty">
               Upload a document above. Most courses are ready in under two minutes.
             </EmptyState>
           </Card>
@@ -175,7 +175,7 @@ function DocumentCard({ doc, share, onShare, onRetry, onDelete }: {
   return (
     <Card tone={state.failed ? "red" : undefined} className="doc-card">
       <div className="row-between">
-        <Emoji name={state.done ? "books" : "page-facing-up"} size={40} />
+        <Emoji name={state.done ? "ledger" : "page-facing-up"} size={40} />
         {state.done ? (
           <Badge tone="success">Ready</Badge>
         ) : state.failed ? (
@@ -205,6 +205,8 @@ function DocumentCard({ doc, share, onShare, onRetry, onDelete }: {
         <p className="xs share-status">
           <Globe2 size={14} aria-hidden /> Shared in {share.category.name}
           {share.importCount > 0 && ` · imported ${share.importCount} ${share.importCount === 1 ? "time" : "times"}`}
+          {share.upvotes + share.downvotes > 0 && ` · ${share.upvotes} up, ${share.downvotes} down`}
+          {share.commentCount > 0 && ` · ${share.commentCount} ${share.commentCount === 1 ? "comment" : "comments"}`}
         </p>
       )}
       {!state.done && <PipelineStepper doc={doc} compact />}

@@ -1,6 +1,6 @@
 import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useLocation, useParams } from "react-router";
 import { errorMessage } from "../../shared/api/errors";
 import { Emoji } from "../../shared/illustrations/Emoji";
 import { formatRelative } from "../../shared/lib/format";
@@ -11,7 +11,9 @@ import { PageTransition } from "../../shared/ui/PageTransition";
 import { SkeletonText } from "../../shared/ui/Skeleton";
 import { sharingApi } from "./api";
 import { ImportAction } from "./ExplorePage";
-import { categoryEmoji, kindLabel, type ShareDetail } from "./types";
+import { Comments } from "./Comments";
+import { categoryEmoji, helpfulPercent, kindLabel, type ShareDetail, type Votes } from "./types";
+import { VoteControl } from "./VoteControl";
 import { useImport } from "./useImport";
 import "./sharing.css";
 
@@ -21,6 +23,16 @@ export function SharedItemPage() {
   const [detail, setDetail] = useState<ShareDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { importing, importShare } = useImport();
+  const setVotes = (votes: Votes) => setDetail((d) => (d ? { ...d, share: { ...d.share, votes } } : d));
+  const countComments = (delta: number) =>
+    setDetail((d) => (d ? { ...d, share: { ...d.share, commentCount: d.share.commentCount + delta } } : d));
+
+  const { hash } = useLocation();
+  const loaded = detail !== null;
+  useEffect(() => {
+    // Card comment counts link to #comments: scroll there once the page is rendered.
+    if (loaded && hash === "#comments") document.getElementById("comments")?.scrollIntoView({ behavior: "smooth" });
+  }, [loaded, hash]);
 
   useEffect(() => {
     setDetail(null);
@@ -66,6 +78,20 @@ export function SharedItemPage() {
               </div>
             </Card>
 
+            <Card className="shared-rating">
+              <div className="shared-rating-text">
+                <h2 className="shared-section-title">Was it useful?</h2>
+                <p className="small muted">
+                  {helpfulPercent(detail.share.votes) === null
+                    ? detail.share.mine
+                      ? "No ratings yet."
+                      : "No ratings yet. Rate it after you've studied with it."
+                    : `${helpfulPercent(detail.share.votes)}% found it helpful · ${detail.share.votes.upvotes + detail.share.votes.downvotes} ratings`}
+                </p>
+              </div>
+              <VoteControl shareId={detail.share.id} votes={detail.share.votes} readOnly={detail.share.mine} size="lg" onChange={setVotes} />
+            </Card>
+
             <Card>
               <h2 className="shared-section-title">
                 <Emoji name="compass" size={28} /> What you'll learn
@@ -81,6 +107,8 @@ export function SharedItemPage() {
                 ))}
               </ol>
             </Card>
+
+            <Comments shareId={detail.share.id} onCountChange={countComments} />
           </>
         )}
       </div>

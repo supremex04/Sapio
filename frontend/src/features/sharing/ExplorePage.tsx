@@ -1,4 +1,4 @@
-import { ArrowRight, Download, Search } from "lucide-react";
+import { ArrowRight, Download, MessageSquare, Search } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { errorMessage } from "../../shared/api/errors";
@@ -14,7 +14,8 @@ import { PageTransition } from "../../shared/ui/PageTransition";
 import { Segmented } from "../../shared/ui/Segmented";
 import { Skeleton } from "../../shared/ui/Skeleton";
 import { sharingApi } from "./api";
-import { categoryEmoji, kindLabel, type Category, type ExploreSort, type ShareSummary } from "./types";
+import { categoryEmoji, kindLabel, type Category, type ExploreSort, type ShareSummary, type Votes } from "./types";
+import { VoteControl } from "./VoteControl";
 import { useImport } from "./useImport";
 import "./sharing.css";
 
@@ -97,6 +98,7 @@ export function ExplorePage() {
             onChange={setSort}
             options={[
               { value: "new", label: "Newest" },
+              { value: "top", label: "Top rated" },
               { value: "popular", label: "Most imported" },
             ]}
           />
@@ -140,7 +142,13 @@ export function ExplorePage() {
           <>
             <div className="share-grid">
               {items.map((s) => (
-                <ShareCard key={s.id} share={s} importing={importing === s.id} onImport={() => importShare(s)} />
+                <ShareCard
+                  key={s.id}
+                  share={s}
+                  importing={importing === s.id}
+                  onImport={() => importShare(s)}
+                  onVotes={(votes) => setItems((list) => list?.map((x) => (x.id === s.id ? { ...x, votes } : x)) ?? null)}
+                />
               ))}
             </div>
             {page.next < page.total && (
@@ -155,7 +163,7 @@ export function ExplorePage() {
   );
 }
 
-export function ShareCard({ share, importing, onImport }: { share: ShareSummary; importing: boolean; onImport: () => void }) {
+export function ShareCard({ share, importing, onImport, onVotes }: { share: ShareSummary; importing: boolean; onImport: () => void; onVotes: (votes: Votes) => void }) {
   return (
     <Card className="share-card">
       <div className="row-between share-card-top">
@@ -183,6 +191,12 @@ export function ShareCard({ share, importing, onImport }: { share: ShareSummary;
       </div>
       <div className="share-actions">
         <ImportAction share={share} importing={importing} onImport={onImport} />
+        <span className="share-feedback">
+          <VoteControl shareId={share.id} votes={share.votes} readOnly={share.mine} onChange={onVotes} />
+          <Link to={`/explore/${share.id}#comments`} className="share-comments" aria-label={`${share.commentCount} comments`}>
+            <MessageSquare size={16} aria-hidden /> {share.commentCount}
+          </Link>
+        </span>
       </div>
     </Card>
   );

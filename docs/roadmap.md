@@ -43,7 +43,7 @@
 ## Next: community
 
 - [x] Share to Explore with a category; import as an independent copy; "Imported" tag (ADR-0012)
-- [ ] Upvotes / downvotes and comments on shared documents (ranking by votes in Explore)
+- [x] Upvotes / downvotes, "Top rated" (Wilson lower bound) and comments on shared documents
 - [ ] Moderation: report a share, hide abusive comments
 
 ## Later: learning platform

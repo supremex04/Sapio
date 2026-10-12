@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -57,6 +58,13 @@ public class GlobalExceptionHandler {
             HttpMediaTypeNotSupportedException.class})
     ResponseEntity<ApiError> handleBadRequest(Exception ex, HttpServletRequest request) {
         return respond(ApiError.of(ErrorCode.VALIDATION_FAILED, ex.getMessage(), request.getRequestURI()));
+    }
+
+    /** Malformed or mistyped JSON: the client's mistake, never a server error. */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ResponseEntity<ApiError> handleUnreadable(HttpServletRequest request) {
+        return respond(ApiError.of(ErrorCode.VALIDATION_FAILED, "Request body is missing or not valid JSON",
+                request.getRequestURI()));
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)

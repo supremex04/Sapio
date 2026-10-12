@@ -31,7 +31,7 @@ export function ProgressPanel({ className }: { className?: string }) {
       <Card tight>
         <div className="panel-row">
           <ProgressRing value={goalProgress(goal)} size={64} stroke={9} label="Daily goal">
-            <Emoji name={goal.reached ? "check-mark-button" : "bullseye"} size={26} />
+            <Emoji name={goal.reached ? "check-mark" : "bullseye"} size={26} />
           </ProgressRing>
           <div>
             <p className="eyebrow">Daily goal</p>
@@ -63,7 +63,7 @@ export function ProgressPanel({ className }: { className?: string }) {
       {reviews && reviews.dueNow > 0 && (
         <Link to="/review" className="card card-tight card-interactive card-teal">
           <div className="row">
-            <Emoji name="repeat-button" size={32} />
+            <Emoji name="card-index" size={32} />
             <div>
               <strong>
                 {reviews.dueNow} review{reviews.dueNow === 1 ? "" : "s"} due

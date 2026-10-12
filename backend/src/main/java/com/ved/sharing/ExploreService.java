@@ -34,6 +34,7 @@ class ExploreService {
 
     enum Sort {
         NEW("s.created_at DESC, s.id"),
+        TOP("s.quality DESC, s.created_at DESC, s.id"),
         POPULAR("s.import_count DESC, s.created_at DESC, s.id");
 
         final String orderBy;
@@ -49,7 +50,10 @@ class ExploreService {
              JOIN users u ON u.id = s.owner_id""";
     private static final String COLUMNS = """
             SELECT s.id, s.title, s.summary, s.kind, s.language, s.page_count, s.topic_titles, s.description,
-                   s.import_count, s.created_at, s.updated_at, s.owner_id, c.slug, c.name, c.emoji,
+                   s.import_count, s.upvotes, s.downvotes, s.comment_count, s.created_at, s.updated_at, s.owner_id,
+                   c.slug, c.name, c.emoji,
+                   coalesce((SELECT v.value FROM share_votes v WHERE v.share_id = s.id AND v.user_id = :viewer), 0)
+                       AS my_vote,
                    u.full_name AS shared_by,
                    (SELECT d.id FROM documents d WHERE d.owner_id = :viewer AND d.origin_share_id = s.id) AS copy_id""";
 
@@ -134,7 +138,8 @@ class ExploreService {
                 new Category(rs.getString("slug"), rs.getString("name"), rs.getString("emoji")),
                 rs.getString("kind"), rs.getString("language"), rs.getInt("page_count"), topics(rs).size(),
                 rs.getString("shared_by"), rs.getTimestamp("created_at").toInstant(), rs.getInt("import_count"),
-                viewer.equals(rs.getObject("owner_id", UUID.class)), rs.getObject("copy_id", UUID.class));
+                new SharingResponses.Votes(rs.getInt("upvotes"), rs.getInt("downvotes"), rs.getInt("my_vote")),
+                rs.getInt("comment_count"), viewer.equals(rs.getObject("owner_id", UUID.class)), rs.getObject("copy_id", UUID.class));
     }
 
     private static List<String> topics(ResultSet rs) throws SQLException {

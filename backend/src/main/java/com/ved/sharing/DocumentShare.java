@@ -61,6 +61,16 @@ public class DocumentShare {
     @Column(name = "import_count", nullable = false, insertable = false, updatable = false)
     private int importCount;
 
+    /** Maintained by ShareFeedbackService under a row lock, never through this entity. */
+    @Column(name = "upvotes", nullable = false, insertable = false, updatable = false)
+    private int upvotes;
+
+    @Column(name = "downvotes", nullable = false, insertable = false, updatable = false)
+    private int downvotes;
+
+    @Column(name = "comment_count", nullable = false, insertable = false, updatable = false)
+    private int commentCount;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -120,6 +130,18 @@ public class DocumentShare {
 
     public int getImportCount() {
         return importCount;
+    }
+
+    public int getUpvotes() {
+        return upvotes;
+    }
+
+    public int getDownvotes() {
+        return downvotes;
+    }
+
+    public int getCommentCount() {
+        return commentCount;
     }
 
     public Instant getCreatedAt() {

@@ -156,7 +156,7 @@ export function StyleguidePage() {
           <Chip emoji="brain" tone="mastery">
             72% mastery
           </Chip>
-          <Chip emoji="repeat-button" tone="review">
+          <Chip emoji="card-index" tone="review">
             4 due
           </Chip>
           <Chip onClick={() => undefined} pressed>

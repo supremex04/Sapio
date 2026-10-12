@@ -373,7 +373,7 @@ function Takeaways({ items }: { items: string[] }) {
       <ul className="ls-takeaways">
         {items.map((t, i) => (
           <motion.li key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.08 * i }}>
-            <Emoji name="check-mark-button" size={22} />
+            <Emoji name="check-mark" size={22} />
             <Markdown>{t}</Markdown>
           </motion.li>
         ))}
