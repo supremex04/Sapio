@@ -5,9 +5,66 @@
   gap: var(--space-5);
 }
 .preview-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
-  justify-content: flex-start;
-  overflow-x: auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-2) 0;
+  background: var(--bg);
+}
+
+/* Text size: the reading content's type tokens are multiplied by --text-scale (set from the toolbar). Only the
+   content scales: toolbars and section buttons keep their size. */
+.preview-scale :is(.markdown, .markdown-source, .preview-section-head > :is(h1, h2, h3, h4)) {
+  --text-lesson: calc(1.0625rem * var(--text-scale, 1));
+  --text-body: calc(1rem * var(--text-scale, 1));
+  --text-small: calc(0.875rem * var(--text-scale, 1));
+  --text-label: calc(0.75rem * var(--text-scale, 1));
+  --text-h3: calc(1.125rem * var(--text-scale, 1));
+  --text-h2: calc(1.375rem * var(--text-scale, 1));
+  --text-h1: calc(1.875rem * var(--text-scale, 1));
+}
+.text-size {
+  display: inline-flex;
+  align-items: center;
+  border: var(--border-width) solid var(--border);
+  border-bottom-width: calc(var(--border-width) + 2px);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.text-size-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.25rem;
+  border: 0;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.text-size-btn:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.text-size-btn:disabled {
+  color: var(--disabled-text);
+  cursor: default;
+}
+.text-size-btn:focus-visible {
+  outline: none;
+  box-shadow: inset var(--focus-ring);
+}
+.text-size-value {
+  min-width: 3.5rem;
+  text-align: center;
+  font-size: var(--text-small);
+  font-weight: var(--weight-heading);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
 }
 .preview-reading {
   display: flex;
@@ -137,7 +194,4 @@
   border: var(--border-width) solid var(--border);
   border-radius: var(--radius-md);
 }
-/* Prose stays at a comfortable line length (~80 characters); figures and tables may use the full width. */
-.preview-section .markdown > :is(p, ul, ol, blockquote, h1, h2, h3, h4) {
-  max-width: 80ch;
-}
+/* Prose uses the full width of the reading column (no line-length cap, by preference). */

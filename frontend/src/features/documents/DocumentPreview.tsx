@@ -1,6 +1,6 @@
 import { ExternalLink, List } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { errorMessage } from "../../shared/api/errors";
 import { Dia } from "../../shared/illustrations/Dia";
 import { Emoji } from "../../shared/illustrations/Emoji";
@@ -9,6 +9,8 @@ import { Button } from "../../shared/ui/Button";
 import { cx } from "../../shared/ui/cx";
 import { Markdown, type FigureView } from "../../shared/ui/Markdown";
 import { Segmented } from "../../shared/ui/Segmented";
+import { readTextStep, saveTextStep, type TextStep } from "./textScale";
+import { TextSizeControl } from "./TextSizeControl";
 import { Skeleton, SkeletonText } from "../../shared/ui/Skeleton";
 import { documentsApi } from "./api";
 import { ExtractedText } from "./ExtractedText";
@@ -24,8 +26,14 @@ type Mode = "reading" | "original" | "raw";
  */
 export function DocumentPreview({ doc, ready }: { doc: DocumentDto; ready: boolean }) {
   const [mode, setMode] = useState<Mode>("reading");
+  const [textStep, setTextStep] = useState<TextStep>(readTextStep);
+  const changeTextStep = (step: TextStep) => {
+    setTextStep(step);
+    saveTextStep(step);
+  };
   return (
     <div className="preview">
+      {/* Sticky, so the text size is always at hand while reading. */}
       <div className="preview-toolbar">
         <Segmented
           label="Preview mode"
@@ -37,10 +45,13 @@ export function DocumentPreview({ doc, ready }: { doc: DocumentDto; ready: boole
             { value: "raw", label: "Raw text" },
           ]}
         />
+        {mode !== "original" && <TextSizeControl step={textStep} onChange={changeTextStep} />}
       </div>
-      {mode === "reading" && <ReadingView doc={doc} ready={ready} />}
-      {mode === "original" && <OriginalView doc={doc} />}
-      {mode === "raw" && <ExtractedText doc={doc} />}
+      <div className="preview-scale" style={{ "--text-scale": 1 + textStep / 100 } as CSSProperties}>
+        {mode === "reading" && <ReadingView doc={doc} ready={ready} />}
+        {mode === "original" && <OriginalView doc={doc} />}
+        {mode === "raw" && <ExtractedText doc={doc} />}
+      </div>
     </div>
   );
 }
