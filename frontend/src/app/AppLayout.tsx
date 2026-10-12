@@ -1,4 +1,4 @@
-import { LogOut, Palette, Target } from "lucide-react";
+import { LogOut, Palette, PanelLeftClose, PanelLeftOpen, Target } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { Link, matchPath, NavLink, Outlet, useLocation } from "react-router";
@@ -16,6 +16,7 @@ import { cx } from "../shared/ui/cx";
 import { Wordmark } from "./Logo";
 import { ProgressPanel } from "./ProgressPanel";
 import { useReviewSummary } from "./useReviewSummary";
+import { useSidebar } from "./useSidebar";
 import "./layout.css";
 
 /** Task screens hide all navigation (one thing at a time). They render their own FocusHeader. */
@@ -37,6 +38,7 @@ function Shell() {
   const focus = FOCUS_ROUTES.some((p) => matchPath(p, location.pathname));
   const fullWidth = FULL_WIDTH_ROUTES.some((p) => matchPath(p, location.pathname));
   const reviews = useReviewSummary();
+  const sidebar = useSidebar();
 
   const page = (
     <Suspense
@@ -62,8 +64,8 @@ function Shell() {
   }
 
   return (
-    <div className={cx("app", fullWidth && "app-full")}>
-      <Sidebar reviewsDue={reviews?.dueNow ?? 0} />
+    <div className={cx("app", fullWidth && "app-full", sidebar.collapsed && "sidebar-collapsed")}>
+      <Sidebar reviewsDue={reviews?.dueNow ?? 0} collapsed={sidebar.collapsed} onToggle={sidebar.toggle} />
       <MobileTopBar />
       <main className="main" id="main">
         {page}
@@ -85,7 +87,11 @@ const NAV: { to: string; label: string; emoji: IconName; end: boolean }[] = [
   { to: "/recall", label: "Recall", emoji: "recall", end: false },
 ];
 
-function Sidebar({ reviewsDue }: { reviewsDue: number }) {
+/**
+ * Desktop navigation. Collapses to an icon strip (labels become tooltips, the theme switch a single button, the
+ * profile an avatar); the choice is remembered in this browser. Toggle: the button at the bottom or "[".
+ */
+function Sidebar({ reviewsDue, collapsed, onToggle }: { reviewsDue: number; collapsed: boolean; onToggle: () => void }) {
   return (
     <nav className="sidebar" aria-label="Main">
       <Link to="/" className="sidebar-brand" aria-label="Ved home">
@@ -93,16 +99,31 @@ function Sidebar({ reviewsDue }: { reviewsDue: number }) {
       </Link>
       <div className="sidebar-nav">
         {NAV.map(({ to, label, emoji, end }) => (
-          <NavLink key={to} to={to} end={end} className={({ isActive }) => cx("nav-item", isActive && "active")}>
+          <NavLink key={to} to={to} end={end} data-label={label} className={({ isActive }) => cx("nav-item", isActive && "active")}>
             <Emoji name={emoji} size={30} />
-            <span>{label}</span>
-            {to === "/recall" && reviewsDue > 0 && <span className="nav-count">{reviewsDue}</span>}
+            <span className="nav-label">{label}</span>
+            {to === "/recall" && reviewsDue > 0 && (
+              <span className="nav-count" aria-label={`${reviewsDue} cards to recall`}>
+                {reviewsDue}
+              </span>
+            )}
           </NavLink>
         ))}
       </div>
       <div className="sidebar-foot">
-        <ThemeSwitch />
-        <UserMenu placement="up" />
+        {collapsed ? <ThemeToggle /> : <ThemeSwitch />}
+        <UserMenu placement="up" compact={collapsed} />
+        <button
+          type="button"
+          className="sidebar-toggle"
+          onClick={onToggle}
+          aria-expanded={!collapsed}
+          title={`${collapsed ? "Expand" : "Collapse"} sidebar ( [ )`}
+          data-label={collapsed ? "Expand sidebar" : undefined}
+        >
+          {collapsed ? <PanelLeftOpen size={20} strokeWidth={2.5} aria-hidden /> : <PanelLeftClose size={20} strokeWidth={2.5} aria-hidden />}
+          <span className="nav-label">{collapsed ? "Expand" : "Collapse"}</span>
+        </button>
       </div>
     </nav>
   );

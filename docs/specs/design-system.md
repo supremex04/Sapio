@@ -114,8 +114,14 @@ Nunito Variable (OFL), one family only. Hierarchy via weight and size:
 | `Emoji` | `<Emoji name="fire" size={28} />` |
 | `Avatar` | DiceBear notionists by seed |
 
-App shell (`app/`): sidebar navigation on desktop (≥ 1024 px), right rail with streak / goal / reviews
+App shell (`app/`): sidebar navigation on desktop (≥ 1024 px), right rail with streak / goal / recall
 on wide screens (≥ 1200 px), top stat bar + bottom tab bar on mobile.
+
+The sidebar collapses to an 84 px icon strip (`--sidebar-collapsed-width`): labels become tooltips (still read by
+screen readers), the Recall count a corner badge, the theme switch a single toggle and the profile an avatar
+menu. Toggle with the button at its foot or `[`. The choice is remembered in this browser (`localStorage`
+`ved.sidebar`); without one it starts collapsed below 1440 px and expanded above. The column width animates
+(off with reduced motion).
 
 ## Signature patterns
 

@@ -38,8 +38,13 @@
 }
 @media (min-width: 1024px) {
   .app:not(.app-focus) {
+    --sidebar-current: var(--sidebar-width);
     display: grid;
-    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+    grid-template-columns: var(--sidebar-current) minmax(0, 1fr);
+    transition: grid-template-columns var(--duration-base) var(--ease-out);
+  }
+  .app.sidebar-collapsed:not(.app-focus) {
+    --sidebar-current: var(--sidebar-collapsed-width);
   }
   .main {
     grid-column: 2;
@@ -49,6 +54,7 @@
   .sidebar {
     position: sticky;
     top: 0;
+    z-index: 20; /* its tooltips and account menu float over the page */
     height: 100vh;
     display: flex;
     flex-direction: column;
@@ -75,7 +81,12 @@
 }
 @media (min-width: 1200px) {
   .app:not(.app-full):not(.app-focus) {
-    grid-template-columns: var(--sidebar-width) minmax(0, 1fr) var(--rail-width);
+    grid-template-columns: var(--sidebar-current) minmax(0, 1fr) var(--rail-width);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app:not(.app-focus) {
+    transition: none;
   }
 }
 
@@ -238,6 +249,104 @@
   }
   .main {
     padding-bottom: var(--space-16);
+  }
+}
+
+/* ---------- Sidebar: toggle and collapsed icon strip ---------- */
+.nav-item,
+.sidebar-toggle {
+  white-space: nowrap;
+}
+.sidebar-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--text-small);
+  font-weight: var(--weight-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+.sidebar-toggle:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.sidebar-toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+@media (min-width: 1024px) {
+  .sidebar-collapsed .sidebar {
+    align-items: center;
+    padding-inline: var(--space-3);
+  }
+  .sidebar-collapsed .sidebar-brand {
+    padding: 0;
+  }
+  .sidebar-collapsed .brand-name {
+    display: none;
+  }
+  .sidebar-collapsed .sidebar-foot {
+    align-items: center;
+  }
+  .sidebar-collapsed .nav-item,
+  .sidebar-collapsed .sidebar-toggle {
+    justify-content: center;
+    width: 3.25rem;
+    height: 3.25rem;
+    padding: 0;
+  }
+  /* Labels stay in the accessibility tree; sighted users get them as tooltips. */
+  .sidebar-collapsed .nav-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .sidebar-collapsed .nav-count {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    margin: 0;
+    min-width: 1.35rem;
+    height: 1.35rem;
+    padding: 0 0.3rem;
+    font-size: 0.7rem;
+    box-shadow: 0 0 0 2px var(--surface);
+  }
+  .sidebar-collapsed [data-label]::after {
+    content: attr(data-label);
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 50%;
+    transform: translate(-4px, -50%);
+    padding: 0.35rem 0.65rem;
+    border-radius: var(--radius-sm);
+    background: var(--text);
+    color: var(--bg);
+    font-size: var(--text-small);
+    font-weight: var(--weight-heading);
+    letter-spacing: 0;
+    text-transform: none;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
+  }
+  .sidebar-collapsed [data-label]:hover::after,
+  .sidebar-collapsed [data-label]:focus-visible::after {
+    opacity: 1;
+    transform: translate(0, -50%);
+  }
+  .sidebar-collapsed .sidebar-toggle {
+    position: relative;
   }
 }
 
