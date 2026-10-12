@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { ApiError, errorMessage } from "../../../shared/api/errors";
 import { Dia } from "../../../shared/illustrations/Dia";
 import { Emoji } from "../../../shared/illustrations/Emoji";
-import type { EmojiName } from "../../../shared/illustrations/emojiNames";
+import type { IconName } from "../../../shared/illustrations/Emoji";
 import { Alert } from "../../../shared/ui/Alert";
 import { Button } from "../../../shared/ui/Button";
 import { Chip } from "../../../shared/ui/Chip";
@@ -19,7 +19,7 @@ import type { Difficulty, Material } from "../types";
 import "./assessment.css";
 
 const COUNTS = [5, 10, 15, 20] as const;
-const DIFFICULTIES: { value: Difficulty; label: string; emoji: EmojiName; note: string }[] = [
+const DIFFICULTIES: { value: Difficulty; label: string; emoji: IconName; note: string }[] = [
   { value: "EASY", label: "Easy", emoji: "seedling", note: "Warm up" },
   { value: "MIXED", label: "Mixed", emoji: "high-voltage", note: "Best default" },
   { value: "HARD", label: "Hard", emoji: "fire", note: "Stretch yourself" },

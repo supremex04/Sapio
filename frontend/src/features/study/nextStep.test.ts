@@ -6,7 +6,7 @@ const step = (over: Partial<NextStep>): NextStep => ({ kind: "UPLOAD", documentI
 
 describe("nextStepHref", () => {
   it("routes each kind", () => {
-    expect(nextStepHref(step({ kind: "REVIEW" }))).toBe("/review");
+    expect(nextStepHref(step({ kind: "REVIEW" }))).toBe("/recall");
     expect(nextStepHref(step({ kind: "CONTINUE_TOPIC", documentId: "d", topicId: "t" }))).toBe("/documents/d/learn/t");
     expect(nextStepHref(step({ kind: "TAKE_TEST", documentId: "d" }))).toBe("/documents/d/test");
     expect(nextStepHref(step({ kind: "UPLOAD" }))).toBe("/library");

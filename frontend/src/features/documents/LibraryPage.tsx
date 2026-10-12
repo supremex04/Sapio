@@ -108,7 +108,7 @@ export function LibraryPage() {
         <header className="lib-header">
           <div className="lib-header-text">
             <h1>Your library</h1>
-            <p className="muted">Everything you upload becomes a course with lessons, practice and reviews.</p>
+            <p className="muted">Everything you upload becomes a course with lessons, practice and recall.</p>
           </div>
           <Button variant="primary" icon={<Upload size={18} />} loading={uploading > 0} onClick={() => fileInput.current?.click()}>
             Upload
@@ -132,7 +132,7 @@ export function LibraryPage() {
           </div>
         ) : documents.length === 0 ? (
           <Card>
-            <EmptyState icon={<Emoji name="card-file-box" size={64} />} title="Your shelf is empty">
+            <EmptyState icon={<Emoji name="library" size={64} />} title="Your shelf is empty">
               Upload a document above. Most courses are ready in under two minutes.
             </EmptyState>
           </Card>
@@ -175,7 +175,7 @@ function DocumentCard({ doc, share, onShare, onRetry, onDelete }: {
   return (
     <Card tone={state.failed ? "red" : undefined} className="doc-card">
       <div className="row-between">
-        <Emoji name={state.done ? "ledger" : "page-facing-up"} size={40} />
+        <Emoji name="document" size={40} />
         {state.done ? (
           <Badge tone="success">Ready</Badge>
         ) : state.failed ? (

@@ -10,7 +10,7 @@ import { ThemeSwitch, ThemeToggle } from "../features/theme/ThemeToggle";
 import { Avatar } from "../shared/illustrations/Avatar";
 import { Dia } from "../shared/illustrations/Dia";
 import { Emoji } from "../shared/illustrations/Emoji";
-import type { EmojiName } from "../shared/illustrations/emojiNames";
+import type { IconName } from "../shared/illustrations/Emoji";
 import { Chip } from "../shared/ui/Chip";
 import { cx } from "../shared/ui/cx";
 import { Wordmark } from "./Logo";
@@ -19,7 +19,7 @@ import { useReviewSummary } from "./useReviewSummary";
 import "./layout.css";
 
 /** Task screens hide all navigation (one thing at a time). They render their own FocusHeader. */
-const FOCUS_ROUTES = ["/documents/:id/learn/:topicId", "/assessments/:id", "/review"];
+const FOCUS_ROUTES = ["/documents/:id/learn/:topicId", "/assessments/:id", "/recall"];
 /** Screens wide enough to own the right side (no progress rail). */
 const FULL_WIDTH_ROUTES = ["/styleguide"];
 
@@ -78,11 +78,11 @@ function Shell() {
   );
 }
 
-const NAV: { to: string; label: string; emoji: EmojiName; end: boolean }[] = [
+const NAV: { to: string; label: string; emoji: IconName; end: boolean }[] = [
   { to: "/", label: "Home", emoji: "house", end: true },
-  { to: "/library", label: "Library", emoji: "card-file-box", end: false },
+  { to: "/library", label: "Library", emoji: "library", end: false },
   { to: "/explore", label: "Explore", emoji: "globe-showing-asia-australia", end: false },
-  { to: "/review", label: "Review", emoji: "card-index", end: false },
+  { to: "/recall", label: "Recall", emoji: "recall", end: false },
 ];
 
 function Sidebar({ reviewsDue }: { reviewsDue: number }) {
@@ -96,7 +96,7 @@ function Sidebar({ reviewsDue }: { reviewsDue: number }) {
           <NavLink key={to} to={to} end={end} className={({ isActive }) => cx("nav-item", isActive && "active")}>
             <Emoji name={emoji} size={30} />
             <span>{label}</span>
-            {to === "/review" && reviewsDue > 0 && <span className="nav-count">{reviewsDue}</span>}
+            {to === "/recall" && reviewsDue > 0 && <span className="nav-count">{reviewsDue}</span>}
           </NavLink>
         ))}
       </div>
@@ -140,7 +140,7 @@ function TabBar({ reviewsDue }: { reviewsDue: number }) {
         <NavLink key={to} to={to} end={end} className={({ isActive }) => cx("tab-item", isActive && "active")}>
           <span className="tab-icon">
             <Emoji name={emoji} size={28} />
-            {to === "/review" && reviewsDue > 0 && <span className="nav-count nav-count-dot">{reviewsDue}</span>}
+            {to === "/recall" && reviewsDue > 0 && <span className="nav-count nav-count-dot">{reviewsDue}</span>}
           </span>
           <span>{label}</span>
         </NavLink>

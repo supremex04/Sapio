@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { ProgressPanel } from "../../app/ProgressPanel";
 import { Emoji } from "../../shared/illustrations/Emoji";
-import type { EmojiName } from "../../shared/illustrations/emojiNames";
+import type { IconName } from "../../shared/illustrations/Emoji";
 import { firstName, formatRelative, greeting } from "../../shared/lib/format";
 import { ButtonLink } from "../../shared/ui/Button";
 import { Card, CardHeader } from "../../shared/ui/Card";
@@ -31,7 +31,7 @@ interface ContinueItem {
   material: Material | null;
 }
 
-function timeOfDayEmoji(date = new Date()): EmojiName {
+function timeOfDayEmoji(date = new Date()): IconName {
   const h = date.getHours();
   if (h >= 5 && h < 12) return "sunrise";
   if (h >= 12 && h < 18) return "sun";
@@ -91,7 +91,7 @@ export function DashboardPage() {
         <Card>{days ? <ActivityChart days={days} goalMinutes={summary?.goal.dailyMinutes ?? null} /> : <Skeleton height={260} />}</Card>
 
         <Card>
-          <CardHeader icon={<Emoji name="bar-chart" size={24} />} title="Recent activity" />
+          <CardHeader icon={<Emoji name="activity" size={24} />} title="Recent activity" />
           <ActivityFeed items={activity} />
         </Card>
       </div>
@@ -100,12 +100,12 @@ export function DashboardPage() {
 }
 
 /** One recommended action (avoids choice overload; learning-science.md §2). Hue = the job. */
-const STEP_STYLE: Record<NextStepKind, { emoji: EmojiName; tone: string; button: "review" | "primary" | "mastery" | "accent" }> = {
-  REVIEW: { emoji: "card-index", tone: "teal", button: "review" },
+const STEP_STYLE: Record<NextStepKind, { emoji: IconName; tone: string; button: "review" | "primary" | "mastery" | "accent" }> = {
+  REVIEW: { emoji: "recall", tone: "teal", button: "review" },
   CONTINUE_TOPIC: { emoji: "open-book", tone: "blue", button: "primary" },
   START_TOPIC: { emoji: "light-bulb", tone: "blue", button: "primary" },
   TAKE_TEST: { emoji: "bullseye", tone: "purple", button: "mastery" },
-  UPLOAD: { emoji: "page-facing-up", tone: "amber", button: "accent" },
+  UPLOAD: { emoji: "document", tone: "amber", button: "accent" },
 };
 
 const FALLBACK_STEP: NextStep = {
@@ -147,7 +147,7 @@ function NextStepCard({ step: loaded }: { step: NextStep | null | undefined }) {
   );
 }
 
-const ACTIVITY: Record<string, { label: string; emoji: EmojiName }> = {
+const ACTIVITY: Record<string, { label: string; emoji: IconName }> = {
   LESSON_STARTED: { label: "Started a lesson", emoji: "open-book" },
   LESSON_COMPLETED: { label: "Completed a topic", emoji: "graduation-cap" },
   TOPIC_COMPLETED: { label: "Completed a topic", emoji: "graduation-cap" },
@@ -155,12 +155,12 @@ const ACTIVITY: Record<string, { label: string; emoji: EmojiName }> = {
   ASSESSMENT_ANSWERED: { label: "Answered a test question", emoji: "memo" },
   ASSESSMENT_STARTED: { label: "Started a test", emoji: "bullseye" },
   ASSESSMENT_COMPLETED: { label: "Finished a test", emoji: "trophy" },
-  REVIEW_ANSWERED: { label: "Reviewed a card", emoji: "card-index" },
+  REVIEW_ANSWERED: { label: "Recalled a card", emoji: "recall" },
   TUTOR_QUESTION: { label: "Asked the tutor", emoji: "thinking-face" },
   DAILY_GOAL_REACHED: { label: "Reached the daily goal", emoji: "party-popper" },
 };
 
-function activityMeta(type: string): { label: string; emoji: EmojiName } {
+function activityMeta(type: string): { label: string; emoji: IconName } {
   return ACTIVITY[type] ?? { label: type.toLowerCase().replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()), emoji: "sparkles" };
 }
 
@@ -254,10 +254,10 @@ function ContinueLearning({ items }: { items: ContinueItem[] | null }) {
         return (
           <Link key={doc.id} to={`/documents/${doc.id}`} className="card card-interactive continue-card">
             <div className="row-between">
-              <Emoji name="ledger" size={40} />
+              <Emoji name="document" size={40} />
               <div className="row" style={{ gap: "var(--space-1)" }}>
                 {material && material.stats.reviewsDue > 0 && (
-                  <Chip emoji="card-index" tone="review" label={`${material.stats.reviewsDue} reviews due`}>
+                  <Chip emoji="recall" tone="review" label={`${material.stats.reviewsDue} cards to recall`}>
                     {material.stats.reviewsDue}
                   </Chip>
                 )}

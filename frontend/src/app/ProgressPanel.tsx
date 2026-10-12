@@ -61,12 +61,12 @@ export function ProgressPanel({ className }: { className?: string }) {
         </p>
       </Card>
       {reviews && reviews.dueNow > 0 && (
-        <Link to="/review" className="card card-tight card-interactive card-teal">
+        <Link to="/recall" className="card card-tight card-interactive card-teal">
           <div className="row">
-            <Emoji name="card-index" size={32} />
+            <Emoji name="recall" size={32} />
             <div>
               <strong>
-                {reviews.dueNow} review{reviews.dueNow === 1 ? "" : "s"} due
+                {reviews.dueNow} card{reviews.dueNow === 1 ? "" : "s"} to recall
               </strong>
               <p className="small">~{Math.max(1, Math.round((reviews.dueNow * 20) / 60))} min · keeps memories fresh</p>
             </div>

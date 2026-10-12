@@ -8,6 +8,6 @@ describe("inlineHtmlToMarkdown", () => {
     );
     expect(inlineHtmlToMarkdown("```\n<i>code</i>\n```")).toBe("```\n<i>code</i>\n```");
     expect(inlineHtmlToMarkdown("A\n<!-- Start of picture text -->\nPod1 Pod2\n<!-- End of picture text -->\nB")).toBe("A\n\nB");
-    expect(inlineHtmlToMarkdown("- 🆃 Load Balancing 🆃 Resource Allocation")).toBe("- Load Balancing Resource Allocation");
+    expect(inlineHtmlToMarkdown("- \u{1F183} Load Balancing \u{1F183} Resource Allocation")).toBe("- Load Balancing Resource Allocation");
   });
 });

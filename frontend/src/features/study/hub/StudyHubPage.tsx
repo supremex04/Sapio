@@ -93,7 +93,7 @@ export function StudyHubPage() {
           <BackToLibrary />
           <div className="hub-title-row">
             <span className="hub-art" aria-hidden>
-              <Emoji name={ready ? "ledger" : "page-facing-up"} size={44} />
+              <Emoji name="document" size={44} />
             </span>
             <div className="hub-title-text">
               <p className="eyebrow">Your course</p>
@@ -107,7 +107,7 @@ export function StudyHubPage() {
           )}
           <div className="row">
             {material && <Chip emoji="card-index-dividers">{material.stats.topicCount} topics</Chip>}
-            {doc.pageCount != null && <Chip emoji="page-facing-up">{doc.pageCount} pages</Chip>}
+            {doc.pageCount != null && <Chip emoji="document">{doc.pageCount} pages</Chip>}
             {material?.language && <Chip>{material.language.toUpperCase()}</Chip>}
             {doc.origin && <OriginTag origin={doc.origin} />}
           </div>
@@ -242,11 +242,11 @@ function ModeCards({ documentId, material }: { documentId: string; material: Mat
       </div>
 
       {reviewsDue > 0 && (
-        <Link to={`/review?documentId=${documentId}`} className="card card-tight card-interactive card-teal hub-review">
-          <Emoji name="card-index" size={36} />
+        <Link to={`/recall?documentId=${documentId}`} className="card card-tight card-interactive card-teal hub-review">
+          <Emoji name="recall" size={36} />
           <span className="hub-review-text">
             <strong>
-              {reviewsDue} review{reviewsDue === 1 ? "" : "s"} due · ~{reviewMinutes(reviewsDue)} min
+              {reviewsDue} card{reviewsDue === 1 ? "" : "s"} to recall · ~{reviewMinutes(reviewsDue)} min
             </strong>
             <span className="small">A quick recall now keeps it from fading.</span>
           </span>

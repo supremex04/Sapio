@@ -5,7 +5,7 @@ import { useParams } from "react-router";
 import { ApiError, errorMessage } from "../../../shared/api/errors";
 import { Dia } from "../../../shared/illustrations/Dia";
 import { Emoji } from "../../../shared/illustrations/Emoji";
-import type { EmojiName } from "../../../shared/illustrations/emojiNames";
+import type { IconName } from "../../../shared/illustrations/Emoji";
 import { celebrate } from "../../../shared/lib/celebrate";
 import { Alert } from "../../../shared/ui/Alert";
 import { Button, ButtonLink } from "../../../shared/ui/Button";
@@ -26,7 +26,7 @@ import type { AnswerResult, Lesson, LessonCheck, Material, SectionKind, TutorFoc
 import { TutorPanel } from "./TutorPanel";
 import "./learn.css";
 
-const KIND_META: Record<SectionKind, { label: string; emoji: EmojiName }> = {
+const KIND_META: Record<SectionKind, { label: string; emoji: IconName }> = {
   CONCEPT: { label: "Concept", emoji: "light-bulb" },
   EXAMPLE: { label: "Worked example", emoji: "test-tube" },
   ANALOGY: { label: "Think of it like", emoji: "puzzle-piece" },

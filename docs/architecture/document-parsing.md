@@ -77,7 +77,7 @@ page's markdown) and maps classes to typed `Block`s:
 
 Before mapping, each box's text goes through `layout.inline_html_to_markdown`: the layout model's inline HTML
 (`<mark>`/`<b>`/`<strong>` → `**…**`, `<i>`/`<em>` → `*…*`, `<u>`/`<span>`/`<font>`/`<sup>`/`<sub>` dropped, `<br>` →
-newline) becomes Markdown and enclosed-letter slide bullet glyphs (🆃…) are stripped; code spans and fences are left
+newline) becomes Markdown and enclosed-letter slide bullet glyphs (U+1F130 to U+1F189) are stripped; code spans and fences are left
 untouched. The frontend renderer (`shared/ui/markdown/inlineHtml.ts`) applies the same rules, and also hides HTML
 comments (including "picture text" blocks), so text stored before this cleanup displays cleanly too.
 

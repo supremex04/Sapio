@@ -16,6 +16,9 @@ const parseDay = (iso: string) => {
   return new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);
 };
 
+/** Width of the "Goal 10m" pill: 12px tick font, tabular digits (~7px per character) plus padding. */
+const goalLabelWidth = (minutes: number) => `Goal ${minutes}m`.length * 7 + 12;
+
 /** Column with a 4px rounded data-end and a square baseline (dataviz mark spec). */
 function barPath(x: number, y: number, w: number, h: number): string {
   if (h <= 0) return "";
@@ -105,14 +108,6 @@ export function ActivityChart({ days, goalMinutes }: { days: DailyActivity[]; go
                 </text>
               </g>
             ))}
-            {goalMinutes != null && goalMinutes <= top && (
-              <g>
-                <line x1={PAD.left} x2={width - PAD.right} y1={y(goalMinutes)} y2={y(goalMinutes)} className="chart-goal" strokeWidth={2} />
-                <text x={width - PAD.right} y={y(goalMinutes) - 6} textAnchor="end" className="chart-tick chart-goal-label">
-                  Goal {goalMinutes}m
-                </text>
-              </g>
-            )}
             {days.map((d, i) => {
               const v = minutes[i] ?? 0;
               const cx = PAD.left + band * i + band / 2;
@@ -147,6 +142,24 @@ export function ActivityChart({ days, goalMinutes }: { days: DailyActivity[]; go
                 </g>
               );
             })}
+            {/* Drawn after the columns, so a tall bar never hides the goal line or its label. */}
+            {goalMinutes != null && goalMinutes <= top && (
+              <g className="chart-goal-group">
+                <line x1={PAD.left} x2={width - PAD.right} y1={y(goalMinutes)} y2={y(goalMinutes)} className="chart-goal" strokeWidth={2} />
+                {/* A pill in the card colour behind the label keeps it legible where it crosses a column. */}
+                <rect
+                  x={width - PAD.right - goalLabelWidth(goalMinutes)}
+                  y={y(goalMinutes) - 21}
+                  width={goalLabelWidth(goalMinutes)}
+                  height={18}
+                  rx={6}
+                  className="chart-goal-pill"
+                />
+                <text x={width - PAD.right - 6} y={y(goalMinutes) - 8} textAnchor="end" className="chart-tick chart-goal-label">
+                  Goal {goalMinutes}m
+                </text>
+              </g>
+            )}
           </svg>
           <AnimatePresence>
             {hovered && hover != null && (

@@ -3,25 +3,25 @@
 A capability map for product and engineering readers, derived from the code (backend controllers,
 frontend routes, inference endpoints) as of 2026-10-10. Details live in the linked specs.
 
-**Status legend:** ✅ available in the UI · 🔌 API only (backend endpoint exists, no UI yet) · 🧪 planned
+**Status legend:** Available = in the UI · API only = backend endpoint exists, no UI yet · Planned
 
 ## At a glance
 
 | Area | Status |
 |---|---|
-| Accounts & sessions | ✅ |
-| Document upload & extraction (PDF, images, native text + OCR) | ✅ |
-| Knowledge store: tree, term index, figures, hybrid search | 🔌 (used internally by Learn/Test and the document Preview; tree, search and term endpoints not in the UI) |
-| Learn mode: learning path, lessons with checks, AI tutor, figures and source chips | ✅ |
-| Test mode: assessments, grading, report | ✅ |
-| Spaced review | ✅ |
-| Study notes & ask-your-document (Read mode) | ✅ notes (Expand / Revision in the document Preview) · 🔌 ask-your-document, search |
-| Gamification & analytics | ✅ |
-| Design system (light/dark, Diya v2, `/styleguide`) | ✅ |
-| AI vendor-neutrality (providers, per-task routes, fallbacks) | ✅ (config) |
-| Operations (`dev.sh`, auto-retries, config) | ✅ |
+| Accounts & sessions | Available |
+| Document upload & extraction (PDF, images, native text + OCR) | Available |
+| Knowledge store: tree, term index, figures, hybrid search | API only (used internally by Learn/Test and the document Preview; tree, search and term endpoints not in the UI) |
+| Learn mode: learning path, lessons with checks, AI tutor, figures and source chips | Available |
+| Test mode: assessments, grading, report | Available |
+| Recall (spaced review) | Available |
+| Study notes & ask-your-document (Read mode) | Available notes (Expand / Revision in the document Preview) · API only ask-your-document, search |
+| Gamification & analytics | Available |
+| Design system (light/dark, Diya v2, `/styleguide`) | Available |
+| AI vendor-neutrality (providers, per-task routes, fallbacks) | Available (config) |
+| Operations (`dev.sh`, auto-retries, config) | Available |
 
-## Accounts & sessions ✅
+## Accounts & sessions
 
 - Register as **STUDENT** or **TEACHER** (email, password, full name); `ADMIN` is never self-assigned.
 - Login, logout per device, sessions survive reloads for 14 days of inactivity (rotating refresh
@@ -32,7 +32,7 @@ frontend routes, inference endpoints) as of 2026-10-10. Details live in the link
 
 Roles are recorded but **no feature differs by role yet** (see [Not yet](#not-yet)).
 
-## Document upload & extraction ✅
+## Document upload & extraction
 
 | | |
 |---|---|
@@ -42,14 +42,14 @@ Roles are recorded but **no feature differs by role yet** (see [Not yet](#not-ye
 | OCR engines | `rapid` (RapidOCR, CPU, default), `unlimited-remote` (baidu/Unlimited-OCR on SGLang/vLLM, full Markdown), `unlimited-local` (in-process, needs ~8 GB+ VRAM) |
 | Pipeline | `PENDING → EXTRACTING → INDEXING → ANALYZING → READY`, async (upload returns 202); live stepper in the library |
 | Results | document **Preview** on the study hub: *Reading view* (sections in order, figures in place, contents list), *Original* (the uploaded PDF/image in the browser's viewer, `GET /api/documents/{id}/original`), *Raw text* (rendered / raw Markdown, copy, download as `.md`) |
-| Text cleanup | inline HTML from extraction (`<mark>`, `<b>`, `<u>`, `<br>`, comments incl. picture-text blocks) becomes Markdown emphasis or is hidden, slide bullet glyphs (🆃…) are stripped; code is left untouched |
+| Text cleanup | inline HTML from extraction (`<mark>`, `<b>`, `<u>`, `<br>`, comments incl. picture-text blocks) becomes Markdown emphasis or is hidden, slide bullet glyphs (enclosed letters, U+1F130 to U+1F189) are stripped; code is left untouched |
 | Failures | readable reason; **Retry** resumes the failed stage; transient AI failures retry automatically (1, 4, 15 min) |
 
 Library UI: `/library` (upload dropzone, pipeline stepper, extracted text). Specs:
 [specs/ocr.md](specs/ocr.md), [guides/ocr-engines.md](guides/ocr-engines.md),
 [architecture/document-parsing.md](architecture/document-parsing.md).
 
-## Knowledge store 🔌
+## Knowledge store
 
 Every document is parsed **once** into a structure all features reuse
 ([specs/knowledge.md](specs/knowledge.md), [ADR-0009](adr/0009-knowledge-store-tree-hybrid-index-figures.md),
@@ -57,17 +57,17 @@ Every document is parsed **once** into a structure all features reuse
 
 | Capability | What it does | Status |
 |---|---|---|
-| Document tree | chapter → section → subsection with the book's own labels (`2.3`), page ranges, small leaf chunks | 🔌 `GET /api/documents/{id}/tree`, `/nodes/{nodeId}` |
-| Summaries + key terms | every node summarised bottom-up; key terms form a back-of-book **term index** | 🔌 `GET /api/documents/{id}/terms` |
-| Figures | raster images and vector diagrams extracted, decorative ones (logos, backgrounds) dropped, described by a vision model, served via signed URLs; text-only images (terminal output, code) become searchable text transcripts instead | 🔌 `GET /api/figures/{id}/image` |
-| Hybrid search | Postgres full-text + pgvector, fused with RRF, small-to-big expansion, figure matches, optional subtree scope | 🔌 `GET /api/documents/{id}/search` |
-| Whole-document reading view | every node's text and kept figures in reading order, figures as signed URLs | ✅ `GET /api/documents/{id}/content` (Preview → Reading view) |
-| Embedding model tracking | each vector records its model; after a model switch only matching vectors are compared and the document is re-embedded in the background | ✅ (automatic) |
+| Document tree | chapter → section → subsection with the book's own labels (`2.3`), page ranges, small leaf chunks | API only `GET /api/documents/{id}/tree`, `/nodes/{nodeId}` |
+| Summaries + key terms | every node summarised bottom-up; key terms form a back-of-book **term index** | API only `GET /api/documents/{id}/terms` |
+| Figures | raster images and vector diagrams extracted, decorative ones (logos, backgrounds) dropped, described by a vision model, served via signed URLs; text-only images (terminal output, code) become searchable text transcripts instead | API only `GET /api/figures/{id}/image` |
+| Hybrid search | Postgres full-text + pgvector, fused with RRF, small-to-big expansion, figure matches, optional subtree scope | API only `GET /api/documents/{id}/search` |
+| Whole-document reading view | every node's text and kept figures in reading order, figures as signed URLs | Available `GET /api/documents/{id}/content` (Preview → Reading view) |
+| Embedding model tracking | each vector records its model; after a model switch only matching vectors are compared and the document is re-embedded in the background | Available (automatic) |
 
 Learn and Test already run on this store: the AI only ever sees retrieved sections and figures,
 never the whole document. *Why:* compact, structured context keeps generation grounded and cheap.
 
-## Learn mode ✅
+## Learn mode
 
 | Capability | What it does | Learning-science rationale |
 |---|---|---|
@@ -82,7 +82,7 @@ never the whole document. *Why:* compact, structured context keeps generation gr
 
 Spec: [specs/study.md](specs/study.md).
 
-## Test mode ✅
+## Test mode
 
 - Setup (`/documents/:id/test`): question count (3–20), difficulty `EASY | MIXED | HARD`, topic selection.
 - Questions are grounded in retrieved sections, **interleaved** across topics, and avoid prompts
@@ -94,19 +94,19 @@ Spec: [specs/study.md](specs/study.md).
 
 Spec: [specs/study.md](specs/study.md#test-my-knowledge).
 
-## Spaced review ✅
+## Recall (spaced review)
 
-Every first answer (lesson check, test item, review) becomes a Leitner card: boxes 1–5 at 1, 3, 7,
-16, 35 days; a miss returns in 10 minutes. `/review` runs an interleaved session across documents;
-Home shows "N reviews due". Skipped test items are scheduled like misses.
+Every first answer (lesson check, test item, recall) becomes a Leitner card: boxes 1–5 at 1, 3, 7,
+16, 35 days; a miss returns in 10 minutes. **Recall** (`/recall`; `/review` redirects) runs an interleaved session across
+documents; Home shows "N cards to recall". Skipped test items are scheduled like misses.
 *Why:* spacing beats massed study; reviews are questions, never re-reading (testing effect).
 
-## Notes ✅ & ask-your-document 🔌
+## Notes & ask-your-document
 
 | Capability | Endpoint | Status |
 |---|---|---|
-| Study notes per section in two styles: **Expand** (in-depth: steps, why and how, plain-language jargon, examples and analogies) and **Revision** (terse key points + a "Quick self-test"); chapter notes by map-reduce over child notes; cite sections, embed figures; generated once per style and cached | `GET /api/documents/{id}/nodes/{nodeId}/notes?style=EXPAND\|REVISION` | ✅ |
-| Ask the whole document (or a subtree): long-form, cited answer with sources and figures | `POST /api/documents/{id}/ask` | 🔌 |
+| Study notes per section in two styles: **Expand** (in-depth: steps, why and how, plain-language jargon, examples and analogies) and **Revision** (terse key points + a "Quick self-test"); chapter notes by map-reduce over child notes; cite sections, embed figures; generated once per style and cached | `GET /api/documents/{id}/nodes/{nodeId}/notes?style=EXPAND\|REVISION` | Available |
+| Ask the whole document (or a subtree): long-form, cited answer with sources and figures | `POST /api/documents/{id}/ask` | API only |
 
 Notes appear in the document **Preview** (study hub → Preview → Reading view), on **study units** once the course is
 `READY`. A unit is the highest section whose whole subtree has 300–6,000 characters of text (`ved.knowledge.reading`):
@@ -116,7 +116,7 @@ fragments are covered by no unit of their own. The rest
 of **Read mode** (tree navigation, search, term index, ask the document) is **not built yet**; it is the next frontend
 milestone ([roadmap.md](roadmap.md)). The tutor inside lessons is the only ask-style UI today.
 
-## Gamification & analytics ✅
+## Gamification & analytics
 
 | Capability | Details | Rationale |
 |---|---|---|
@@ -128,7 +128,7 @@ milestone ([roadmap.md](roadmap.md)). The tutor inside lessons is the only ask-s
 
 Spec: [specs/progress.md](specs/progress.md).
 
-## Design system ✅
+## Design system
 
 - **Diya v2**: one hue per job, the signature solid "edge" depth, characters, meaningful short motion
   that respects `prefers-reduced-motion`.
@@ -137,7 +137,7 @@ Spec: [specs/progress.md](specs/progress.md).
 
 Spec: [specs/design-system.md](specs/design-system.md).
 
-## AI vendor-neutrality ✅
+## AI vendor-neutrality
 
 - Providers are configured, not coded: **Gemini** and any **OpenAI-compatible** API (OpenAI,
   OpenRouter, Groq, Together, vLLM, LM Studio, Ollama).
@@ -150,7 +150,7 @@ Spec: [specs/design-system.md](specs/design-system.md).
 
 Guide: [guides/configuration.md](guides/configuration.md), [ADR-0010](adr/0010-vendor-neutral-model-configuration.md).
 
-## Operations ✅
+## Operations
 
 - `./dev.sh` installs what changed and starts Postgres (pgvector, port 5433), inference, backend and
   frontend; also `-d`, `stop`, `down`, `status`, `logs`, `setup`, `test`.
@@ -176,14 +176,14 @@ Guides: [guides/local-development.md](guides/local-development.md), [guides/conf
 
 | Gap | Status |
 |---|---|
-| Frontend **Read mode** (tree navigation, search, term index, ask the document) | 🧪 next |
-| Explore moderation: reporting shares and comments, admin review | 🧪 next |
-| Teacher features: classes & sharing, teacher analytics, personalised assignments, exams | 🧪 later |
-| Role-specific behaviour (teacher vs student), admin user management | 🧪 |
-| Per-user AI quotas and cost logging; login rate limiting, password reset, refresh-token reuse detection | 🧪 |
-| Streaming lesson generation (SSE), pre-generating the first lesson | 🧪 |
-| Material versioning, a message broker for document processing (DB coordination today), S3/MinIO storage | 🧪 |
-| Achievements, class challenges, learning-effectiveness dashboard, real-time notifications | 🧪 |
+| Frontend **Read mode** (tree navigation, search, term index, ask the document) | Planned (next) |
+| Explore moderation: reporting shares and comments, admin review | Planned (next) |
+| Teacher features: classes & sharing, teacher analytics, personalised assignments, exams | Planned (later) |
+| Role-specific behaviour (teacher vs student), admin user management | Planned |
+| Per-user AI quotas and cost logging; login rate limiting, password reset, refresh-token reuse detection | Planned |
+| Streaming lesson generation (SSE), pre-generating the first lesson | Planned |
+| Material versioning, a message broker for document processing (DB coordination today), S3/MinIO storage | Planned |
+| Achievements, class challenges, learning-effectiveness dashboard, real-time notifications | Planned |
 
 Full list: [roadmap.md](roadmap.md). Specs: [auth](specs/auth.md) · [ocr](specs/ocr.md) ·
 [knowledge](specs/knowledge.md) · [study](specs/study.md) · [progress](specs/progress.md) ·

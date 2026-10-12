@@ -120,10 +120,10 @@ class ReportBuilder {
                         "Revisit this lesson, then try explaining the main idea in your own words."))
                 .toList();
         String summary = "You scored " + Math.round(score * 100) + "%. "
-                + (weak.isEmpty() ? "Keep the momentum going with spaced review."
+                + (weak.isEmpty() ? "Keep the momentum going with spaced recall."
                 : "Focusing on your weaker topics next will give you the biggest gains.");
         return new Narrative(summary, strengths, weak, List.of(
-                "Do your spaced reviews when they are due.", "Retake a test in a few days to lock it in."));
+                "Do your recall cards when they are due.", "Retake a test in a few days to lock it in."));
     }
 
     private static String learnerAnswer(Answered a) {

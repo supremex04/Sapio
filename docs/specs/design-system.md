@@ -69,8 +69,13 @@ Nunito Variable (OFL), one family only. Hierarchy via weight and size:
 ### Iconography
 
 - **Lucide** (stroke 2.5) for **actions and controls**: close, back, upload, settings, chevrons.
+- **Ved glyphs** (`shared/illustrations/glyphs.tsx`) for the **core concepts**: `library`, `document`,
+  `recall`, `activity`. Drawn in the design system's own style: a rounded tile in one hue with the chunky
+  bottom edge (`--<hue>-main` / `--<hue>-edge`, so they follow the theme), a soft top sheen and a bold white
+  symbol. Rendered through `<Emoji name="recall">` like the emoji set. Add one here (48 × 48 viewBox, use
+  `Tile`) when a recurring product concept needs an icon; prefer them over emoji wherever the concept repeats.
 - **Fluent Emoji 3D-style** (Microsoft, MIT; `shared/illustrations/emoji`) for **places, rewards and
-  feelings**: navigation, XP, streak, trophies, section kinds, confidence. Always paired with text.
+  feelings**: XP, streak, trophies, section kinds, confidence, subject categories. Always paired with text.
   Add new ones via `frontend/scripts/extract-emoji.mjs`.
 
 ### Characters
@@ -127,9 +132,9 @@ on wide screens (≥ 1200 px), top stat bar + bottom tab bar on mobile.
 
 | Screen | Pattern details |
 |---|---|
-| Learning path | Unit banner in blue with an amber progress bar and "Test yourself". Nodes wind on a sine (`pathWave`, amplitude 78 px, 54 px on phones). States: done = amber + ✓ (crown at mastery ≥ 0.8), recommended = blue + glowing star + bobbing "START / CONTINUE / STRENGTHEN" bubble + Dia beside it, in progress = blue-soft, not started = grey + open book. Purple ring = mastery. Ends in a purple trophy node. |
-| Lesson | Focus mode. One step at a time; the action is always in the bottom sheet (Continue / Check / Complete topic). Section kinds: CONCEPT 💡 blue, EXAMPLE 🧪 green, ANALOGY 🧩 pink, SUMMARY 📝 purple (tinted header + kind label). Warm-up shows Dia + bubble until answered. Enter continues. "Ask" chip in the header opens the tutor slide-over (portalled; chat rows with Dia as the tutor's avatar). |
-| Results | `ResultStat` cards (coloured header label, emoji + big number) on lesson complete (XP, accuracy, time), review complete (recalled, back soon, cards) and the test report (correct, partly, to review). |
+| Learning path | Unit banner in blue with an amber progress bar and "Test yourself". Nodes wind on a sine (`pathWave`, amplitude 78 px, 54 px on phones). States: done = amber + check mark (crown at mastery ≥ 0.8), recommended = blue + glowing star + bobbing "START / CONTINUE / STRENGTHEN" bubble + Dia beside it, in progress = blue-soft, not started = grey + open book. Purple ring = mastery. Ends in a purple trophy node. |
+| Lesson | Focus mode. One step at a time; the action is always in the bottom sheet (Continue / Check / Complete topic). Section kinds: CONCEPT blue (light-bulb illustration), EXAMPLE green (test-tube), ANALOGY pink (puzzle-piece), SUMMARY purple (memo) (tinted header + kind label). Warm-up shows Dia + bubble until answered. Enter continues. "Ask" chip in the header opens the tutor slide-over (portalled; chat rows with Dia as the tutor's avatar). |
+| Results | `ResultStat` cards (coloured header label, emoji + big number) on lesson complete (XP, accuracy, time), recall complete (recalled, back soon, cards) and the test report (correct, partly, to recall). |
 | Test | Purple is Test's hue: setup tiles, Start button, runner badges. Runner: focus mode, counter + Finish in the header, verdict dots below. Report: Dia mood by score (≥ 80% cheer, ≥ 50% happy, else encourage). |
 | Review | Teal throughout; sleepy Dia when nothing is due. |
 | Generating | Dia thinking (floating), estimated progress bar easing to 92%, rotating learning-science tips in a speech bubble. |
@@ -154,7 +159,7 @@ Short, warm, second person. Praise strategy, not ability. Never shame. Errors sa
 | Mastery meter per topic; recommended node on the path; "Focus on topics that need practice" | Mastery learning |
 | Home leads with **one Next best step**; quieter secondary cards below | Choice overload / defaults |
 | Daily **goal ring**, progress bars on path, lessons and tests | Goal-gradient effect |
-| Pipeline shows "Uploaded ✓" first; path shows completed topics | Endowed progress |
+| Pipeline shows "Uploaded" checked first; path shows completed topics | Endowed progress |
 | "Continue where you left off"; tests resume at the next unanswered question | Zeigarnik effect |
 | "I'll study **10 minutes** a day" goal picker at onboarding | Implementation intentions |
 | Modest XP toasts; celebration only on real achievements | Habit loop without overjustification |
@@ -167,6 +172,6 @@ Short, warm, second person. Praise strategy, not ability. Never shame. Errors sa
 
 - **Auth**: centered column (wordmark, Dia + speech bubble, one form card). Role picker = two selectable 3D tiles with emoji.
 - **Welcome (goal)**: Dia asks "How much time can you give each day?"; five 3D goal tiles (emoji · minutes · label); live implementation-intention line; ghost "Maybe later".
-- **Home**: time-of-day emoji greeting → the ONE next-step card (white, 3D edge in the step's hue: review teal, learn blue, test purple, upload amber) → inline progress panel (< 1200 px) → continue-learning cards (topics bar + mastery/review chips) → 14-day active-minutes chart (dataviz rules; lighter step for past days, full hue today, green goal line; dark uses the validated `edge` steps) → recent activity (emoji per event, XP chips).
-- **Library**: header with Upload; dashed dropzone with Dia; card grid; chunky 4-dot pipeline (✓ → reading → building → ready, active dot pulses); failed cards are red-tinted with Retry.
-- **Study hub**: header (emoji tile, title, summary, chips) → two big mode cards (Learn blue, Test purple) → teal reviews strip → tabs Topics / Preview / Tests (3D rows, mastery chips, score badges). Preview: segmented Reading view / Original / Raw text; reading-view sections switch Original / Expand / Revision; prose capped at ~80 ch inside the wider layout (`--main-width` 960 px, `--reading-width` 860 px).
+- **Home**: time-of-day emoji greeting → the ONE next-step card (white, 3D edge in the step's hue: recall teal, learn blue, test purple, upload amber) → inline progress panel (< 1200 px) → continue-learning cards (topics bar + mastery/recall chips) → 14-day active-minutes chart (dataviz rules; lighter step for past days, full hue today, green goal line; dark uses the validated `edge` steps) → recent activity (emoji per event, XP chips).
+- **Library**: header with Upload; dashed dropzone with Dia; card grid; chunky 4-dot pipeline (checked → reading → building → ready, active dot pulses); failed cards are red-tinted with Retry.
+- **Study hub**: header (emoji tile, title, summary, chips) → two big mode cards (Learn blue, Test purple) → teal recall strip → tabs Topics / Preview / Tests (3D rows, mastery chips, score badges). Preview: segmented Reading view / Original / Raw text; reading-view sections switch Original / Expand / Revision; prose capped at ~80 ch inside the wider layout (`--main-width` 960 px, `--reading-width` 860 px).

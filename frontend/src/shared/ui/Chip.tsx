@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
 import { Emoji } from "../illustrations/Emoji";
-import type { EmojiName } from "../illustrations/emojiNames";
+import type { IconName } from "../illustrations/Emoji";
 import { cx } from "./cx";
 
 export type ChipTone = "neutral" | "xp" | "streak" | "mastery" | "review";
 
 /** Small pill for counts (XP, streak, due cards). Pass `onClick` to make it a toggle (aria-pressed). */
-export function Chip({ emoji, tone = "neutral", children, label, pressed, onClick }: { emoji?: EmojiName; tone?: ChipTone; children: ReactNode; label?: string; pressed?: boolean; onClick?: () => void }) {
+export function Chip({ emoji, tone = "neutral", children, label, pressed, onClick }: { emoji?: IconName; tone?: ChipTone; children: ReactNode; label?: string; pressed?: boolean; onClick?: () => void }) {
   const className = cx("chip", tone !== "neutral" && `chip-${tone}`);
   const content = (
     <>

@@ -1,5 +1,5 @@
 import { Emoji } from "../illustrations/Emoji";
-import type { EmojiName } from "../illustrations/emojiNames";
+import type { IconName } from "../illustrations/Emoji";
 import { AnimatePresence, motion } from "motion/react";
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 
@@ -17,7 +17,7 @@ interface ToastApi {
 
 const ToastContext = createContext<ToastApi | null>(null);
 
-const ICONS: Record<ToastKind, EmojiName> = { success: "check-mark", error: "cross-mark", info: "light-bulb", xp: "high-voltage", level: "crown" };
+const ICONS: Record<ToastKind, IconName> = { success: "check-mark", error: "cross-mark", info: "light-bulb", xp: "high-voltage", level: "crown" };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);

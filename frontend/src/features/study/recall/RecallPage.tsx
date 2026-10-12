@@ -17,12 +17,12 @@ import { QuestionCard } from "../components/QuestionCard";
 import { ResultStat } from "../components/ResultStat";
 import { reviewMinutes } from "../nextStep";
 import type { AnswerResult, ReviewItem, ReviewSummary } from "../types";
-import "./review.css";
+import "./recall.css";
 
 const SESSION_SIZE = 10;
 
 /** Spaced-retrieval session (focus mode): short, one card at a time, ends on a positive summary. */
-export function ReviewPage() {
+export function RecallPage() {
   const [params] = useSearchParams();
   const documentId = params.get("documentId") ?? undefined;
   const { refresh } = useProgress();
@@ -58,12 +58,12 @@ export function ReviewPage() {
   const header = (progress: number, label: string) => (
     <FocusHeader
       exitTo={exitTo}
-      exitLabel="Exit review"
+      exitLabel="Exit recall"
       progress={progress}
       progressLabel={label}
       right={
         items && items.length > 0 && !done ? (
-          <Chip emoji="card-index" tone="review" label={`${total - index} cards left`}>
+          <Chip emoji="recall" tone="review" label={`${total - index} cards left`}>
             {total - index}
           </Chip>
         ) : undefined
@@ -74,7 +74,7 @@ export function ReviewPage() {
   if (error) {
     return (
       <>
-        {header(0, "Review")}
+        {header(0, "Recall")}
         <Alert>{error}</Alert>
       </>
     );
@@ -82,7 +82,7 @@ export function ReviewPage() {
   if (!items) {
     return (
       <>
-        {header(0, "Loading review")}
+        {header(0, "Loading recall")}
         <Skeleton height={320} radius="var(--radius-xl)" />
       </>
     );
@@ -103,8 +103,8 @@ export function ReviewPage() {
             }
           >
             {summary && summary.total > 0
-              ? `${summary.total} cards in your deck. ${summary.dueToday > 0 ? `${summary.dueToday} more come due later today.` : "The next ones come due soon."} Reviewing right when you're about to forget is what makes memories last.`
-              : "Answer lesson checks and test questions; each one becomes a review card that comes back right before you'd forget it."}
+              ? `${summary.total} cards in your deck. ${summary.dueToday > 0 ? `${summary.dueToday} more come due later today.` : "The next ones come due soon."} Recalling right when you're about to forget is what makes memories last.`
+              : "Answer lesson checks and test questions; each one becomes a recall card that comes back right before you'd forget it."}
           </EmptyState>
         </div>
       </>
@@ -116,16 +116,16 @@ export function ReviewPage() {
     const recalled = all.filter((r) => r.verdict === "CORRECT").length;
     return (
       <>
-        {header(1, "Review complete")}
+        {header(1, "Recall complete")}
         <motion.div className="rv-done" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: "spring", stiffness: 300, damping: 24 }}>
           <Dia mood="cheer" size={140} />
           <div className="stack-sm">
-            <h1>Review complete!</h1>
+            <h1>Recall complete!</h1>
             <p className="text-2">Each card you recalled now comes back a little later. The ones that slipped come back sooner, and that's how memories get stronger.</p>
           </div>
           <div className="result-stats">
             <ResultStat tone="green" label="Recalled" emoji="brain" value={recalled} />
-            <ResultStat tone="teal" label="Back soon" emoji="card-index" value={all.length - recalled} />
+            <ResultStat tone="teal" label="Back soon" emoji="recall" value={all.length - recalled} />
             <ResultStat tone="blue" label="Cards" emoji="card-index-dividers" value={all.length} />
           </div>
           <div className="stack-sm" style={{ width: "100%", alignItems: "center" }}>
@@ -146,7 +146,7 @@ export function ReviewPage() {
 
   return (
     <>
-      {header(index / items.length, "Review progress")}
+      {header(index / items.length, "Recall progress")}
       <AnimatePresence mode="wait">
         <motion.div key={item.question.id} className="rv-card" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.22 }}>
           <div className="rv-meta">

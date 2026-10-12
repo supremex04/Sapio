@@ -1,9 +1,9 @@
 import { Emoji } from "../../shared/illustrations/Emoji";
-import type { EmojiName } from "../../shared/illustrations/emojiNames";
+import type { IconName } from "../../shared/illustrations/Emoji";
 import { cx } from "../../shared/ui/cx";
 import { GOAL_OPTIONS, type GoalMinutes } from "./types";
 
-const OPTIONS: Record<GoalMinutes, { label: string; emoji: EmojiName }> = {
+const OPTIONS: Record<GoalMinutes, { label: string; emoji: IconName }> = {
   5: { label: "Casual", emoji: "seedling" },
   10: { label: "Regular", emoji: "light-bulb" },
   15: { label: "Serious", emoji: "fire" },

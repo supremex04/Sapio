@@ -89,7 +89,7 @@ export function ShareDialog({ open, documentId, title, share, onClose, onChanged
     >
       <p className="share-lead">
         <strong className="break">{title}</strong> will appear in Explore. Others see its title, summary and topics, and can import their own copy
-        with the lessons and notes. Your progress, answers and reviews stay private.
+        with the lessons and notes. Your progress, answers and recall cards stay private.
       </p>
 
       <fieldset className="share-fieldset">

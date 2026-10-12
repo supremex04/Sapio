@@ -1,6 +1,6 @@
 import { MotionConfig } from "motion/react";
 import { lazy } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router";
 import { AuthProvider } from "../features/auth/AuthProvider";
 import { LoginPage } from "../features/auth/LoginPage";
 import { RegisterPage } from "../features/auth/RegisterPage";
@@ -19,7 +19,7 @@ const LessonPage = lazy(() => import("../features/study/learn/LessonPage").then(
 const StyleguidePage = lazy(() => import("./styleguide/StyleguidePage").then((m) => ({ default: m.StyleguidePage })));
 const ExplorePage = lazy(() => import("../features/sharing/ExplorePage").then((m) => ({ default: m.ExplorePage })));
 const SharedItemPage = lazy(() => import("../features/sharing/SharedItemPage").then((m) => ({ default: m.SharedItemPage })));
-const ReviewPage = lazy(() => import("../features/study/review/ReviewPage").then((m) => ({ default: m.ReviewPage })));
+const RecallPage = lazy(() => import("../features/study/recall/RecallPage").then((m) => ({ default: m.RecallPage })));
 
 /** Route table. New features add their routes inside the authenticated layout. */
 export function App() {
@@ -38,7 +38,8 @@ export function App() {
                   <Route path="library" element={<LibraryPage />} />
                   <Route path="explore" element={<ExplorePage />} />
                   <Route path="explore/:shareId" element={<SharedItemPage />} />
-                  <Route path="review" element={<ReviewPage />} />
+                  <Route path="recall" element={<RecallPage />} />
+                  <Route path="review" element={<RedirectToRecall />} />
                   <Route path="documents/:id" element={<StudyHubPage />} />
                   <Route path="documents/:id/learn" element={<Navigate to=".." relative="path" replace />} />
                   <Route path="documents/:id/learn/:topicId" element={<LessonPage />} />
@@ -56,3 +57,8 @@ export function App() {
   );
 }
 
+/** "Review" was renamed "Recall": old links (and bookmarks) keep working, query string included. */
+function RedirectToRecall() {
+  const { search } = useLocation();
+  return <Navigate to={`/recall${search}`} replace />;
+}

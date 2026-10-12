@@ -1,4 +1,4 @@
-import type { EmojiName } from "../../shared/illustrations/emojiNames";
+import type { IconName } from "../../shared/illustrations/Emoji";
 import type { DiaMood } from "../../shared/illustrations/Dia";
 import type { DocumentDto } from "./types";
 
@@ -44,7 +44,7 @@ export function pipelineState(doc: PipelineDoc): PipelineState {
 
 /** What Dia is visibly doing at each stage ("labor illusion": seeing the work makes waiting feel worthwhile). */
 export interface WorkStage {
-  emoji: EmojiName;
+  emoji: IconName;
   mood: DiaMood;
   /** Concrete, rotating descriptions of the work in progress. */
   lines: string[];

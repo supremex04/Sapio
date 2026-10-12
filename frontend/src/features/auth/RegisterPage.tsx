@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router";
 import { ApiError, errorMessage } from "../../shared/api/errors";
 import { browserTimeZone } from "../../shared/lib/timezone";
 import { Emoji } from "../../shared/illustrations/Emoji";
-import type { EmojiName } from "../../shared/illustrations/emojiNames";
+import type { IconName } from "../../shared/illustrations/Emoji";
 import { Alert } from "../../shared/ui/Alert";
 import { Button } from "../../shared/ui/Button";
 import { cx } from "../../shared/ui/cx";
@@ -13,7 +13,7 @@ import { useAuth } from "./AuthContext";
 import { AuthLayout } from "./AuthLayout";
 import type { RegisterInput } from "./types";
 
-const ROLES: { value: RegisterInput["role"]; label: string; hint: string; emoji: EmojiName }[] = [
+const ROLES: { value: RegisterInput["role"]; label: string; hint: string; emoji: IconName }[] = [
   { value: "STUDENT", label: "I'm learning", hint: "Study my own material", emoji: "graduation-cap" },
   { value: "TEACHER", label: "I'm teaching", hint: "Build courses for a class", emoji: "ledger" },
 ];

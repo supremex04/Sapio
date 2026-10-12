@@ -1,4 +1,4 @@
-import { RotateCcw } from "lucide-react";
+import { Check, RotateCcw, X } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { errorMessage } from "../../../shared/api/errors";
@@ -163,7 +163,7 @@ export function QuestionCard({
                 transition={{ duration: 0.4 }}
               >
                 <span className="option-key" aria-hidden>
-                  {isCorrect ? "✓" : isWrongPick ? "✕" : optionLetter(i)}
+                  {isCorrect ? <Check size={18} strokeWidth={3.5} /> : isWrongPick ? <X size={18} strokeWidth={3.5} /> : optionLetter(i)}
                 </span>
                 <span className="option-text">
                   <Markdown>{option}</Markdown>
@@ -205,7 +205,7 @@ export function QuestionCard({
               title={verdictCopy(result.verdict, context).title}
               aside={
                 <div className="row">
-                  {result.nextReviewAt && <span className="sheet-note">Back for review {formatRelative(result.nextReviewAt)}</span>}
+                  {result.nextReviewAt && <span className="sheet-note">Back for recall {formatRelative(result.nextReviewAt)}</span>}
                   {allowRetry && result.verdict !== "CORRECT" && (
                     <Button size="sm" variant="ghost" icon={<RotateCcw size={14} />} onClick={retry}>
                       Try again

@@ -91,8 +91,8 @@ public class StudyOverviewService {
         long due = cards.countByUserIdAndDueAtLessThanEqual(userId, now);
         if (due > 0) {
             return new NextStep(NextStep.Kind.REVIEW, null, null,
-                    "Review " + due + (due == 1 ? " card" : " cards"),
-                    "A quick spaced review keeps what you learned from fading",
+                    "Recall " + due + (due == 1 ? " card" : " cards"),
+                    "A quick recall keeps what you learned from fading",
                     (int) Math.clamp((due + 1) / 2, 1, 15));
         }
         List<StudyMaterial> owned = materials.findByOwnerId(userId);

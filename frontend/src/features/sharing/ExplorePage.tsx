@@ -82,7 +82,7 @@ export function ExplorePage() {
           <Emoji name="globe-showing-asia-australia" size={56} />
           <div className="lib-header-text">
             <h1>Explore</h1>
-            <p className="muted">Courses other learners built from their documents. Import one and it's yours: lessons, practice and reviews.</p>
+            <p className="muted">Courses other learners built from their documents. Import one and it's yours: lessons, practice and recall.</p>
           </div>
         </header>
 

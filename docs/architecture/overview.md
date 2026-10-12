@@ -208,7 +208,7 @@ src/
 | `/documents/:id/learn/:topicId` | Lesson: warm-up → sections + checks → explain-it-back → takeaways |
 | `/documents/:id/test` | Test setup (count, difficulty, topics) |
 | `/assessments/:id` | Runner (one question at a time) or report when completed |
-| `/review?documentId=` | Spaced-review session |
+| `/recall?documentId=` | Recall session (spaced retrieval; `/review` redirects here) |
 
 Conventions:
 

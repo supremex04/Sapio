@@ -176,9 +176,9 @@ in progress, else first not started, else the lowest-mastery topic below 0.8.
 { "answer": "markdown", "grounded": true }   // grounded=false: the document doesn't cover it
 ```
 
-### Spaced review
+### Recall (spaced review)
 
-Every first answer to a question (lesson check, assessment item, review) creates or updates the
+Shown to learners as **Recall** (route `/recall`); the API and tables keep the `review` names. Every first answer to a question (lesson check, assessment item, review) creates or updates the
 learner's review card for that question. Leitner boxes 1–5 with intervals **1, 3, 7, 16, 35 days**:
 correct → next box; partial → same box; incorrect → box 1, due again in **10 minutes**.
 

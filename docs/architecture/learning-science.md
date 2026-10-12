@@ -29,7 +29,7 @@ finding. When a feature or design choice is debated, check it against this page.
 |---|---|---|
 | **Self-determination theory**: autonomy, competence, relatedness | Intrinsic motivation needs choice, a sense of growth and connection (Ryan & Deci, 2000). | Learner chooses mode, topics, difficulty (autonomy); mastery, levels and progress make growth visible (competence); classes/teachers come next (relatedness). |
 | **Goal-gradient effect** | Effort increases as people near a goal (Kivetz et al., 2006). | Progress rings and bars everywhere: daily goal ring, topic path, question progress. |
-| **Endowed progress** | People persist more when they start with some progress (Nunes & Drèze, 2006). | The study path shows "Uploaded ✓ · Study guide built ✓" as completed steps; first lessons are short. |
+| **Endowed progress** | People persist more when they start with some progress (Nunes & Drèze, 2006). | The study path shows "Uploaded · Study guide built" (checked) as completed steps; first lessons are short. |
 | **Zeigarnik effect** | Unfinished tasks stay on our mind. | "Continue where you left off" is the first card on Home; in-progress assessments resume at the next question. |
 | **Implementation intentions & small commitments** | A concrete plan ("10 minutes a day") strongly predicts follow-through (Gollwitzer, 1999). | A **daily goal** in minutes (5–30) the learner picks; tiny next steps with time estimates ("~2 min"). |
 | **Habit formation** (cue → routine → reward) | Consistent small rewards after a routine build habits (Lally et al., 2010). | Streaks, XP and gentle celebrations attached to *learning actions*, not to opening the app. |

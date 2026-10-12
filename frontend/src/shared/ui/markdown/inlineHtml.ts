@@ -10,7 +10,7 @@ const RULES: [RegExp, string][] = [
   [/<(i|em)>([\s\S]*?)<\/\1>/gi, "*$2*"],
   [/<\/?(u|span|font|sup|sub)\b[^>]*>/gi, ""],
   [/<br\s*\/?>/gi, "\n"],
-  // Enclosed-letter symbols (🅰-🆉, 🄰-🅉) are slide bullet glyphs, not text.
+  // Enclosed-letter symbols (U+1F130 to U+1F189) are slide bullet glyphs, not text.
   [/[\u{1F130}-\u{1F189}]\uFE0F?\s?/gu, ""],
 ];
 const CODE = /(```[\s\S]*?```|`[^`\n]*`)/;

@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import { Emoji } from "../illustrations/Emoji";
-import type { EmojiName } from "../illustrations/emojiNames";
+import type { IconName } from "../illustrations/Emoji";
 
 /** Emoji + big number + label: streak, XP, goal, reviews… */
-export function StatTile({ emoji, value, label, children }: { emoji: EmojiName; value: ReactNode; label: string; children?: ReactNode }) {
+export function StatTile({ emoji, value, label, children }: { emoji: IconName; value: ReactNode; label: string; children?: ReactNode }) {
   return (
     <div className="stat-tile">
       <Emoji name={emoji} size={36} />

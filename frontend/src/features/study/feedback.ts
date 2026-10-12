@@ -1,7 +1,7 @@
-import type { EmojiName } from "../../shared/illustrations/emojiNames";
+import type { IconName } from "../../shared/illustrations/Emoji";
 import type { AnswerResult, Confidence, Verdict } from "./types";
 
-export const CONFIDENCE_OPTIONS: { value: Confidence; label: string; emoji: EmojiName }[] = [
+export const CONFIDENCE_OPTIONS: { value: Confidence; label: string; emoji: IconName }[] = [
   { value: "LOW", label: "Guessing", emoji: "thinking-face" },
   { value: "MEDIUM", label: "Fairly sure", emoji: "slightly-smiling-face" },
   { value: "HIGH", label: "Certain", emoji: "smiling-face-with-sunglasses" },

@@ -45,7 +45,7 @@ else BOLD=""; DIM=""; RED=""; GREEN=""; YELLOW=""; RESET=""; fi
 
 step() { printf '%s==>%s %s\n' "$BOLD" "$RESET" "$*"; }
 info() { printf '    %s\n' "$*"; }
-ok()   { printf '    %s✓%s %s\n' "$GREEN" "$RESET" "$*"; }
+ok()   { printf '    %sok%s %s\n' "$GREEN" "$RESET" "$*"; }
 warn() { printf '    %s!%s %s\n' "$YELLOW" "$RESET" "$*"; }
 die()  { printf '%serror:%s %s\n' "$RED" "$RESET" "$*" >&2; exit 1; }
 

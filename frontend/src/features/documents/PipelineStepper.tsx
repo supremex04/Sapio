@@ -1,9 +1,10 @@
+import { Check } from "lucide-react";
 import { cx } from "../../shared/ui/cx";
 import { PIPELINE_STEPS, pipelineState } from "./pipeline";
 import type { DocumentDto } from "./types";
 
 /**
- * Chunky step dots: Uploaded ✓ → Reading text → Building your course → Ready.
+ * Chunky step dots: Uploaded (checked) → Reading text → Building your course → Ready.
  * "Uploaded" is always done (endowed progress). The active dot pulses (reduced-motion aware).
  */
 export function PipelineStepper({ doc, compact }: { doc: Pick<DocumentDto, "status" | "textPages" | "retryAt">; compact?: boolean }) {
@@ -18,7 +19,7 @@ export function PipelineStepper({ doc, compact }: { doc: Pick<DocumentDto, "stat
           return (
             <li key={label} className={cx("pipeline-step", done && "is-done", active && !failed && "is-active", failed && "is-failed")} aria-current={active ? "step" : undefined}>
               <span className="pipeline-dot" aria-hidden>
-                {done ? "✓" : failed ? "!" : i + 1}
+                {done ? <Check size={16} strokeWidth={3.5} /> : failed ? "!" : i + 1}
               </span>
               {!compact && <span className="pipeline-label">{label}</span>}
               <span className="visually-hidden">

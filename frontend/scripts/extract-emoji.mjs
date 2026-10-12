@@ -21,8 +21,8 @@ export const NAMES = [
   "fire", "gem-stone", "high-voltage", "trophy", "1st-place-medal", "sports-medal", "crown", "glowing-star", "sparkles",
   "hundred-points", "party-popper", "wrapped-gift", "chart-increasing", "bullseye", "rocket",
   // learning & content
-  "ledger", "card-file-box", "card-index", "bar-chart", "open-book", "graduation-cap", "light-bulb", "brain", "test-tube", "puzzle-piece", "memo", "scroll",
-  "writing-hand", "page-facing-up", "card-index-dividers", "magnifying-glass-tilted-left", "compass", "seedling",
+  "ledger", "open-book", "graduation-cap", "light-bulb", "brain", "test-tube", "puzzle-piece", "memo", "scroll",
+  "writing-hand", "card-index-dividers", "magnifying-glass-tilted-left", "compass", "seedling",
   "diya-lamp", "hourglass-not-done", "alarm-clock", "bell", "check-mark", "cross-mark",
   "house", "gear", "locked", "link",
   // sharing & subject categories

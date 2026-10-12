@@ -48,7 +48,7 @@ export function LearningPath({ documentId, topics }: { documentId: string; topic
                     <span className={cx("lpath-state xs", `is-${state}`)}>{STATE_LABEL[state]}</span>
                   )}
                   {mastery !== null ? (
-                    <span className="lpath-mastery xs" title="Mastery from your checks, tests and reviews (recent answers count most)">
+                    <span className="lpath-mastery xs" title="Mastery from your checks, tests and recall (recent answers count most)">
                       <span className="lpath-mastery-bar" aria-hidden>
                         <span style={{ width: `${Math.round(mastery * 100)}%` }} />
                       </span>

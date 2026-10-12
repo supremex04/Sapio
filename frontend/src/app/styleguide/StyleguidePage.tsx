@@ -1,4 +1,4 @@
-import { ArrowRight, Upload } from "lucide-react";
+import { ArrowRight, Check, Upload, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { ThemeSwitch } from "../../features/theme/ThemeToggle";
 import { Avatar } from "../../shared/illustrations/Avatar";
@@ -28,7 +28,7 @@ const HUES = [
   { name: "red", job: "Incorrect (gently) · destructive" },
   { name: "amber", job: "XP · streak · warm-up" },
   { name: "purple", job: "Mastery · levels · summary · Test" },
-  { name: "teal", job: "Spaced review (memory)" },
+  { name: "teal", job: "Recall: spaced retrieval (memory)" },
   { name: "pink", job: "Analogies (imagination)" },
 ] as const;
 const STEPS = ["soft", "main", "edge", "ink"] as const;
@@ -101,7 +101,7 @@ export function StyleguidePage() {
           <Button variant="danger">Got it</Button>
           <Button variant="accent">Claim XP</Button>
           <Button variant="mastery">Test yourself</Button>
-          <Button variant="review">Review</Button>
+          <Button variant="review">Recall</Button>
           <Button variant="soft">Maybe later</Button>
           <Button>Secondary</Button>
           <Button variant="ghost">Ghost</Button>
@@ -156,7 +156,7 @@ export function StyleguidePage() {
           <Chip emoji="brain" tone="mastery">
             72% mastery
           </Chip>
-          <Chip emoji="card-index" tone="review">
+          <Chip emoji="recall" tone="review">
             4 due
           </Chip>
           <Chip onClick={() => undefined} pressed>
@@ -197,10 +197,16 @@ export function StyleguidePage() {
             <span className="option-key">B</span> Selected
           </button>
           <button className="option is-correct">
-            <span className="option-key">✓</span> Correct
+            <span className="option-key">
+              <Check size={18} strokeWidth={3.5} />
+            </span>{" "}
+            Correct
           </button>
           <button className="option is-incorrect">
-            <span className="option-key">✕</span> Incorrect
+            <span className="option-key">
+              <X size={18} strokeWidth={3.5} />
+            </span>{" "}
+            Incorrect
           </button>
         </div>
         <div className="stack">
@@ -292,7 +298,7 @@ export function StyleguidePage() {
         </div>
         <Card>
           <EmptyState mood="sleepy" title="Nothing due right now" action={<Button variant="primary">Learn something new</Button>}>
-            Your memory is fresh. Reviews come back when they're due.
+            Your memory is fresh. Cards come back when they're due.
           </EmptyState>
         </Card>
         <Card>

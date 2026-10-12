@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState, type CSSProperties } from "react";
 import { Dia, type DiaMood } from "../../../shared/illustrations/Dia";
 import { Emoji } from "../../../shared/illustrations/Emoji";
-import type { EmojiName } from "../../../shared/illustrations/emojiNames";
+import type { IconName } from "../../../shared/illustrations/Emoji";
 import { formatPercent } from "../../../shared/lib/format";
 import { Badge, type Tone } from "../../../shared/ui/Badge";
 import { ButtonLink } from "../../../shared/ui/Button";
@@ -25,9 +25,9 @@ const LEVEL_META: Record<TopicLevel, { label: string; tone: Tone; color: string 
 
 /** Growth-mindset headline + Dia's mood for a score. */
 export function reportHeadline(score: number): { title: string; sub: string; mood: DiaMood } {
-  if (score >= 0.8) return { title: "Excellent work!", sub: "You clearly know this material. Spaced reviews will keep it fresh.", mood: "cheer" };
+  if (score >= 0.8) return { title: "Excellent work!", sub: "You clearly know this material. Spaced recall will keep it fresh.", mood: "cheer" };
   if (score >= 0.5) return { title: "Solid progress", sub: "You've got the foundations. A little focused practice will take you further.", mood: "happy" };
-  return { title: "A great starting point", sub: "Every question you missed is now a review card. This is exactly how learning works.", mood: "encourage" };
+  return { title: "A great starting point", sub: "Every question you missed is now a recall card. This is exactly how learning works.", mood: "encourage" };
 }
 
 function scoreColor(score: number): string {
@@ -60,13 +60,13 @@ export function AssessmentReportView({ assessment, fresh }: { assessment: Assess
         <div className="result-stats">
           <ResultStat tone="green" label="Correct" emoji="check-mark" value={report.correctCount} />
           <ResultStat tone="amber" label="Partly" emoji="thinking-face" value={report.partialCount} />
-          <ResultStat tone="teal" label="To review" emoji="card-index" value={toReview} />
+          <ResultStat tone="teal" label="To recall" emoji="recall" value={toReview} />
         </div>
 
         <div className="rp-actions">
           {toReview + report.partialCount > 0 && (
-            <ButtonLink to={`/review?documentId=${docId}`} variant="review" size="lg">
-              Review mistakes
+            <ButtonLink to={`/recall?documentId=${docId}`} variant="review" size="lg">
+              Recall mistakes
             </ButtonLink>
           )}
           <ButtonLink to={`/documents/${docId}`} size="lg">
@@ -163,7 +163,7 @@ export function AssessmentReportView({ assessment, fresh }: { assessment: Assess
   );
 }
 
-function SectionTitle({ emoji, title }: { emoji: EmojiName; title: string }) {
+function SectionTitle({ emoji, title }: { emoji: IconName; title: string }) {
   return (
     <h2 className="rp-section-title">
       <Emoji name={emoji} size={28} /> {title}
@@ -203,7 +203,7 @@ function CalibrationCard({ calibration }: { calibration: Calibration }) {
                 Unsure
               </span>
               <CalCell n={calibration.unsureCorrect} title="Knew more than you thought" tone="teal" total={total} />
-              <CalCell n={calibration.unsureIncorrect} title="Honest gaps, now on your review list" tone="red" total={total} />
+              <CalCell n={calibration.unsureIncorrect} title="Honest gaps, now in your recall deck" tone="red" total={total} />
             </div>
           </div>
           <p className="xs muted" style={{ marginTop: "var(--space-3)" }}>
@@ -224,7 +224,7 @@ function CalCell({ n, title, tone, total }: { n: number; title: string; tone: "g
   );
 }
 
-const VERDICT_EMOJI: Record<string, EmojiName> = {
+const VERDICT_EMOJI: Record<string, IconName> = {
   CORRECT: "check-mark",
   PARTIAL: "thinking-face",
   INCORRECT: "cross-mark",
@@ -255,7 +255,7 @@ function QuestionReview({ items }: { items: AssessmentItem[] }) {
                   <motion.div className="qr-body" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
                     <div className="stack-sm qr-body-inner">
                       {!a ? (
-                        <p className="small muted">Skipped. It's in your reviews.</p>
+                        <p className="small muted">Skipped. It's in your recall deck.</p>
                       ) : (
                         <>
                           {a.selectedOptionIndex != null && (
