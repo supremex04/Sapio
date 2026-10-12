@@ -4,6 +4,15 @@
  * Spec: docs/specs/design-system.md. Living reference: /styleguide.
  */
 :root {
+  /* ---------- Interface scale ----------
+     On desktop the whole interface renders at 80% (CSS zoom on <html>, like browser zoom): Ved's design reads
+     best at that density on common laptop and desktop screens. Phones stay at 100% for legible text. Viewport-sized
+     lengths must use --vh / --vw / --dvh below, which cancel the zoom (a zoomed 100vh would be 80% of the screen). */
+  --ui-zoom: 1;
+  --vh: calc(1vh / var(--ui-zoom));
+  --vw: calc(1vw / var(--ui-zoom));
+  --dvh: calc(1dvh / var(--ui-zoom));
+
   /* ---------- Typography ---------- */
   --font-sans: "Nunito Variable", Nunito, ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: var(--font-sans);
@@ -232,4 +241,10 @@
   --chart-bar: var(--blue-main);
   --chart-bar-goal: var(--green-main);
   --chart-grid: var(--border);
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --ui-zoom: 0.8;
+  }
 }

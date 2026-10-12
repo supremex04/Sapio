@@ -245,7 +245,7 @@ a.doc-title:hover {
 /* ---------- Extracted text (Raw text tab): full column width, like the reading view ---------- */
 .markdown-source {
   margin: 0;
-  max-height: 70vh;
+  max-height: calc(70 * var(--vh));
   overflow: auto;
   padding: var(--space-4);
   border: var(--border-width) solid var(--border);

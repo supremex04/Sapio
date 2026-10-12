@@ -190,7 +190,7 @@
 }
 .preview-frame {
   width: 100%;
-  height: 80vh;
+  height: calc(80 * var(--vh));
   border: var(--border-width) solid var(--border);
   border-radius: var(--radius-md);
   background: #fff;

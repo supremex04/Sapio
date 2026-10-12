@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
-import { isCollapsed, readPreference, savePreference, type SidebarPreference } from "./sidebarState";
+import { isCollapsed, layoutWidth, readPreference, savePreference, type SidebarPreference } from "./sidebarState";
 
 /** Collapsed / expanded sidebar: remembered in this browser, otherwise by screen width; toggled with "[". */
 export function useSidebar() {
   const [preference, setPreference] = useState<SidebarPreference>(readPreference);
-  const [width, setWidth] = useState(() => window.innerWidth);
+  const [width, setWidth] = useState(layoutWidth);
   const collapsed = isCollapsed(preference, width);
 
   useEffect(() => {
-    const onResize = () => setWidth(window.innerWidth);
+    const onResize = () => setWidth(layoutWidth());
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);

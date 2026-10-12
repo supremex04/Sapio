@@ -513,7 +513,7 @@ button.chip {
 .sheet-body {
   color: var(--text-2);
   font-weight: var(--weight-body);
-  max-height: 32vh;
+  max-height: calc(32 * var(--vh));
   overflow-y: auto;
 }
 .sheet-correct .sheet-body,
@@ -1065,7 +1065,7 @@ button.chip {
 }
 .md-lightbox img {
   max-width: 100%;
-  max-height: 85vh;
+  max-height: calc(85 * var(--vh));
   border-radius: var(--radius-md);
   background: #fff;
 }
@@ -1078,8 +1078,8 @@ button.chip {
 
 /* ======================================================== Dialog (native <dialog>) */
 .dialog {
-  width: min(34rem, calc(100vw - 2 * var(--space-4)));
-  max-height: calc(100dvh - 2 * var(--space-6));
+  width: min(34rem, calc(100 * var(--vw) - 2 * var(--space-4)));
+  max-height: calc(100 * var(--dvh) - 2 * var(--space-6));
   padding: 0;
   border: var(--border-width) solid var(--border);
   border-bottom-width: calc(var(--border-width) + var(--edge));

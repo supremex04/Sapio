@@ -3,7 +3,7 @@
  * Focus mode (lessons, tests, reviews): no navigation at all.
  */
 .app {
-  min-height: 100vh;
+  min-height: calc(100 * var(--vh));
 }
 
 /* ---------- Brand ---------- */
@@ -55,7 +55,7 @@
     position: sticky;
     top: 0;
     z-index: 20; /* its tooltips and account menu float over the page */
-    height: 100vh;
+    height: calc(100 * var(--vh));
     display: flex;
     flex-direction: column;
     gap: var(--space-6);

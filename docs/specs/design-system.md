@@ -114,6 +114,12 @@ Nunito Variable (OFL), one family only. Hierarchy via weight and size:
 | `Emoji` | `<Emoji name="fire" size={28} />` |
 | `Avatar` | DiceBear notionists by seed |
 
+**Interface scale.** On desktop (≥ 1024 px) the whole interface renders at 80% (`zoom: var(--ui-zoom)` on
+`<html>`, `--ui-zoom: 0.8`), the density Ved is designed for at the browser's default 100%; phones stay at 100%
+for legible text. Lengths tied to the screen size use `--vh` / `--vw` / `--dvh` (they cancel the zoom; a zoomed
+`100vh` would cover only 80% of the screen), and scripts measure layout sizes rather than `getBoundingClientRect`,
+which is already scaled. Breakpoints stay in real screen pixels.
+
 App shell (`app/`): sidebar navigation on desktop (≥ 1024 px), right rail with streak / goal / recall
 on wide screens (≥ 1200 px), top stat bar + bottom tab bar on mobile.
 

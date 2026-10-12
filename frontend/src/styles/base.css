@@ -6,6 +6,7 @@
 }
 
 html {
+  zoom: var(--ui-zoom); /* see --ui-zoom in tokens.css */
   -webkit-text-size-adjust: 100%;
   font-family: var(--font-sans);
   font-size: 16px;
@@ -19,7 +20,7 @@ html {
 
 body {
   margin: 0;
-  min-height: 100vh;
+  min-height: calc(100 * var(--vh));
   background: var(--bg);
 }
 
@@ -167,7 +168,7 @@ svg {
   display: grid;
   place-items: center;
   gap: var(--space-4);
-  min-height: 50vh;
+  min-height: calc(50 * var(--vh));
   color: var(--text-muted);
   font-weight: var(--weight-strong);
 }

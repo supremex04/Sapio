@@ -297,7 +297,8 @@ export function SheetSlot({ children }: { children: ReactNode }) {
   useLayoutEffect(() => {
     const sheetEl = ref.current?.querySelector(".sheet");
     if (!sheetEl) return;
-    const observer = new ResizeObserver(() => setHeight(sheetEl.getBoundingClientRect().height));
+    // Layout size (not getBoundingClientRect, which is already scaled by the page zoom and would be applied twice).
+    const observer = new ResizeObserver(([entry]) => setHeight(entry?.borderBoxSize?.[0]?.blockSize ?? 0));
     observer.observe(sheetEl);
     return () => observer.disconnect();
   });
