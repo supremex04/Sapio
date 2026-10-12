@@ -76,9 +76,7 @@ export function ExtractedText({ doc }: { doc: DocumentDto }) {
       {content.trim() === "" ? (
         <p className="muted">No text was found in this document.</p>
       ) : view === "preview" ? (
-        <div className="reading">
-          <Markdown>{content}</Markdown>
-        </div>
+        <Markdown>{content}</Markdown>
       ) : (
         <pre className="markdown-source">{content}</pre>
       )}

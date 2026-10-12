@@ -242,10 +242,7 @@ a.doc-title:hover {
   color: var(--red-ink);
 }
 
-/* ---------- Extracted text ---------- */
-.reading {
-  max-width: var(--reading-width);
-}
+/* ---------- Extracted text (Raw text tab): full column width, like the reading view ---------- */
 .markdown-source {
   margin: 0;
   max-height: 70vh;
