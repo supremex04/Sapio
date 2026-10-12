@@ -63,11 +63,12 @@ class InferenceExtractionGateway implements ExtractionGateway {
             return new ExtractionResult(r.markdown(), r.engine(), r.language(), r.pageCount(), r.textPages(),
                     r.ocrPages(), segments, toTree(r.tree()));
         } catch (IllegalArgumentException e) {
-            throw new ExtractionException("Text extraction returned malformed data, please retry", e);
+            throw new ExtractionException("Text extraction returned malformed data, please retry", e, true);
         } catch (InferenceException e) {
-            throw new ExtractionException(e.isClientError()
+            throw new ExtractionException(e.isInputRejected()
                     ? "Document could not be processed: " + e.getMessage()
-                    : "Text extraction is unavailable right now", e, !e.isClientError());
+                    : e.userMessage("Text extraction is unavailable right now"), e, !e.isInputRejected(),
+                    e.retryAfter().orElse(null));
         }
     }
 

@@ -150,8 +150,8 @@ public class LessonService {
             sources = access.sources(ctx.material(), ctx.topic(), budget);
         }
         StudyAi.AnswerDraft reply = ai.answer(new StudyAi.AnswerSpec(ctx.material().getTitle(),
-                ctx.material().getLanguage(), request.question(), history, sources.sections(), sources.figures(),
-                "tutor", focus.text()));
+                ctx.material().getLanguage(), request.question(), history, StudyAi.sources(sources.sections()),
+                StudyAi.figures(sources.figures()), "tutor", focus.text()));
         tx.executeWithoutResult(status -> publish(userId, LearningActivityEvent.Type.TUTOR_QUESTION, ctx.material(),
                 ctx.topic(), b -> b));
         return new AskResponse(reply.answer(), reply.grounded(), figures.byIds(uuids(reply.figureIds())));
@@ -232,7 +232,7 @@ public class LessonService {
                         topic.getDifficulty()),
                 path.subList(0, index).stream().map(StudyTopic::getTitle).toList(),
                 path.subList(index + 1, path.size()).stream().map(StudyTopic::getTitle).toList(),
-                sources.sections(), sources.figures()));
+                StudyAi.sources(sources.sections()), StudyAi.figures(sources.figures())));
         if (draft.sections() == null || draft.sections().isEmpty()) {
             throw new ApplicationException(ErrorCode.AI_UNAVAILABLE, "The lesson came back empty, please retry");
         }

@@ -7,7 +7,7 @@ import httpx
 from pydantic import ValidationError
 
 from ved_inference.config import ModelRef, ProviderConfig
-from ved_inference.errors import EngineError
+from ved_inference.errors import ConfigurationError
 from ved_inference.llm.base import EmbedItem, EmbedTask, ImagePart, T
 from ved_inference.llm.json_schema import response_schema
 from ved_inference.llm.providers.base import Provider
@@ -24,7 +24,7 @@ class GeminiProvider(Provider):
     ) -> None:
         key = config.api_key()
         if not key:
-            raise EngineError(f"Provider '{name}': set the API key in ${config.api_key_env}")
+            raise ConfigurationError(f"Provider '{name}': set the API key in ${config.api_key_env}")
         self._name = name
         self._config = config
         self._client = httpx.Client(
@@ -125,7 +125,7 @@ class GeminiProvider(Provider):
         if response.status_code == 404:
             raise ModelUnavailable(f"{self._name}: model not found ({path})")
         if response.status_code >= 400:
-            raise EngineError(
+            raise ConfigurationError(
                 f"AI request rejected (HTTP {response.status_code}): {_error_message(response)}"
             )
         return response

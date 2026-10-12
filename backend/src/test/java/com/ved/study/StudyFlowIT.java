@@ -33,6 +33,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -262,10 +263,23 @@ class StudyFlowIT {
 
     @Test
     void aiOutageIsA503AndNothingIsRecorded() throws Exception {
-        when(ai.generateLesson(any())).thenThrow(new StudyAiException("The AI service is busy", false));
-        mvc.perform(get("/api/topics/{id}/lesson", supplyTopic).header("Authorization", user.bearer()))
+        when(ai.generateLesson(any()))
+                .thenThrow(new StudyAiException("The AI service is busy", false, true, Duration.ofSeconds(90)))
+                .thenThrow(new StudyAiException("This section has too little text to teach", true));
+        String body = mvc.perform(get("/api/topics/{id}/lesson", supplyTopic).header("Authorization", user.bearer())
+                        .header("X-Request-Id", "lesson-req-1"))
                 .andExpect(status().isServiceUnavailable())
-                .andExpect(jsonPath("$.code").value("AI_UNAVAILABLE"));
+                .andExpect(header().string("Retry-After", "90"))
+                .andExpect(header().string("X-Request-Id", "lesson-req-1"))
+                .andExpect(jsonPath("$.code").value("AI_UNAVAILABLE"))
+                .andExpect(jsonPath("$.requestId").value("lesson-req-1"))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(body).contains("busy");
+        // A refused input is the learner-visible 422, not an outage.
+        mvc.perform(get("/api/topics/{id}/lesson", supplyTopic).header("Authorization", user.bearer()))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.code").value("AI_INPUT_REJECTED"))
+                .andExpect(header().exists("X-Request-Id"));
         assertThat(getJson("/api/documents/{id}/material", documentId).at("/topics/1/status").asString())
                 .isEqualTo("NOT_STARTED");
     }

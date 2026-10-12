@@ -25,6 +25,11 @@ server:
   error:
     include-message: never
 
+logging:
+  pattern:
+    # Every line carries the request id (X-Request-Id), shared with the inference service's logs.
+    level: "%5p [%X{requestId:-}]"
+
 management:
   endpoints:
     web:
@@ -56,7 +61,10 @@ ved:
       # Transient failures (AI busy / out of quota) retry automatically after these delays, resuming where
       # they stopped. One entry per attempt; empty disables automatic retries.
       auto-retry-delays: 1m, 4m, 15m
-      retry-poll: 30s # how often due retries are picked up
+      retry-poll: 30s # how often due retries (and abandoned documents) are picked up
+      # Multi-instance safety: a document is claimed by one instance, which refreshes a heartbeat while working
+      # on it. If the heartbeat is older than this (crash, scale-down), any instance requeues the document.
+      lease: 2m
   knowledge:
     # Signs figure image URLs. MUST be overridden outside local development.
     figure-url-secret: ${VED_FIGURE_URL_SECRET:dev-only-figure-url-secret-change-me}

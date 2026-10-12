@@ -4,7 +4,7 @@ import logging
 from contextvars import ContextVar
 
 from ved_inference.config import EmbeddingConfig, LlmConfig
-from ved_inference.errors import EngineError
+from ved_inference.errors import ConfigurationError, EngineError
 from ved_inference.llm.base import Embedder, EmbedItem, EmbedTask, ImagePart, LlmClient, T
 from ved_inference.llm.providers.base import Provider
 from ved_inference.llm.retry import ModelUnavailable
@@ -37,7 +37,7 @@ class RoutedLlm(LlmClient):
         images: list[ImagePart] | None = None,
         task: str = "default",
     ) -> T:
-        last: Exception | None = None
+        failures: list[ModelUnavailable] = []
         for ref in self._config.route(task).chain():
             try:
                 result = self._providers[ref.provider].generate(
@@ -52,10 +52,11 @@ class RoutedLlm(LlmClient):
                 return result
             except ModelUnavailable as exc:
                 log.warning("%s → falling back (%s)", f"{ref.provider}:{ref.model}", exc)
-                last = exc
+                failures.append(exc)
         raise EngineError(
-            "The AI service is busy or out of quota right now. Please try again later."
-        ) from last
+            "The AI service is busy or out of quota right now. Please try again later.",
+            retry_after=_retry_after(failures),
+        ) from (failures[-1] if failures else None)
 
     def close(self) -> None:
         for p in self._providers.values():
@@ -97,12 +98,21 @@ class RoutedEmbedder(Embedder):
                 )
         except ModelUnavailable as exc:
             raise EngineError(
-                "The embedding service is busy or out of quota. Processing will continue later."
+                "The embedding service is busy or out of quota. Processing will continue later.",
+                retry_after=exc.retry_after,
             ) from exc
         for v in vectors:
             if len(v) != self._config.dimensions:
-                raise EngineError(
+                raise ConfigurationError(
                     f"Embedding model returned {len(v)} dimensions, configured {self._config.dimensions}; "
                     "align embeddings.dimensions with the model and the database column"
                 )
         return vectors
+
+
+def _retry_after(failures: list[ModelUnavailable]) -> float | None:
+    """When every model in the route said when it serves again, the earliest of those; else unknown."""
+    hints = [f.retry_after for f in failures]
+    if not hints or any(h is None for h in hints):
+        return None
+    return min(h for h in hints if h is not None)

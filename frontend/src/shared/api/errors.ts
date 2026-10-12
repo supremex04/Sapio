@@ -6,12 +6,15 @@ export interface ApiErrorBody {
   path?: string;
   timestamp?: string;
   fieldErrors?: { field: string; message: string }[];
+  /** Same as the X-Request-Id header and the server logs (both services). */
+  requestId?: string;
 }
 
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
   readonly fieldErrors: Record<string, string>;
+  readonly requestId?: string;
 
   constructor(body: ApiErrorBody) {
     super(body.message);
@@ -19,6 +22,7 @@ export class ApiError extends Error {
     this.status = body.status;
     this.code = body.code;
     this.fieldErrors = Object.fromEntries((body.fieldErrors ?? []).map((f) => [f.field, f.message]));
+    this.requestId = body.requestId;
   }
 
   static async fromResponse(response: Response): Promise<ApiError> {
@@ -28,12 +32,20 @@ export class ApiError extends Error {
     } catch {
       // not JSON - fall through
     }
-    return new ApiError({ status: response.status, code: "HTTP_" + response.status, message: response.statusText || "Request failed" });
+    return new ApiError({
+      status: response.status,
+      code: "HTTP_" + response.status,
+      message: response.statusText || "Request failed",
+      requestId: response.headers.get("X-Request-Id") ?? undefined,
+    });
   }
 }
 
 export function errorMessage(error: unknown): string {
-  if (error instanceof ApiError) return error.message;
+  if (error instanceof ApiError) {
+    // Unexpected server errors get a short reference that finds the request in the logs.
+    return error.code === "INTERNAL_ERROR" && error.requestId ? `${error.message} (ref ${error.requestId.slice(0, 8)})` : error.message;
+  }
   if (error instanceof TypeError) return "Cannot reach the server. Check your connection.";
   return "Something went wrong.";
 }

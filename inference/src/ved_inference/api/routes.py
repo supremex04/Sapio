@@ -4,6 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
 from fastapi.concurrency import run_in_threadpool
 
+from ved_inference.api.errors import ERROR_RESPONSES
 from ved_inference.api.schemas import (
     ChunkOut,
     ExtractResponse,
@@ -16,7 +17,6 @@ from ved_inference.api.schemas import (
 from ved_inference.api.security import require_internal_api_key
 from ved_inference.config import Settings, get_settings
 from ved_inference.engines.markdown import join_pages
-from ved_inference.errors import DocumentError, EngineError
 from ved_inference.llm.base import Embedder, LlmClient
 from ved_inference.parsing.parser import DocumentParser, ParsedDocument
 
@@ -40,7 +40,12 @@ def health(request: Request) -> HealthResponse:
     )
 
 
-@router.post("/v1/extract", response_model=ExtractResponse, dependencies=[Depends(require_internal_api_key)])
+@router.post(
+    "/v1/extract",
+    response_model=ExtractResponse,
+    dependencies=[Depends(require_internal_api_key)],
+    responses=ERROR_RESPONSES,
+)
 async def extract(
     file: UploadFile,
     parser: Annotated[DocumentParser, Depends(get_parser)],
@@ -49,13 +54,8 @@ async def extract(
     data = await file.read(settings.parsing.max_upload_bytes + 1)
     if len(data) > settings.parsing.max_upload_bytes:
         raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, detail="File too large")
-    try:
-        # Parsing is blocking (layout model, OCR); keep the event loop free.
-        parsed = await run_in_threadpool(parser.parse, data, file.filename or "document")
-    except DocumentError as exc:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
-    except EngineError as exc:
-        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    # Parsing is blocking (layout model, OCR); keep the event loop free.
+    parsed = await run_in_threadpool(parser.parse, data, file.filename or "document")
     return to_response(parsed)
 
 

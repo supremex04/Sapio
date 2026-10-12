@@ -20,7 +20,14 @@ class Retryable(Exception):
 
 
 class ModelUnavailable(Exception):
-    """This model can't serve now (unknown model, exhausted quota, retries used up): try the next in the route."""
+    """This model can't serve now (unknown model, exhausted quota, retries used up): try the next in the route.
+
+    ``retry_after``: seconds until it is expected to serve again, when the provider said so (quota reset).
+    """
+
+    def __init__(self, message: str, retry_after: float | None = None) -> None:
+        super().__init__(message)
+        self.retry_after = retry_after
 
 
 def retry_delay(response: httpx.Response) -> float | None:
@@ -54,7 +61,9 @@ def with_retries[R](call: Callable[[], R], *, label: str, max_retries: int, max_
         except Retryable as exc:
             last = exc
             if exc.delay is not None and exc.delay > 2 * max_backoff:
-                raise ModelUnavailable(f"{label}: quota exhausted (retry in {exc.delay:.0f}s)") from exc
+                raise ModelUnavailable(
+                    f"{label}: quota exhausted (retry in {exc.delay:.0f}s)", retry_after=exc.delay
+                ) from exc
             log.warning("%s attempt %d failed: %s", label, attempt + 1, exc)
             if attempt < max_retries:
                 time.sleep(min(exc.delay if exc.delay is not None else 2.0 ** (attempt + 1), max_backoff))

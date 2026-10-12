@@ -8,7 +8,7 @@ class Provider(ABC):
     """One model vendor / endpoint. Adding a vendor = one subclass + a branch in registry.build_provider.
 
     ``generate``/``embed`` raise ``retry.ModelUnavailable`` when the router should try the next model, and
-    ``errors.EngineError`` for requests that would fail on any model (bad request, auth).
+    ``errors.ConfigurationError`` for requests that would fail on any model (bad request, auth, missing key).
     """
 
     #: Whether this provider can embed images (else figures are embedded from their text).

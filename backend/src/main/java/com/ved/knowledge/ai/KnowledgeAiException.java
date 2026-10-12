@@ -1,27 +1,18 @@
 package com.ved.knowledge.ai;
 
-import com.ved.common.error.ApplicationException;
-import com.ved.common.error.ErrorCode;
+import java.time.Duration;
 
-/**
- * Indexing/embedding AI call failed. Rendered as 503 AI_UNAVAILABLE if it escapes to a request.
- * {@link #isRejected()}: the inference service refused the request (4xx: bad input or misconfiguration), so
- * retrying will not help; otherwise it was busy or unavailable (transient).
- */
-public class KnowledgeAiException extends ApplicationException {
+import com.ved.common.ai.AiException;
 
-    private final boolean rejected;
+/** {@link KnowledgeAi} failed. See {@link AiException} for how it is classified and rendered. */
+public class KnowledgeAiException extends AiException {
 
+    public KnowledgeAiException(String message, boolean inputRejected, boolean retryable, Duration retryAfter) {
+        super(message, inputRejected, retryable, retryAfter);
+    }
+
+    /** A transient failure: busy or unavailable. */
     public KnowledgeAiException(String message) {
-        this(message, false);
-    }
-
-    public KnowledgeAiException(String message, boolean rejected) {
-        super(ErrorCode.AI_UNAVAILABLE, message);
-        this.rejected = rejected;
-    }
-
-    public boolean isRejected() {
-        return rejected;
+        this(message, false, true, null);
     }
 }

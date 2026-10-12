@@ -46,7 +46,7 @@ class MaterialAnalyzer implements DocumentAnalyzer {
     public Result analyze(Input input) throws AnalysisException {
         List<NodeRow> nodes = knowledge.nodes(input.documentId());
         if (nodes.isEmpty()) {
-            throw new AnalysisException("No structure was found in this document", null);
+            throw new AnalysisException("No structure was found in this document", null, false, null);
         }
         Map<String, NodeRow> byKey = nodes.stream().collect(Collectors.toMap(n -> n.id().toString(), Function.identity()));
         StudyAi.MaterialDraft draft;
@@ -57,7 +57,8 @@ class MaterialAnalyzer implements DocumentAnalyzer {
                             n.summary() == null ? "" : n.summary(), n.keyTerms())).toList()));
         } catch (StudyAiException e) {
             throw new AnalysisException(e.isInputRejected() ? e.getMessage()
-                    : "Building the learning path failed: " + e.getMessage(), e, !e.isInputRejected());
+                    : "Building the learning path failed: " + e.getMessage(), e, !e.isInputRejected(),
+                    e.retryAfter().orElse(null));
         }
         tx.executeWithoutResult(status -> {
             materials.deleteByDocumentId(input.documentId());

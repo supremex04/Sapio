@@ -92,6 +92,13 @@ public class Document {
     @Column(name = "auto_retries", nullable = false)
     private int autoRetries;
 
+    /**
+     * Last sign of life of the instance responsible for this document (queued, claimed, or refreshed while
+     * processing). In-flight documents whose heartbeat is older than the lease are requeued by any instance.
+     */
+    @Column(name = "heartbeat_at")
+    private Instant heartbeatAt;
+
     /** When set on a FAILED document, the pipeline resumes automatically at this time. */
     @Column(name = "retry_at")
     private Instant retryAt;
@@ -119,6 +126,7 @@ public class Document {
         requireStatus(DocumentStatus.PENDING);
         this.status = isTextExtracted() ? DocumentStatus.INDEXING : DocumentStatus.EXTRACTING;
         this.processingStartedAt = now;
+        this.heartbeatAt = now;
         this.errorMessage = null;
     }
 
@@ -162,10 +170,11 @@ public class Document {
         this.completedAt = now;
     }
 
-    /** Puts an interrupted job (e.g. after a restart) back in the queue. */
-    public void requeue() {
+    /** Puts an abandoned job (its instance stopped or crashed) back in the queue. */
+    public void requeue(Instant now) {
         this.status = DocumentStatus.PENDING;
         this.processingStartedAt = null;
+        this.heartbeatAt = now;
     }
 
     /** User-initiated retry of a failed document (also resets the automatic retry budget). */

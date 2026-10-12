@@ -41,7 +41,7 @@ public class AnswerGrader {
         StudyAi.GradeResult result = ai.grade(new StudyAi.GradeSpec(language,
                 new StudyAi.QuestionToGrade(question.getPrompt(), question.getReferenceAnswer(),
                         question.getExplanation()),
-                sources.sections(), text));
+                StudyAi.sources(sources.sections()), text));
         return new Graded(result.verdict(), result.score(), result.feedback(), null, text);
     }
 }

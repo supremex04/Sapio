@@ -1,6 +1,8 @@
 package com.ved.document;
 
+import java.sql.Timestamp;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 
 import com.ved.FakeAi;
@@ -16,6 +18,7 @@ import com.ved.study.ai.StudyAiException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -61,6 +64,9 @@ public class DocumentFlowIT {
 
     @Autowired
     MutableClock clock;
+
+    @Autowired
+    JdbcTemplate jdbc;
 
     @BeforeEach
     void stubAi() {
@@ -153,6 +159,47 @@ public class DocumentFlowIT {
                     .andReturn().getResponse().getContentAsString()).get("status").asString();
         }
         assertThat(status).isEqualTo("READY");
+    }
+
+    @Test
+    void aQuotaResetHintPostponesTheAutomaticRetry() throws Exception {
+        when(extraction.extract(argThat(r -> r != null && r.filename().equals("quota.png"))))
+                .thenThrow(new ExtractionException("The AI service is out of quota", null, true, Duration.ofHours(3)));
+        Registered user = TestUsers.register(mvc, json);
+
+        UUID id = upload(mvc, json, user, "quota.png", PNG_BYTES);
+        JsonNode paused = awaitTerminal(mvc, json, user, id);
+
+        // Not after the first configured delay (1 min), which would only burn a retry.
+        assertThat(Instant.parse(paused.get("retryAt").asString()))
+                .isAfterOrEqualTo(clock.instant().plus(Duration.ofHours(3)).minusSeconds(5));
+    }
+
+    @Test
+    void documentsAbandonedByAStoppedInstanceAreResumedButLiveOnesAreLeftAlone() throws Exception {
+        when(extraction.extract(any())).thenReturn(FakeAi.extraction());
+        Registered user = TestUsers.register(mvc, json);
+        UUID abandoned = upload(mvc, json, user, "abandoned.png", PNG_BYTES);
+        UUID live = upload(mvc, json, user, "live.png", PNG_BYTES);
+        awaitTerminal(mvc, json, user, abandoned);
+        awaitTerminal(mvc, json, user, live);
+
+        // Simulate two instances mid-indexing: one stopped heartbeating an hour ago, one is still alive.
+        Instant now = clock.instant();
+        jdbc.update("update documents set status = 'INDEXING', heartbeat_at = ? where id = ?",
+                Timestamp.from(now.minus(Duration.ofHours(1))), abandoned);
+        jdbc.update("update documents set status = 'INDEXING', heartbeat_at = ? where id = ?",
+                Timestamp.from(now), live);
+
+        long deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos();
+        String status = "INDEXING";
+        while (!"READY".equals(status) && System.nanoTime() < deadline) {
+            Thread.sleep(100);
+            status = jdbc.queryForObject("select status from documents where id = ?", String.class, abandoned);
+        }
+        assertThat(status).isEqualTo("READY");
+        assertThat(jdbc.queryForObject("select status from documents where id = ?", String.class, live))
+                .isEqualTo("INDEXING");
     }
 
     @Test

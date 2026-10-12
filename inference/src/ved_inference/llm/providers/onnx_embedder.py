@@ -15,7 +15,7 @@ import numpy as np
 from pydantic import BaseModel, Field
 
 from ved_inference.config import ModelRef, ProviderConfig
-from ved_inference.errors import EngineError
+from ved_inference.errors import ConfigurationError
 from ved_inference.llm.base import EmbedItem, EmbedTask, ImagePart, T
 from ved_inference.llm.providers.base import Provider
 
@@ -55,7 +55,7 @@ class OnnxEmbeddingProvider(Provider):
         temperature: float,
         images: list[ImagePart],
     ) -> T:
-        raise EngineError(
+        raise ConfigurationError(
             f"Provider '{self.name}' (onnx) only computes embeddings; route text generation elsewhere"
         )
 
@@ -96,7 +96,9 @@ class OnnxEmbeddingProvider(Provider):
             from huggingface_hub import hf_hub_download
             from tokenizers import Tokenizer
         except ImportError as exc:  # pragma: no cover - depends on installed extras
-            raise EngineError("Local embeddings need the 'embed' extra: pip install -e '.[embed]'") from exc
+            raise ConfigurationError(
+                "Local embeddings need the 'embed' extra: pip install -e '.[embed]'"
+            ) from exc
         log.info("Loading embedding model %s (%s)", model, opts.file)
         model_path = Path(hf_hub_download(model, opts.file))
         tokenizer = Tokenizer.from_file(hf_hub_download(model, "tokenizer.json"))
@@ -145,7 +147,9 @@ class OnnxEmbeddingProvider(Provider):
             pooled = (hidden * weights).sum(axis=1) / np.clip(weights.sum(axis=1), 1e-9, None)
 
         if pooled.shape[1] < dimensions:
-            raise EngineError(f"Model outputs {pooled.shape[1]} dimensions; {dimensions} were configured")
+            raise ConfigurationError(
+                f"Model outputs {pooled.shape[1]} dimensions; {dimensions} were configured"
+            )
         # Matryoshka models keep their meaning in the leading dimensions: truncate, then re-normalise.
         pooled = pooled[:, :dimensions]
         pooled = pooled / np.clip(np.linalg.norm(pooled, axis=1, keepdims=True), 1e-12, None)

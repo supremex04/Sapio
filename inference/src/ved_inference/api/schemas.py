@@ -69,8 +69,13 @@ class ExtractResponse(ApiModel):
     tree: TreeOut
 
 
+#: Bumped on breaking wire changes; the backend refuses to talk to a different major version.
+CONTRACT_VERSION = "1.0"
+
+
 class HealthResponse(ApiModel):
     status: str
+    contract_version: str = CONTRACT_VERSION
     ocr_engine: str
     llm_model: str
     embedding_model: str

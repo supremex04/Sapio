@@ -5,12 +5,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from ved_inference.api import index_routes, routes, study_routes
+from ved_inference.api.errors import install_error_handlers
 from ved_inference.config import Settings, get_settings
 from ved_inference.engines.base import OcrEngine
 from ved_inference.engines.registry import build_engine
 from ved_inference.indexing.service import IndexingService
 from ved_inference.llm.base import Embedder, LlmClient
 from ved_inference.llm.registry import build_embedder, build_llm
+from ved_inference.observability import RequestIdMiddleware, configure_logging
 from ved_inference.parsing.parser import DocumentParser
 from ved_inference.study.service import StudyService
 
@@ -23,6 +25,7 @@ def create_app(
     embedder_factory: Callable[[Settings], Embedder] = build_embedder,
 ) -> FastAPI:
     """Application factory (composition root). Tests pass fake factories."""
+    configure_logging()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -47,6 +50,8 @@ def create_app(
         embedder.close()
 
     app = FastAPI(title="Ved Inference Service", version="0.3.0", lifespan=lifespan)
+    install_error_handlers(app)
+    app.add_middleware(RequestIdMiddleware)
     app.include_router(routes.router)
     app.include_router(study_routes.router)
     app.include_router(index_routes.router)

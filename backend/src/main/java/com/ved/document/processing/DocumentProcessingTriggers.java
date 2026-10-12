@@ -1,12 +1,15 @@
 package com.ved.document.processing;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import com.ved.document.Document;
+import com.ved.document.DocumentProperties;
 import com.ved.document.DocumentRepository;
 import com.ved.document.DocumentStatus;
 import com.ved.document.DocumentQueuedEvent;
@@ -21,8 +24,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
- * Decides <em>when</em> documents get processed: right after upload, and on startup for jobs that were
- * interrupted by a restart.
+ * Decides <em>when</em> documents get processed: right after upload, when an automatic retry is due, and when
+ * a job was abandoned (its instance stopped). Works with any number of backend instances: claiming is atomic
+ * and every in-flight document is covered by a heartbeat lease.
  */
 @Component
 class DocumentProcessingTriggers {
@@ -33,9 +37,14 @@ class DocumentProcessingTriggers {
     private final DocumentRepository documents;
     private final TransactionTemplate tx;
     private final Clock clock;
+    private final Duration lease;
+
+    private static final Set<DocumentStatus> IN_FLIGHT = EnumSet.of(DocumentStatus.PENDING,
+            DocumentStatus.EXTRACTING, DocumentStatus.INDEXING, DocumentStatus.ANALYZING);
 
     DocumentProcessingTriggers(DocumentProcessor processor, DocumentRepository documents, TransactionTemplate tx,
-                               Clock clock) {
+                               Clock clock, DocumentProperties properties) {
+        this.lease = properties.processing().lease();
         this.processor = processor;
         this.documents = documents;
         this.tx = tx;
@@ -47,19 +56,34 @@ class DocumentProcessingTriggers {
         submit(event.documentId());
     }
 
+    /**
+     * Requeues documents nobody is working on: in flight on an instance that stopped (its heartbeat expired),
+     * or queued but never started (a full queue). Safe on every instance at once: claiming is atomic.
+     */
     @EventListener(ApplicationReadyEvent.class)
-    void resumeInterrupted() {
+    @Scheduled(fixedDelayString = "${ved.documents.processing.retry-poll:30s}",
+            initialDelayString = "${ved.documents.processing.retry-poll:30s}")
+    void resumeAbandoned() {
+        Instant now = clock.instant();
         // Requeue in its own committed transaction first, so workers see the PENDING state.
-        List<UUID> unfinished = tx.execute(status -> {
-            List<Document> docs = documents.findByStatusIn(
-                    EnumSet.of(DocumentStatus.PENDING, DocumentStatus.EXTRACTING, DocumentStatus.INDEXING,
-                            DocumentStatus.ANALYZING));
-            docs.forEach(Document::requeue);
+        List<UUID> abandoned = tx.execute(status -> {
+            List<Document> docs = documents.findAbandoned(IN_FLIGHT, now.minus(lease));
+            docs.forEach(d -> d.requeue(now));
             return docs.stream().map(Document::getId).toList();
         });
-        if (unfinished != null && !unfinished.isEmpty()) {
-            log.info("Resuming {} unfinished document(s)", unfinished.size());
-            unfinished.forEach(this::submit);
+        if (abandoned != null && !abandoned.isEmpty()) {
+            log.info("Resuming {} abandoned document(s)", abandoned.size());
+            abandoned.forEach(this::submit);
+        }
+    }
+
+    /** Keeps this instance's leases alive while it works on documents. */
+    @Scheduled(fixedDelayString = "${ved.documents.processing.heartbeat-interval:30s}")
+    void heartbeat() {
+        Set<UUID> ids = processor.inFlight();
+        if (!ids.isEmpty()) {
+            Instant now = clock.instant();
+            tx.executeWithoutResult(status -> documents.heartbeat(ids, now));
         }
     }
 
@@ -80,9 +104,9 @@ class DocumentProcessingTriggers {
 
     private void submit(UUID documentId) {
         try {
-            processor.process(documentId);
+            processor.submit(documentId);
         } catch (TaskRejectedException e) {
-            // Stays PENDING; picked up again on next startup.
+            // Stays PENDING; picked up again once its lease expires (resumeAbandoned).
             log.warn("Processing queue full, document {} deferred", documentId);
         }
     }

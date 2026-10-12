@@ -1,0 +1,3035 @@
+{
+  "components": {
+    "schemas": {
+      "AnswerRequest": {
+        "properties": {
+          "figures": {
+            "items": {
+              "$ref": "#/components/schemas/FigureRef"
+            },
+            "title": "Figures",
+            "type": "array"
+          },
+          "focus": {
+            "default": "",
+            "maxLength": 8000,
+            "title": "Focus",
+            "type": "string"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/ChatTurn"
+            },
+            "maxItems": 20,
+            "title": "History",
+            "type": "array"
+          },
+          "language": {
+            "default": "en",
+            "title": "Language",
+            "type": "string"
+          },
+          "materialTitle": {
+            "title": "Materialtitle",
+            "type": "string"
+          },
+          "question": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/SectionIn"
+            },
+            "minItems": 1,
+            "title": "Sections",
+            "type": "array"
+          },
+          "style": {
+            "default": "answer",
+            "enum": [
+              "tutor",
+              "answer"
+            ],
+            "title": "Style",
+            "type": "string"
+          }
+        },
+        "required": [
+          "materialTitle",
+          "question",
+          "sections"
+        ],
+        "title": "AnswerRequest",
+        "type": "object"
+      },
+      "AnswerResponse": {
+        "properties": {
+          "answer": {
+            "title": "Answer",
+            "type": "string"
+          },
+          "citedSectionIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Citedsectionids",
+            "type": "array"
+          },
+          "figureIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Figureids",
+            "type": "array"
+          },
+          "grounded": {
+            "title": "Grounded",
+            "type": "boolean"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          }
+        },
+        "required": [
+          "answer",
+          "grounded",
+          "citedSectionIds",
+          "figureIds",
+          "model"
+        ],
+        "title": "AnswerResponse",
+        "type": "object"
+      },
+      "Body_extract_v1_extract_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_extract_v1_extract_post",
+        "type": "object"
+      },
+      "ChatTurn": {
+        "properties": {
+          "role": {
+            "enum": [
+              "user",
+              "tutor"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 4000,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "text"
+        ],
+        "title": "ChatTurn",
+        "type": "object"
+      },
+      "CheckOut": {
+        "properties": {
+          "afterSection": {
+            "title": "Aftersection",
+            "type": "integer"
+          },
+          "correctOptionIndex": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correctoptionindex"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "options": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "prompt": {
+            "title": "Prompt",
+            "type": "string"
+          },
+          "referenceAnswer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referenceanswer"
+          },
+          "type": {
+            "enum": [
+              "MULTIPLE_CHOICE",
+              "TRUE_FALSE",
+              "SHORT_ANSWER"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "afterSection",
+          "type",
+          "prompt",
+          "options",
+          "correctOptionIndex",
+          "referenceAnswer",
+          "explanation"
+        ],
+        "title": "CheckOut",
+        "type": "object"
+      },
+      "ChunkOut": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "nodeKey": {
+            "title": "Nodekey",
+            "type": "string"
+          },
+          "ordinal": {
+            "title": "Ordinal",
+            "type": "integer"
+          },
+          "pageFrom": {
+            "title": "Pagefrom",
+            "type": "integer"
+          },
+          "pageTo": {
+            "title": "Pageto",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "nodeKey",
+          "ordinal",
+          "text",
+          "pageFrom",
+          "pageTo"
+        ],
+        "title": "ChunkOut",
+        "type": "object"
+      },
+      "DescribeFiguresRequest": {
+        "properties": {
+          "figures": {
+            "items": {
+              "$ref": "#/components/schemas/FigureIn"
+            },
+            "maxItems": 60,
+            "minItems": 1,
+            "title": "Figures",
+            "type": "array"
+          },
+          "language": {
+            "default": "en",
+            "title": "Language",
+            "type": "string"
+          }
+        },
+        "required": [
+          "figures"
+        ],
+        "title": "DescribeFiguresRequest",
+        "type": "object"
+      },
+      "DescribeFiguresResponse": {
+        "properties": {
+          "figures": {
+            "items": {
+              "$ref": "#/components/schemas/FigureDescriptionOut"
+            },
+            "title": "Figures",
+            "type": "array"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          }
+        },
+        "required": [
+          "figures",
+          "model"
+        ],
+        "title": "DescribeFiguresResponse",
+        "type": "object"
+      },
+      "EmbedItemIn": {
+        "properties": {
+          "imageBase64": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imagebase64"
+          },
+          "mime": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mime"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "title": "EmbedItemIn",
+        "type": "object"
+      },
+      "EmbedRequest": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EmbedItemIn"
+            },
+            "maxItems": 256,
+            "minItems": 1,
+            "title": "Items",
+            "type": "array"
+          },
+          "task": {
+            "enum": [
+              "RETRIEVAL_DOCUMENT",
+              "RETRIEVAL_QUERY"
+            ],
+            "title": "Task",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task",
+          "items"
+        ],
+        "title": "EmbedRequest",
+        "type": "object"
+      },
+      "EmbedResponse": {
+        "properties": {
+          "dimensions": {
+            "title": "Dimensions",
+            "type": "integer"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "vectors": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "title": "Vectors",
+            "type": "array"
+          }
+        },
+        "required": [
+          "vectors",
+          "model",
+          "dimensions"
+        ],
+        "title": "EmbedResponse",
+        "type": "object"
+      },
+      "ErrorResponse": {
+        "description": "``code`` is stable and machine-readable; ``message`` is for people (user-safe for INPUT_REJECTED and\nMODEL_UNAVAILABLE, operator-facing otherwise); ``retryable`` says whether the same request may succeed later.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "requestId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestid"
+          },
+          "retryable": {
+            "title": "Retryable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "retryable"
+        ],
+        "title": "ErrorResponse",
+        "type": "object"
+      },
+      "ExtractResponse": {
+        "properties": {
+          "engine": {
+            "title": "Engine",
+            "type": "string"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "markdown": {
+            "title": "Markdown",
+            "type": "string"
+          },
+          "ocrPages": {
+            "title": "Ocrpages",
+            "type": "integer"
+          },
+          "pageCount": {
+            "title": "Pagecount",
+            "type": "integer"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/SegmentOut"
+            },
+            "title": "Segments",
+            "type": "array"
+          },
+          "textPages": {
+            "title": "Textpages",
+            "type": "integer"
+          },
+          "tree": {
+            "$ref": "#/components/schemas/TreeOut"
+          }
+        },
+        "required": [
+          "markdown",
+          "engine",
+          "language",
+          "pageCount",
+          "textPages",
+          "ocrPages",
+          "segments",
+          "tree"
+        ],
+        "title": "ExtractResponse",
+        "type": "object"
+      },
+      "FeedbackRequest": {
+        "properties": {
+          "language": {
+            "default": "en",
+            "title": "Language",
+            "type": "string"
+          },
+          "materialTitle": {
+            "title": "Materialtitle",
+            "type": "string"
+          },
+          "missed": {
+            "items": {
+              "$ref": "#/components/schemas/MissedQuestion"
+            },
+            "title": "Missed",
+            "type": "array"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/TopicResult"
+            },
+            "title": "Topics",
+            "type": "array"
+          }
+        },
+        "required": [
+          "materialTitle",
+          "score",
+          "topics"
+        ],
+        "title": "FeedbackRequest",
+        "type": "object"
+      },
+      "FeedbackResponse": {
+        "properties": {
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "nextSteps": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Nextsteps",
+            "type": "array"
+          },
+          "strengths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Strengths",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "weakAreas": {
+            "items": {
+              "$ref": "#/components/schemas/WeakAreaOut"
+            },
+            "title": "Weakareas",
+            "type": "array"
+          }
+        },
+        "required": [
+          "summary",
+          "strengths",
+          "weakAreas",
+          "nextSteps",
+          "model"
+        ],
+        "title": "FeedbackResponse",
+        "type": "object"
+      },
+      "FigureDescriptionOut": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "VISUAL",
+              "TEXTUAL",
+              "DECORATIVE"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "transcript": {
+            "default": "",
+            "title": "Transcript",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "kind",
+          "role",
+          "description"
+        ],
+        "title": "FigureDescriptionOut",
+        "type": "object"
+      },
+      "FigureIn": {
+        "properties": {
+          "caption": {
+            "default": "",
+            "title": "Caption",
+            "type": "string"
+          },
+          "context": {
+            "default": "",
+            "title": "Context",
+            "type": "string"
+          },
+          "imageBase64": {
+            "title": "Imagebase64",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "mime": {
+            "default": "image/png",
+            "title": "Mime",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "imageBase64"
+        ],
+        "title": "FigureIn",
+        "type": "object"
+      },
+      "FigureOut": {
+        "properties": {
+          "bbox": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bbox"
+          },
+          "caption": {
+            "title": "Caption",
+            "type": "string"
+          },
+          "chunkKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunkkey"
+          },
+          "height": {
+            "title": "Height",
+            "type": "integer"
+          },
+          "imageBase64": {
+            "title": "Imagebase64",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "mime": {
+            "title": "Mime",
+            "type": "string"
+          },
+          "nodeKey": {
+            "title": "Nodekey",
+            "type": "string"
+          },
+          "ordinal": {
+            "title": "Ordinal",
+            "type": "integer"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "width": {
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "nodeKey",
+          "chunkKey",
+          "ordinal",
+          "page",
+          "bbox",
+          "caption",
+          "mime",
+          "width",
+          "height",
+          "imageBase64"
+        ],
+        "title": "FigureOut",
+        "type": "object"
+      },
+      "FigureRef": {
+        "description": "A figure the model may embed as ![caption](figure:<id>).",
+        "properties": {
+          "caption": {
+            "default": "",
+            "title": "Caption",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "sectionId": {
+            "default": "",
+            "title": "Sectionid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "FigureRef",
+        "type": "object"
+      },
+      "GradeRequest": {
+        "properties": {
+          "answer": {
+            "title": "Answer",
+            "type": "string"
+          },
+          "language": {
+            "default": "en",
+            "title": "Language",
+            "type": "string"
+          },
+          "question": {
+            "$ref": "#/components/schemas/QuestionToGrade"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/SectionIn"
+            },
+            "title": "Sections",
+            "type": "array"
+          }
+        },
+        "required": [
+          "question",
+          "answer"
+        ],
+        "title": "GradeRequest",
+        "type": "object"
+      },
+      "GradeResponse": {
+        "properties": {
+          "feedback": {
+            "title": "Feedback",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "verdict": {
+            "enum": [
+              "CORRECT",
+              "PARTIAL",
+              "INCORRECT"
+            ],
+            "title": "Verdict",
+            "type": "string"
+          }
+        },
+        "required": [
+          "verdict",
+          "score",
+          "feedback",
+          "model"
+        ],
+        "title": "GradeResponse",
+        "type": "object"
+      },
+      "HealthResponse": {
+        "properties": {
+          "contractVersion": {
+            "default": "1.0",
+            "title": "Contractversion",
+            "type": "string"
+          },
+          "embeddingDimensions": {
+            "title": "Embeddingdimensions",
+            "type": "integer"
+          },
+          "embeddingModel": {
+            "title": "Embeddingmodel",
+            "type": "string"
+          },
+          "llmModel": {
+            "title": "Llmmodel",
+            "type": "string"
+          },
+          "ocrEngine": {
+            "title": "Ocrengine",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "ocrEngine",
+          "llmModel",
+          "embeddingModel",
+          "embeddingDimensions"
+        ],
+        "title": "HealthResponse",
+        "type": "object"
+      },
+      "LessonRequest": {
+        "properties": {
+          "figures": {
+            "items": {
+              "$ref": "#/components/schemas/FigureRef"
+            },
+            "title": "Figures",
+            "type": "array"
+          },
+          "kind": {
+            "default": "OTHER",
+            "enum": [
+              "SYLLABUS",
+              "TEXTBOOK",
+              "LECTURE_NOTES",
+              "HANDOUT",
+              "OTHER"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "language": {
+            "default": "en",
+            "title": "Language",
+            "type": "string"
+          },
+          "materialTitle": {
+            "title": "Materialtitle",
+            "type": "string"
+          },
+          "nextTopics": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Nexttopics",
+            "type": "array"
+          },
+          "previousTopics": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Previoustopics",
+            "type": "array"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/SectionIn"
+            },
+            "minItems": 1,
+            "title": "Sections",
+            "type": "array"
+          },
+          "topic": {
+            "$ref": "#/components/schemas/TopicIn"
+          }
+        },
+        "required": [
+          "materialTitle",
+          "topic",
+          "sections"
+        ],
+        "title": "LessonRequest",
+        "type": "object"
+      },
+      "LessonResponse": {
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/CheckOut"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "figureIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Figureids",
+            "type": "array"
+          },
+          "keyTakeaways": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Keytakeaways",
+            "type": "array"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/SectionOut"
+            },
+            "title": "Sections",
+            "type": "array"
+          }
+        },
+        "required": [
+          "sections",
+          "keyTakeaways",
+          "checks",
+          "figureIds",
+          "model"
+        ],
+        "title": "LessonResponse",
+        "type": "object"
+      },
+      "MaterialRequest": {
+        "properties": {
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/OutlineNodeIn"
+            },
+            "maxItems": 600,
+            "minItems": 1,
+            "title": "Nodes",
+            "type": "array"
+          },
+          "sample": {
+            "default": "",
+            "title": "Sample",
+            "type": "string"
+          }
+        },
+        "required": [
+          "filename",
+          "nodes"
+        ],
+        "title": "MaterialRequest",
+        "type": "object"
+      },
+      "MaterialResponse": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "SYLLABUS",
+              "TEXTBOOK",
+              "LECTURE_NOTES",
+              "HANDOUT",
+              "OTHER"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/TopicOut"
+            },
+            "title": "Topics",
+            "type": "array"
+          }
+        },
+        "required": [
+          "title",
+          "summary",
+          "language",
+          "kind",
+          "topics",
+          "model"
+        ],
+        "title": "MaterialResponse",
+        "type": "object"
+      },
+      "MissedQuestion": {
+        "properties": {
+          "correctAnswer": {
+            "title": "Correctanswer",
+            "type": "string"
+          },
+          "learnerAnswer": {
+            "title": "Learneranswer",
+            "type": "string"
+          },
+          "prompt": {
+            "title": "Prompt",
+            "type": "string"
+          },
+          "topicTitle": {
+            "title": "Topictitle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topicTitle",
+          "prompt",
+          "learnerAnswer",
+          "correctAnswer"
+        ],
+        "title": "MissedQuestion",
+        "type": "object"
+      },
+      "NodeOut": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "level": {
+            "title": "Level",
+            "type": "integer"
+          },
+          "ordinal": {
+            "title": "Ordinal",
+            "type": "integer"
+          },
+          "pageFrom": {
+            "title": "Pagefrom",
+            "type": "integer"
+          },
+          "pageTo": {
+            "title": "Pageto",
+            "type": "integer"
+          },
+          "parentKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parentkey"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "parentKey",
+          "level",
+          "path",
+          "label",
+          "title",
+          "ordinal",
+          "pageFrom",
+          "pageTo"
+        ],
+        "title": "NodeOut",
+        "type": "object"
+      },
+      "NodeSummaryOut": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "keyTerms": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Keyterms",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "summary",
+          "keyTerms"
+        ],
+        "title": "NodeSummaryOut",
+        "type": "object"
+      },
+      "NotesRequest": {
+        "properties": {
+          "figures": {
+            "items": {
+              "$ref": "#/components/schemas/FigureRef"
+            },
+            "title": "Figures",
+            "type": "array"
+          },
+          "kind": {
+            "default": "OTHER",
+            "enum": [
+              "SYLLABUS",
+              "TEXTBOOK",
+              "LECTURE_NOTES",
+              "HANDOUT",
+              "OTHER"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "language": {
+            "default": "en",
+            "title": "Language",
+            "type": "string"
+          },
+          "materialTitle": {
+            "title": "Materialtitle",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "section",
+              "overview"
+            ],
+            "title": "Scope",
+            "type": "string"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/SectionIn"
+            },
+            "minItems": 1,
+            "title": "Sections",
+            "type": "array"
+          },
+          "style": {
+            "default": "expand",
+            "enum": [
+              "expand",
+              "revision"
+            ],
+            "title": "Style",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "materialTitle",
+          "title",
+          "path",
+          "scope",
+          "sections"
+        ],
+        "title": "NotesRequest",
+        "type": "object"
+      },
+      "NotesResponse": {
+        "properties": {
+          "citedSectionIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Citedsectionids",
+            "type": "array"
+          },
+          "figureIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Figureids",
+            "type": "array"
+          },
+          "markdown": {
+            "title": "Markdown",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          }
+        },
+        "required": [
+          "markdown",
+          "figureIds",
+          "citedSectionIds",
+          "model"
+        ],
+        "title": "NotesResponse",
+        "type": "object"
+      },
+      "OutlineNodeIn": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "keyTerms": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Keyterms",
+            "type": "array"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "level": {
+            "title": "Level",
+            "type": "integer"
+          },
+          "pages": {
+            "default": "",
+            "title": "Pages",
+            "type": "string"
+          },
+          "summary": {
+            "default": "",
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "title",
+          "level"
+        ],
+        "title": "OutlineNodeIn",
+        "type": "object"
+      },
+      "QuestionOut": {
+        "properties": {
+          "correctOptionIndex": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correctoptionindex"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "options": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "prompt": {
+            "title": "Prompt",
+            "type": "string"
+          },
+          "referenceAnswer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Referenceanswer"
+          },
+          "sourceSectionIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sourcesectionids",
+            "type": "array"
+          },
+          "topicKey": {
+            "title": "Topickey",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "MULTIPLE_CHOICE",
+              "TRUE_FALSE",
+              "SHORT_ANSWER"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topicKey",
+          "type",
+          "prompt",
+          "options",
+          "correctOptionIndex",
+          "referenceAnswer",
+          "explanation",
+          "sourceSectionIds"
+        ],
+        "title": "QuestionOut",
+        "type": "object"
+      },
+      "QuestionToGrade": {
+        "properties": {
+          "explanation": {
+            "default": "",
+            "title": "Explanation",
+            "type": "string"
+          },
+          "prompt": {
+            "title": "Prompt",
+            "type": "string"
+          },
+          "referenceAnswer": {
+            "title": "Referenceanswer",
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt",
+          "referenceAnswer"
+        ],
+        "title": "QuestionToGrade",
+        "type": "object"
+      },
+      "QuestionTopicIn": {
+        "properties": {
+          "difficulty": {
+            "default": "CORE",
+            "enum": [
+              "INTRO",
+              "CORE",
+              "ADVANCED"
+            ],
+            "title": "Difficulty",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "keyConcepts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Keyconcepts",
+            "type": "array"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/SectionIn"
+            },
+            "minItems": 1,
+            "title": "Sections",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "summary",
+          "keyConcepts",
+          "key",
+          "sections"
+        ],
+        "title": "QuestionTopicIn",
+        "type": "object"
+      },
+      "QuestionsRequest": {
+        "properties": {
+          "avoidPrompts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Avoidprompts",
+            "type": "array"
+          },
+          "count": {
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "difficulty": {
+            "default": "MIXED",
+            "enum": [
+              "EASY",
+              "MIXED",
+              "HARD"
+            ],
+            "title": "Difficulty",
+            "type": "string"
+          },
+          "kind": {
+            "default": "OTHER",
+            "enum": [
+              "SYLLABUS",
+              "TEXTBOOK",
+              "LECTURE_NOTES",
+              "HANDOUT",
+              "OTHER"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "language": {
+            "default": "en",
+            "title": "Language",
+            "type": "string"
+          },
+          "materialTitle": {
+            "title": "Materialtitle",
+            "type": "string"
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/QuestionTopicIn"
+            },
+            "minItems": 1,
+            "title": "Topics",
+            "type": "array"
+          }
+        },
+        "required": [
+          "materialTitle",
+          "count",
+          "topics"
+        ],
+        "title": "QuestionsRequest",
+        "type": "object"
+      },
+      "QuestionsResponse": {
+        "properties": {
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/QuestionOut"
+            },
+            "title": "Questions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "questions",
+          "model"
+        ],
+        "title": "QuestionsResponse",
+        "type": "object"
+      },
+      "SectionIn": {
+        "description": "One retrieved section. ``id`` is the citation id the model must use, e.g. \"\u00a72.3\".",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "pages": {
+            "default": "",
+            "title": "Pages",
+            "type": "string"
+          },
+          "passages": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Passages",
+            "type": "array"
+          },
+          "path": {
+            "default": "",
+            "title": "Path",
+            "type": "string"
+          },
+          "summary": {
+            "default": "",
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "SectionIn",
+        "type": "object"
+      },
+      "SectionOut": {
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "heading": {
+            "title": "Heading",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "CONCEPT",
+              "EXAMPLE",
+              "ANALOGY",
+              "SUMMARY"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "heading",
+          "body"
+        ],
+        "title": "SectionOut",
+        "type": "object"
+      },
+      "SegmentOut": {
+        "properties": {
+          "markdown": {
+            "title": "Markdown",
+            "type": "string"
+          },
+          "method": {
+            "enum": [
+              "text",
+              "ocr"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "pageFrom": {
+            "title": "Pagefrom",
+            "type": "integer"
+          },
+          "pageTo": {
+            "title": "Pageto",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "pageFrom",
+          "pageTo",
+          "method",
+          "markdown"
+        ],
+        "title": "SegmentOut",
+        "type": "object"
+      },
+      "SummarizeNode": {
+        "properties": {
+          "childSummaries": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Childsummaries",
+            "type": "array"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "text": {
+            "default": "",
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "path"
+        ],
+        "title": "SummarizeNode",
+        "type": "object"
+      },
+      "SummarizeRequest": {
+        "properties": {
+          "language": {
+            "default": "en",
+            "title": "Language",
+            "type": "string"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/SummarizeNode"
+            },
+            "maxItems": 120,
+            "minItems": 1,
+            "title": "Nodes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "nodes"
+        ],
+        "title": "SummarizeRequest",
+        "type": "object"
+      },
+      "SummarizeResponse": {
+        "properties": {
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "summaries": {
+            "items": {
+              "$ref": "#/components/schemas/NodeSummaryOut"
+            },
+            "title": "Summaries",
+            "type": "array"
+          }
+        },
+        "required": [
+          "summaries",
+          "model"
+        ],
+        "title": "SummarizeResponse",
+        "type": "object"
+      },
+      "TopicIn": {
+        "properties": {
+          "difficulty": {
+            "default": "CORE",
+            "enum": [
+              "INTRO",
+              "CORE",
+              "ADVANCED"
+            ],
+            "title": "Difficulty",
+            "type": "string"
+          },
+          "keyConcepts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Keyconcepts",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "summary",
+          "keyConcepts"
+        ],
+        "title": "TopicIn",
+        "type": "object"
+      },
+      "TopicOut": {
+        "properties": {
+          "difficulty": {
+            "enum": [
+              "INTRO",
+              "CORE",
+              "ADVANCED"
+            ],
+            "title": "Difficulty",
+            "type": "string"
+          },
+          "keyConcepts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Keyconcepts",
+            "type": "array"
+          },
+          "nodeKeys": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Nodekeys",
+            "type": "array"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "position",
+          "title",
+          "summary",
+          "keyConcepts",
+          "difficulty",
+          "nodeKeys"
+        ],
+        "title": "TopicOut",
+        "type": "object"
+      },
+      "TopicResult": {
+        "properties": {
+          "questionCount": {
+            "title": "Questioncount",
+            "type": "integer"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "questionCount",
+          "score"
+        ],
+        "title": "TopicResult",
+        "type": "object"
+      },
+      "TreeOut": {
+        "properties": {
+          "chunks": {
+            "items": {
+              "$ref": "#/components/schemas/ChunkOut"
+            },
+            "title": "Chunks",
+            "type": "array"
+          },
+          "figures": {
+            "items": {
+              "$ref": "#/components/schemas/FigureOut"
+            },
+            "title": "Figures",
+            "type": "array"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/NodeOut"
+            },
+            "title": "Nodes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "nodes",
+          "chunks",
+          "figures"
+        ],
+        "title": "TreeOut",
+        "type": "object"
+      },
+      "WeakAreaOut": {
+        "properties": {
+          "advice": {
+            "title": "Advice",
+            "type": "string"
+          },
+          "topicTitle": {
+            "title": "Topictitle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topicTitle",
+          "advice"
+        ],
+        "title": "WeakAreaOut",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Ved Inference Service",
+    "version": "0.3.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/v1/extract": {
+      "post": {
+        "operationId": "extract_v1_extract_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_extract_v1_extract_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Extract"
+      }
+    },
+    "/v1/index/embed": {
+      "post": {
+        "operationId": "embed_v1_index_embed_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmbedRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmbedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Embed"
+      }
+    },
+    "/v1/index/figures": {
+      "post": {
+        "operationId": "figures_v1_index_figures_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DescribeFiguresRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DescribeFiguresResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Figures"
+      }
+    },
+    "/v1/index/summaries": {
+      "post": {
+        "operationId": "summaries_v1_index_summaries_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SummarizeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummarizeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Summaries"
+      }
+    },
+    "/v1/study/answer": {
+      "post": {
+        "operationId": "answer_v1_study_answer_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnswerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnswerResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Answer"
+      }
+    },
+    "/v1/study/assessment-feedback": {
+      "post": {
+        "operationId": "assessment_feedback_v1_study_assessment_feedback_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Assessment Feedback"
+      }
+    },
+    "/v1/study/grade": {
+      "post": {
+        "operationId": "grade_v1_study_grade_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GradeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GradeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Grade"
+      }
+    },
+    "/v1/study/lesson": {
+      "post": {
+        "operationId": "lesson_v1_study_lesson_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LessonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Lesson"
+      }
+    },
+    "/v1/study/material": {
+      "post": {
+        "operationId": "material_v1_study_material_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaterialRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Material"
+      }
+    },
+    "/v1/study/notes": {
+      "post": {
+        "operationId": "notes_v1_study_notes_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Notes"
+      }
+    },
+    "/v1/study/questions": {
+      "post": {
+        "operationId": "questions_v1_study_questions_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuestionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Questions"
+      }
+    }
+  }
+}

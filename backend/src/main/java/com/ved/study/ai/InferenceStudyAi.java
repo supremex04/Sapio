@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component;
 @Component
 class InferenceStudyAi implements StudyAi {
 
+    private static final String UNAVAILABLE = "The AI tutor is unavailable right now, please retry in a moment";
+
     private final InferenceClient inference;
 
     InferenceStudyAi(InferenceClient inference) {
@@ -53,9 +55,8 @@ class InferenceStudyAi implements StudyAi {
         try {
             return inference.postJson(path, body, type);
         } catch (InferenceException e) {
-            String message = e.getMessage() == null || e.getMessage().isBlank()
-                    ? "The AI tutor is unavailable right now, please retry in a moment" : e.getMessage();
-            throw new StudyAiException(message, e.isClientError());
+            throw new StudyAiException(e.userMessage(UNAVAILABLE), e.isInputRejected(), e.isRetryable(),
+                    e.retryAfter().orElse(null));
         }
     }
 }

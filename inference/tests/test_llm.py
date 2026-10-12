@@ -5,7 +5,7 @@ import pytest
 from pydantic import BaseModel
 
 from ved_inference.config import EmbeddingConfig, LlmConfig, ModelRef, ProviderConfig, Route
-from ved_inference.errors import EngineError
+from ved_inference.errors import ConfigurationError, EngineError
 from ved_inference.llm.base import EmbedItem, ImagePart
 from ved_inference.llm.json_schema import response_schema
 from ved_inference.llm.providers.gemini import GeminiProvider
@@ -105,7 +105,7 @@ def test_gemini_embeds_text_and_images(monkeypatch):
 
 
 def test_gemini_requires_its_key():
-    with pytest.raises(EngineError, match="MISSING_KEY"):
+    with pytest.raises(ConfigurationError, match="MISSING_KEY"):
         GeminiProvider("gemini", ProviderConfig(type="gemini", api_key_env="MISSING_KEY"))
 
 
@@ -181,15 +181,15 @@ def test_openai_embeddings_request_dimensions():
 class _Flaky(GeminiProvider):
     """Provider double: fails for models listed in ``down``."""
 
-    def __init__(self, name, down, value):
-        self.name, self.down, self.value = name, down, value
+    def __init__(self, name, down, value, retry_after=None):
+        self.name, self.down, self.value, self.retry_after = name, down, value, retry_after
         self.supports_image_embeddings = False
 
     def generate(self, model, **_kw):
         from ved_inference.llm.retry import ModelUnavailable
 
         if model.model in self.down:
-            raise ModelUnavailable("quota")
+            raise ModelUnavailable("quota", retry_after=self.retry_after)
         return Answer(title=f"{self.name}:{model.model}", value=self.value)
 
     def close(self):
@@ -233,8 +233,22 @@ def test_served_model_is_tracked_per_request_context():
 def test_router_reports_when_every_model_is_unavailable():
     providers = {"a": _Flaky("a", {"m"}, 1)}
     llm = RoutedLlm(providers, LlmConfig(default=Route(primary=ModelRef(provider="a", model="m"))))
-    with pytest.raises(EngineError, match="busy or out of quota"):
+    with pytest.raises(EngineError, match="busy or out of quota") as failure:
         llm.generate(system="s", prompt="p", schema=Answer)
+    assert failure.value.retryable and failure.value.retry_after is None
+
+
+def test_router_reports_the_earliest_quota_reset_only_when_every_model_gave_one():
+    def fail(providers):
+        route = Route(
+            primary=ModelRef(provider="a", model="m"), fallbacks=[ModelRef(provider="b", model="m")]
+        )
+        with pytest.raises(EngineError) as failure:
+            RoutedLlm(providers, LlmConfig(default=route)).generate(system="s", prompt="p", schema=Answer)
+        return failure.value.retry_after
+
+    assert fail({"a": _Flaky("a", {"m"}, 1, 3600.0), "b": _Flaky("b", {"m"}, 2, 600.0)}) == 600.0
+    assert fail({"a": _Flaky("a", {"m"}, 1, 3600.0), "b": _Flaky("b", {"m"}, 2)}) is None
 
 
 def test_embedder_drops_images_for_text_only_models_and_checks_dimensions():
@@ -254,7 +268,18 @@ def test_embedder_drops_images_for_text_only_models_and_checks_dimensions():
         def embed(self, model, dimensions, items, task, options=None):
             return [[0.0] * 5 for _ in items]
 
-    with pytest.raises(EngineError, match="5 dimensions"):
+    with pytest.raises(ConfigurationError, match="5 dimensions"):
         RoutedEmbedder(Wrong("w", set(), 0), EmbeddingConfig(provider="w", model="e", dimensions=3)).embed(
             [EmbedItem(text="x")], "RETRIEVAL_QUERY"
         )
+
+
+def test_a_daily_quota_hint_gives_up_at_once_and_keeps_the_reset_time():
+    from ved_inference.llm.retry import ModelUnavailable, Retryable, with_retries
+
+    def call():
+        raise Retryable("HTTP 429", delay=45_000.0)
+
+    with pytest.raises(ModelUnavailable) as failure:
+        with_retries(call, label="g:m", max_retries=3, max_backoff=30)
+    assert failure.value.retry_after == 45_000.0

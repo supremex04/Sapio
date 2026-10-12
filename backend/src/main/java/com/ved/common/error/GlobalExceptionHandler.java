@@ -1,12 +1,13 @@
 package com.ved.common.error;
 
-import java.time.Instant;
 import java.util.List;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import com.ved.common.ai.AiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
@@ -24,6 +25,17 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    /** AI failures carry a retry hint (a quota reset) worth passing on to clients. */
+    @ExceptionHandler(AiException.class)
+    ResponseEntity<ApiError> handleAi(AiException ex, HttpServletRequest request) {
+        ApiError body = ApiError.of(ex.code(), ex.getMessage(), request.getRequestURI());
+        return ex.retryAfter()
+                .map(after -> ResponseEntity.status(body.status())
+                        .header(HttpHeaders.RETRY_AFTER, String.valueOf(Math.max(1, after.toSeconds())))
+                        .body(body))
+                .orElseGet(() -> respond(body));
+    }
+
     @ExceptionHandler(ApplicationException.class)
     ResponseEntity<ApiError> handleApplication(ApplicationException ex, HttpServletRequest request) {
         return respond(ApiError.of(ex.code(), ex.getMessage(), request.getRequestURI()));
@@ -34,9 +46,8 @@ public class GlobalExceptionHandler {
         List<ApiError.FieldViolation> violations = ex.getBindingResult().getFieldErrors().stream()
                 .map(fe -> new ApiError.FieldViolation(fe.getField(), fe.getDefaultMessage()))
                 .toList();
-        ErrorCode code = ErrorCode.VALIDATION_FAILED;
-        return respond(new ApiError(code.status().value(), code, "Request validation failed",
-                request.getRequestURI(), Instant.now(), violations));
+        return respond(ApiError.of(ErrorCode.VALIDATION_FAILED, "Request validation failed", request.getRequestURI(),
+                violations));
     }
 
     @ExceptionHandler({

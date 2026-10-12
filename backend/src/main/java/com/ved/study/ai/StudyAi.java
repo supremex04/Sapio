@@ -11,9 +11,10 @@ import com.ved.study.question.Verdict;
 
 /**
  * Port to the AI that writes study content. Implemented by {@link InferenceStudyAi} (Python service + LLM).
- * Context is always structured and retrieved from the knowledge store ({@link Section}s with citation ids,
- * {@link Figure}s with ids); the AI never receives the whole document. Records mirror the wire contract in
- * docs/specs/inference-api.md. All methods throw {@link StudyAiException}.
+ * Context is always structured and retrieved from the knowledge store ({@link Source}s with citation ids,
+ * {@link SourceFigure}s with ids); the AI never receives the whole document, nor any internal id. Records mirror
+ * the wire contract (contracts/inference-openapi.json, checked by InferenceContractTest). All methods throw
+ * {@link StudyAiException}.
  */
 public interface StudyAi {
 
@@ -32,6 +33,23 @@ public interface StudyAi {
     NotesDraft notes(NotesSpec spec);
 
     // ---- shared
+
+    /** A retrieved section as the AI sees it; {@code id} is the citation id it must use ("§2.3"). */
+    record Source(String id, String path, String pages, String summary, List<String> passages) {
+    }
+
+    /** A figure the AI may embed as {@code ![caption](figure:id)}. */
+    record SourceFigure(String id, String sectionId, String caption, String description) {
+    }
+
+    static List<Source> sources(List<Section> sections) {
+        return sections.stream().map(s -> new Source(s.id(), s.path(), s.pages(), s.summary(), s.passages())).toList();
+    }
+
+    static List<SourceFigure> figures(List<Figure> figures) {
+        return figures.stream().map(f -> new SourceFigure(f.id(), f.sectionId(), f.caption(), f.description()))
+                .toList();
+    }
 
     record TopicBrief(String title, String summary, List<String> keyConcepts, TopicDifficulty difficulty) {
     }
@@ -56,8 +74,8 @@ public interface StudyAi {
     // ---- lesson
 
     record LessonSpec(String materialTitle, String language, MaterialKind kind, TopicBrief topic,
-                      List<String> previousTopics, List<String> nextTopics, List<Section> sections,
-                      List<Figure> figures) {
+                      List<String> previousTopics, List<String> nextTopics, List<Source> sections,
+                      List<SourceFigure> figures) {
     }
 
     record SectionDraft(String kind, String heading, String body) {
@@ -74,7 +92,7 @@ public interface StudyAi {
     // ---- questions
 
     record QuestionTopic(String key, String title, String summary, List<String> keyConcepts,
-                         TopicDifficulty difficulty, List<Section> sections) {
+                         TopicDifficulty difficulty, List<Source> sections) {
     }
 
     record QuestionSpec(String materialTitle, String language, MaterialKind kind, int count, String difficulty,
@@ -94,7 +112,7 @@ public interface StudyAi {
     record QuestionToGrade(String prompt, String referenceAnswer, String explanation) {
     }
 
-    record GradeSpec(String language, QuestionToGrade question, List<Section> sections, String answer) {
+    record GradeSpec(String language, QuestionToGrade question, List<Source> sections, String answer) {
     }
 
     record GradeResult(Verdict verdict, double score, String feedback, String model) {
@@ -130,7 +148,7 @@ public interface StudyAi {
      * @param focus what the learner is looking at (a lesson section, or a check question and their answer); "" if none
      */
     record AnswerSpec(String materialTitle, String language, String question, List<ChatTurn> history,
-                      List<Section> sections, List<Figure> figures, String style, String focus) {
+                      List<Source> sections, List<SourceFigure> figures, String style, String focus) {
     }
 
     record AnswerDraft(String answer, boolean grounded, List<String> citedSectionIds, List<String> figureIds,
@@ -140,7 +158,7 @@ public interface StudyAi {
     /** @param scope "section" (full notes) or "overview" (chapter notes from its subsections) */
     /** @param style "expand" (in-depth explanation) or "revision" (condensed revision notes) */
     record NotesSpec(String materialTitle, String language, MaterialKind kind, String title, String path, String scope,
-                     String style, List<Section> sections, List<Figure> figures) {
+                     String style, List<Source> sections, List<SourceFigure> figures) {
     }
 
     record NotesDraft(String markdown, List<String> figureIds, List<String> citedSectionIds, String model) {

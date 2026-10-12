@@ -12,7 +12,7 @@ import httpx
 from pydantic import ValidationError
 
 from ved_inference.config import ModelRef, ProviderConfig
-from ved_inference.errors import EngineError
+from ved_inference.errors import ConfigurationError
 from ved_inference.llm.base import EmbedItem, EmbedTask, ImagePart, T
 from ved_inference.llm.json_schema import response_schema
 from ved_inference.llm.providers.base import Provider
@@ -134,7 +134,9 @@ class OpenAICompatibleProvider(Provider):
         if response.status_code == 404:
             raise ModelUnavailable(f"{self._name}: model not found")
         if response.status_code >= 400:
-            raise EngineError(f"AI request rejected (HTTP {response.status_code}): {response.text[:200]}")
+            raise ConfigurationError(
+                f"AI request rejected (HTTP {response.status_code}): {response.text[:200]}"
+            )
         return response
 
     def close(self) -> None:

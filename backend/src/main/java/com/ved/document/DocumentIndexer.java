@@ -1,5 +1,6 @@
 package com.ved.document;
 
+import java.time.Duration;
 import java.util.UUID;
 
 import com.ved.document.extraction.ExtractionResult;
@@ -16,22 +17,10 @@ public interface DocumentIndexer {
     /** Fills whatever is still missing: figure descriptions, summaries, term index, embeddings. */
     void index(UUID documentId) throws IndexingException;
 
-    /** The message is safe to show to the document owner. */
-    class IndexingException extends Exception {
-        private final boolean transientFailure;
-
-        public IndexingException(String message, Throwable cause) {
-            this(message, cause, false);
-        }
-
-        /** @param transientFailure the AI provider was busy/unavailable: worth retrying automatically */
-        public IndexingException(String message, Throwable cause, boolean transientFailure) {
-            super(message, cause);
-            this.transientFailure = transientFailure;
-        }
-
-        public boolean isTransient() {
-            return transientFailure;
+    /** See {@link PipelineException}. */
+    class IndexingException extends PipelineException {
+        public IndexingException(String message, Throwable cause, boolean transientFailure, Duration retryAfter) {
+            super(message, cause, transientFailure, retryAfter);
         }
     }
 }

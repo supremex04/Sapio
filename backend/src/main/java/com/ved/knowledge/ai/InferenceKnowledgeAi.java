@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 class InferenceKnowledgeAi implements KnowledgeAi {
 
     private static final Base64.Encoder BASE64 = Base64.getEncoder();
+    private static final String UNAVAILABLE = "Indexing is unavailable right now, please retry in a moment";
 
     private final InferenceClient inference;
 
@@ -72,8 +73,8 @@ class InferenceKnowledgeAi implements KnowledgeAi {
         try {
             return inference.postJson(path, body, type);
         } catch (InferenceException e) {
-            throw new KnowledgeAiException(e.getMessage() == null || e.getMessage().isBlank()
-                    ? "Indexing is unavailable right now, please retry in a moment" : e.getMessage(), e.isClientError());
+            throw new KnowledgeAiException(e.userMessage(UNAVAILABLE), e.isInputRejected(), e.isRetryable(),
+                    e.retryAfter().orElse(null));
         }
     }
 }

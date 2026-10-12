@@ -1,5 +1,6 @@
 package com.ved.document.processing;
 
+import com.ved.common.web.RequestId;
 import com.ved.document.DocumentProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,7 +10,9 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 /**
  * Bounded in-process worker pool for document conversion. The pool size caps concurrent calls to the
- * inference service. Replace with a message broker when processing must survive across instances.
+ * inference service per instance. Several instances share the work safely through the database (atomic claim,
+ * heartbeat lease); see {@link DocumentProcessingTriggers}. A message broker can replace the triggers later
+ * without touching {@link DocumentProcessor}.
  */
 @Configuration
 @EnableAsync
@@ -27,6 +30,8 @@ class ProcessingConfig {
         executor.setMaxPoolSize(config.maxPoolSize());
         executor.setQueueCapacity(config.queueCapacity());
         executor.setWaitForTasksToCompleteOnShutdown(false);
+        // Jobs log under the request id that started them (an upload), or their own (scheduled retries).
+        executor.setTaskDecorator(RequestId.propagatingDecorator());
         return executor;
     }
 }

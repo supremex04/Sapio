@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from ved_inference.config import ProviderConfig
-from ved_inference.errors import EngineError
+from ved_inference.errors import ConfigurationError
 from ved_inference.llm.base import EmbedItem
 from ved_inference.llm.providers.onnx_embedder import OnnxEmbeddingOptions, OnnxEmbeddingProvider
 
@@ -80,8 +80,8 @@ def test_mean_pooling_ignores_padding_and_keeps_input_order():
 
 def test_rejects_more_dimensions_than_the_model_has_and_text_generation():
     p, _ = provider()
-    with pytest.raises(EngineError, match="4 dimensions"):
+    with pytest.raises(ConfigurationError, match="4 dimensions"):
         p.embed("m", 8, [EmbedItem(text="a")], "RETRIEVAL_DOCUMENT", {})
-    with pytest.raises(EngineError, match="only computes embeddings"):
+    with pytest.raises(ConfigurationError, match="only computes embeddings"):
         p.generate(None, system="", prompt="", schema=None, temperature=0, images=[])
     assert OnnxEmbeddingOptions().pooling == "mean"

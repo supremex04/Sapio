@@ -96,12 +96,11 @@ class KnowledgeIndexer implements DocumentIndexer {
             embedChunks(documentId);
             embedFigures(documentId);
         } catch (KnowledgeAiException e) {
-            if (e.isRejected()) {
-                throw new IndexingException("Indexing was rejected: " + e.getMessage(), e);
-            }
-            throw new IndexingException("The AI service is busy (rate limit)", e, true);
+            // Anything but a rejected input is fixed by waiting (busy, quota) or by an operator: resume later.
+            throw new IndexingException(e.isInputRejected() ? "Indexing was rejected: " + e.getMessage()
+                    : e.getMessage(), e, !e.isInputRejected(), e.retryAfter().orElse(null));
         } catch (ApplicationException e) {
-            throw new IndexingException("Indexing failed: " + e.getMessage(), e);
+            throw new IndexingException("Indexing failed: " + e.getMessage(), e, false, null);
         }
     }
 

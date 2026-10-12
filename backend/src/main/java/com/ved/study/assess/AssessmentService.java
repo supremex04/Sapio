@@ -99,7 +99,7 @@ public class AssessmentService {
             var sources = access.sources(material, t, access.budgets().questions());
             sources.sections().forEach(sec -> sectionNodes.put(sec.id(), sec.nodeId()));
             return new StudyAi.QuestionTopic(t.getId().toString(), t.getTitle(), t.getSummary(), t.getKeyConcepts(),
-                    t.getDifficulty(), sources.sections());
+                    t.getDifficulty(), StudyAi.sources(sources.sections()));
         }).toList();
         StudyAi.QuestionsDraft draft = ai.generateQuestions(new StudyAi.QuestionSpec(material.getTitle(),
                 material.getLanguage(), material.getKind(), request.questionCount(), request.difficulty().name(),

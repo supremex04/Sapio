@@ -12,7 +12,7 @@ from ved_inference.config import Settings
 from ved_inference.documents.models import PageImage
 from ved_inference.engines.base import EngineOutput, OcrEngine, OcrSegment
 from ved_inference.engines.markdown import remove_detection_markup
-from ved_inference.errors import EngineError
+from ved_inference.errors import ConfigurationError, EngineError
 
 
 class UnlimitedOcrLocalEngine(OcrEngine):
@@ -23,7 +23,7 @@ class UnlimitedOcrLocalEngine(OcrEngine):
             import torch
             from transformers import AutoModel, AutoTokenizer
         except ImportError as exc:  # pragma: no cover - depends on installed extras
-            raise EngineError("Local engine needs: pip install -e '.[local]'") from exc
+            raise ConfigurationError("Local engine needs: pip install -e '.[local]'") from exc
         self._torch = torch
         config = settings.ocr.local
         self._batch_size = config.pages_per_request
