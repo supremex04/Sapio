@@ -19,5 +19,8 @@ public interface DocumentStorage {
 
     Resource load(String key);
 
+    /** Duplicates a stored file (object stores can do this server side) and returns the new copy's key. */
+    String copy(String key);
+
     void delete(String key);
 }

@@ -25,6 +25,8 @@ export const NAMES = [
   "writing-hand", "page-facing-up", "card-index-dividers", "magnifying-glass-tilted-left", "compass", "seedling",
   "diya-lamp", "repeat-button", "hourglass-not-done", "alarm-clock", "bell", "check-mark-button", "cross-mark",
   "house", "gear", "locked", "link",
+  // sharing & subject categories
+  "globe-showing-asia-australia", "inbox-tray", "stethoscope", "speech-balloon", "balance-scale", "artist-palette",
   // feelings (learner reactions)
   "thinking-face", "slightly-smiling-face", "smiling-face-with-sunglasses", "face-with-monocle", "star-struck",
   "partying-face", "sleeping-face", "flexed-biceps", "clapping-hands", "waving-hand", "raising-hands",

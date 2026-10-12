@@ -1,4 +1,4 @@
-import { ArrowRight, RotateCcw, Trash2, Upload } from "lucide-react";
+import { ArrowRight, Globe2, RotateCcw, Share2, Trash2, Upload } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
@@ -15,6 +15,10 @@ import { EmptyState } from "../../shared/ui/EmptyState";
 import { PageTransition } from "../../shared/ui/PageTransition";
 import { Skeleton } from "../../shared/ui/Skeleton";
 import { useToast } from "../../shared/ui/Toast";
+import { sharingApi } from "../sharing/api";
+import { OriginTag } from "../sharing/OriginTag";
+import { ShareDialog } from "../sharing/ShareDialog";
+import type { MyShare } from "../sharing/types";
 import { documentsApi } from "./api";
 import { pipelineState } from "./pipeline";
 import { PipelineStepper } from "./PipelineStepper";
@@ -26,6 +30,8 @@ import "./documents.css";
 export function LibraryPage() {
   const toast = useToast();
   const [documents, setDocuments] = useState<DocumentDto[] | null>(null);
+  const [shares, setShares] = useState<Record<string, MyShare>>({});
+  const [sharing, setSharing] = useState<DocumentDto | null>(null);
   const [uploading, setUploading] = useState(0);
   const [errors, setErrors] = useState<string[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -40,7 +46,16 @@ export function LibraryPage() {
 
   useEffect(() => {
     void load();
+    sharingApi.mine().then(
+      (mine) => setShares(Object.fromEntries(mine.map((s) => [s.documentId, s]))),
+      () => undefined, // the library works without share status
+    );
   }, [load]);
+
+  function shareChanged(documentId: string, share: MyShare | null) {
+    setShares(({ [documentId]: _old, ...rest }) => (share ? { ...rest, [documentId]: share } : rest));
+    toast.show("success", share ? <span>Shared to Explore in {share.category.name}.</span> : "No longer shared. Existing copies stay with their learners.");
+  }
 
   usePolling(load, 2500, documents?.some((d) => !isSettled(d)) ?? false);
 
@@ -126,19 +141,37 @@ export function LibraryPage() {
             <AnimatePresence initial={false}>
               {documents.map((doc) => (
                 <motion.div key={doc.id} layout initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.97 }}>
-                  <DocumentCard doc={doc} onRetry={() => retry(doc)} onDelete={() => remove(doc)} />
+                  <DocumentCard doc={doc} share={shares[doc.id] ?? null} onShare={() => setSharing(doc)} onRetry={() => retry(doc)} onDelete={() => remove(doc)} />
                 </motion.div>
               ))}
             </AnimatePresence>
           </motion.div>
         )}
       </div>
+      {sharing && (
+        <ShareDialog
+          open
+          documentId={sharing.id}
+          title={displayTitle(sharing)}
+          share={shares[sharing.id] ?? null}
+          onClose={() => setSharing(null)}
+          onChanged={(share) => shareChanged(sharing.id, share)}
+        />
+      )}
     </PageTransition>
   );
 }
 
-function DocumentCard({ doc, onRetry, onDelete }: { doc: DocumentDto; onRetry: () => void; onDelete: () => Promise<void> }) {
+function DocumentCard({ doc, share, onShare, onRetry, onDelete }: {
+  doc: DocumentDto;
+  share: MyShare | null;
+  onShare: () => void;
+  onRetry: () => void;
+  onDelete: () => Promise<void>;
+}) {
   const state = pipelineState(doc);
+  // Only your own ready uploads can be shared; imported copies show where they came from instead.
+  const shareable = state.done && !doc.origin;
   return (
     <Card tone={state.failed ? "red" : undefined} className="doc-card">
       <div className="row-between">
@@ -167,6 +200,13 @@ function DocumentCard({ doc, onRetry, onDelete }: { doc: DocumentDto; onRetry: (
         {doc.pageCount != null && `${doc.pageCount} page${doc.pageCount === 1 ? "" : "s"} · `}
         {formatRelative(doc.createdAt)}
       </p>
+      {doc.origin && <OriginTag origin={doc.origin} />}
+      {share && (
+        <p className="xs share-status">
+          <Globe2 size={14} aria-hidden /> Shared in {share.category.name}
+          {share.importCount > 0 && ` · imported ${share.importCount} ${share.importCount === 1 ? "time" : "times"}`}
+        </p>
+      )}
       {!state.done && <PipelineStepper doc={doc} compact />}
       {!state.done && !state.failed && <DocumentWorkbench doc={doc} compact />}
       {state.failed && doc.errorMessage && <p className="small doc-error">{doc.errorMessage}</p>}
@@ -175,6 +215,11 @@ function DocumentCard({ doc, onRetry, onDelete }: { doc: DocumentDto; onRetry: (
           <ButtonLink to={`/documents/${doc.id}`} variant="soft" size="sm" iconRight={<ArrowRight size={16} />}>
             Open
           </ButtonLink>
+        )}
+        {shareable && (
+          <Button size="sm" variant={share ? "soft" : "secondary"} icon={<Share2 size={16} />} onClick={onShare}>
+            {share ? "Shared" : "Share"}
+          </Button>
         )}
         {state.failed && (
           <Button size="sm" variant="danger" icon={<RotateCcw size={16} />} onClick={onRetry}>

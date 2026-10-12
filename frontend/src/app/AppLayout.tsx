@@ -81,6 +81,7 @@ function Shell() {
 const NAV: { to: string; label: string; emoji: EmojiName; end: boolean }[] = [
   { to: "/", label: "Home", emoji: "house", end: true },
   { to: "/library", label: "Library", emoji: "books", end: false },
+  { to: "/explore", label: "Explore", emoji: "globe-showing-asia-australia", end: false },
   { to: "/review", label: "Review", emoji: "repeat-button", end: false },
 ];
 

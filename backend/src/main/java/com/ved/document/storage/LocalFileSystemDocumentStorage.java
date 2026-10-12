@@ -47,6 +47,16 @@ class LocalFileSystemDocumentStorage implements DocumentStorage {
     }
 
     @Override
+    public String copy(String key) {
+        int dot = key.lastIndexOf('.');
+        try (InputStream in = Files.newInputStream(resolve(key))) {
+            return store(in, dot < 0 ? "bin" : key.substring(dot + 1));
+        } catch (IOException e) {
+            throw new StorageException("Failed to copy file " + key, e);
+        }
+    }
+
+    @Override
     public void delete(String key) {
         try {
             Files.deleteIfExists(resolve(key));

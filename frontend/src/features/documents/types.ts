@@ -18,6 +18,8 @@ export interface DocumentDto {
   completedAt: string | null;
   /** Set when a transient failure (AI busy) will be retried automatically at this time. */
   retryAt: string | null;
+  /** Set on documents imported from Explore (a copy of someone else's shared document). */
+  origin: { shareId: string | null; sharedBy: string; importedAt: string } | null;
 }
 
 export interface DocumentResult {

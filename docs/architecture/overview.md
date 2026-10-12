@@ -51,6 +51,7 @@ com.ved
 │   ├── extraction/  ExtractionGateway port + inference adapter
 │   └── processing/  async worker, triggers (after-commit, due retries, lease heartbeat + abandoned-job recovery)
 ├── study/           Learn & Test on top of a shared study material
+├── sharing/         share to Explore (categories, snapshot listing), import as an independent copy
 │   ├── ai/          StudyAi port + inference adapter
 │   ├── material/    StudyMaterial / chunks / topics, MaterialAnalyzer (implements DocumentAnalyzer),
 │   │                MaterialAccess (authorisation + grounded sources), mastery, recommender

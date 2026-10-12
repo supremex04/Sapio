@@ -22,6 +22,9 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
 
     Page<Document> findByOwnerIdOrderByCreatedAtDesc(UUID ownerId, Pageable pageable);
 
+    /** The learner's copy of a share, if they imported it. */
+    Optional<Document> findByOwnerIdAndOriginShareId(UUID ownerId, UUID originShareId);
+
     /** Locked like {@link #findAbandoned}, so concurrent instances resume a due document only once. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     List<Document> findByStatusAndRetryAtLessThanEqual(DocumentStatus status, Instant at);

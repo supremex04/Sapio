@@ -1052,3 +1052,75 @@ button.chip {
   font-size: var(--text-small);
   text-align: center;
 }
+
+/* ======================================================== Dialog (native <dialog>) */
+.dialog {
+  width: min(34rem, calc(100vw - 2 * var(--space-4)));
+  max-height: calc(100dvh - 2 * var(--space-6));
+  padding: 0;
+  border: var(--border-width) solid var(--border);
+  border-bottom-width: calc(var(--border-width) + var(--edge));
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-float);
+}
+.dialog::backdrop {
+  background: var(--overlay);
+}
+.dialog[open] {
+  animation: dialog-in var(--duration-base) var(--ease-bounce);
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dialog[open] {
+    animation: none;
+  }
+}
+.dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+.dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.dialog-title {
+  font-size: var(--text-h2);
+}
+.dialog-close {
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: none;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.dialog-close:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.dialog-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}

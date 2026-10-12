@@ -16,5 +16,6 @@ immutable once accepted; to change a decision, add a new ADR that supersedes the
 | [0009](0009-knowledge-store-tree-hybrid-index-figures.md) | Knowledge store: document tree + hybrid index + linked figures, in PostgreSQL | Accepted |
 | [0010](0010-vendor-neutral-model-configuration.md) | Vendor-neutral model configuration: providers, per-task routes, fallbacks; tunings in properties | Accepted |
 | [0011](0011-contract-first-service-boundary.md) | Contract-first service boundary (typed errors, tested OpenAPI contract, request ids) and DB-coordinated processing | Accepted |
+| [0012](0012-import-shared-documents-as-independent-copies.md) | Import shared documents as independent copies (deep copy via per-module copy steps) | Accepted |
 
 New ADR: copy [template.md](template.md) to `NNNN-short-title.md`.

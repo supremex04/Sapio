@@ -1,0 +1,98 @@
+package com.ved.sharing;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+
+import jakarta.validation.Valid;
+
+import com.ved.common.error.ApplicationException;
+import com.ved.common.error.ErrorCode;
+import com.ved.common.web.PageResponse;
+import com.ved.security.CurrentUserId;
+import com.ved.sharing.SharingResponses.Category;
+import com.ved.sharing.SharingResponses.ImportResult;
+import com.ved.sharing.SharingResponses.MyShare;
+import com.ved.sharing.SharingResponses.ShareDetail;
+import com.ved.sharing.SharingResponses.ShareRequest;
+import com.ved.sharing.SharingResponses.ShareSummary;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+/** Sharing documents to Explore and importing from it. Spec: docs/specs/sharing.md. */
+@RestController
+class SharingController {
+
+    private static final int MAX_PAGE_SIZE = 60;
+
+    private final ShareService shares;
+    private final ExploreService explore;
+    private final ShareCategories categories;
+
+    SharingController(ShareService shares, ExploreService explore, ShareCategories categories) {
+        this.shares = shares;
+        this.explore = explore;
+        this.categories = categories;
+    }
+
+    @GetMapping("/api/explore/categories")
+    List<Category> categories() {
+        return categories.all();
+    }
+
+    @GetMapping("/api/explore")
+    PageResponse<ShareSummary> explore(@CurrentUserId UUID userId,
+                                       @RequestParam(required = false) String category,
+                                       @RequestParam(required = false) String q,
+                                       @RequestParam(defaultValue = "new") String sort,
+                                       @RequestParam(defaultValue = "0") int page,
+                                       @RequestParam(defaultValue = "24") int size) {
+        return explore.list(userId, category, q, sort(sort), Math.max(page, 0), Math.clamp(size, 1, MAX_PAGE_SIZE));
+    }
+
+    @GetMapping("/api/explore/{shareId}")
+    ShareDetail detail(@CurrentUserId UUID userId, @PathVariable UUID shareId) {
+        return explore.detail(userId, shareId);
+    }
+
+    /** 201 with the new copy, or 200 with the copy made earlier. */
+    @PostMapping("/api/explore/{shareId}/import")
+    ResponseEntity<ImportResult> importShare(@CurrentUserId UUID userId, @PathVariable UUID shareId) {
+        ImportResult result = explore.importShare(userId, shareId);
+        return ResponseEntity.status(result.alreadyImported() ? HttpStatus.OK : HttpStatus.CREATED).body(result);
+    }
+
+    @GetMapping("/api/shares")
+    List<MyShare> mine(@CurrentUserId UUID userId) {
+        return shares.mine(userId);
+    }
+
+    @PutMapping("/api/documents/{documentId}/share")
+    MyShare share(@CurrentUserId UUID userId, @PathVariable UUID documentId,
+                  @Valid @RequestBody ShareRequest request) {
+        return shares.share(userId, documentId, request);
+    }
+
+    @DeleteMapping("/api/documents/{documentId}/share")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void unshare(@CurrentUserId UUID userId, @PathVariable UUID documentId) {
+        shares.unshare(userId, documentId);
+    }
+
+    private static ExploreService.Sort sort(String value) {
+        try {
+            return ExploreService.Sort.valueOf(value.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new ApplicationException(ErrorCode.VALIDATION_FAILED, "sort must be 'new' or 'popular'");
+        }
+    }
+}

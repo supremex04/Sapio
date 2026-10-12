@@ -18,6 +18,7 @@ import { ProgressBar } from "../../../shared/ui/Progress";
 import { Skeleton, SkeletonText } from "../../../shared/ui/Skeleton";
 import { Tabs } from "../../../shared/ui/Tabs";
 import { documentsApi } from "../../documents/api";
+import { OriginTag } from "../../sharing/OriginTag";
 import { DocumentPreview } from "../../documents/DocumentPreview";
 import { LearningPath } from "./LearningPath";
 import { pipelineState } from "../../documents/pipeline";
@@ -108,6 +109,7 @@ export function StudyHubPage() {
             {material && <Chip emoji="card-index-dividers">{material.stats.topicCount} topics</Chip>}
             {doc.pageCount != null && <Chip emoji="page-facing-up">{doc.pageCount} pages</Chip>}
             {material?.language && <Chip>{material.language.toUpperCase()}</Chip>}
+            {doc.origin && <OriginTag origin={doc.origin} />}
           </div>
         </header>
 

@@ -103,6 +103,17 @@ public class Document {
     @Column(name = "retry_at")
     private Instant retryAt;
 
+    /** Set on a copy imported from Explore: the share it came from (null once that share is withdrawn). */
+    @Column(name = "origin_share_id", updatable = false)
+    private UUID originShareId;
+
+    /** Who shared the original (kept even if the share is withdrawn). */
+    @Column(name = "origin_owner_name", updatable = false)
+    private String originOwnerName;
+
+    @Column(name = "imported_at", updatable = false)
+    private Instant importedAt;
+
     protected Document() {
         // for JPA
     }
@@ -270,6 +281,23 @@ public class Document {
 
     public Instant getHeartbeatAt() {
         return heartbeatAt;
+    }
+
+    /** Imported from Explore (a copy of someone else's document), rather than uploaded. */
+    public boolean isImported() {
+        return importedAt != null;
+    }
+
+    public UUID getOriginShareId() {
+        return originShareId;
+    }
+
+    public String getOriginOwnerName() {
+        return originOwnerName;
+    }
+
+    public Instant getImportedAt() {
+        return importedAt;
     }
 
     public Instant getRetryAt() {
