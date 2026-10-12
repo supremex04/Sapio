@@ -62,7 +62,8 @@ re-runs analysis.
 
 All endpoints require `Authorization: Bearer`. Errors follow [api-conventions.md](api-conventions.md).
 New error codes: `MATERIAL_NOT_READY` (409), `ALREADY_ANSWERED` (409), `ASSESSMENT_CLOSED` (409),
-`AI_UNAVAILABLE` (503, generation failed; safe to retry).
+`AI_UNAVAILABLE` (503, generation failed; retry later, `Retry-After` when known), `AI_INPUT_REJECTED` (422, the AI
+refused the input; retrying will not help).
 
 ### Documents (changes)
 

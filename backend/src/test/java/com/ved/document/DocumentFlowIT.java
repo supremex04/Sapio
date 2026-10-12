@@ -150,7 +150,9 @@ public class DocumentFlowIT {
         assertThat(paused.get("errorMessage").asString()).contains("continue automatically");
         assertThat(paused.get("retryAt").isNull()).isFalse();
 
-        clock.advance(Duration.ofMinutes(2)); // the scheduler (polling every 200 ms in tests) picks it up
+        // Far past the retry delay and the lease: the resumed document must get a fresh lease, not be treated as
+        // abandoned (requeued under a running worker) because of the failed run's old heartbeat.
+        clock.advance(Duration.ofMinutes(20)); // the scheduler (polling every 200 ms in tests) picks it up
         long deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos();
         String status = "FAILED";
         while (!"READY".equals(status) && System.nanoTime() < deadline) {

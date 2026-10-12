@@ -167,7 +167,7 @@ Then come the **embeddings** (next section), and finally the **learning path** (
 
 Free AI plans limit how many requests you can make per minute or day. When Ved hits that limit, it doesn't
 fail: the document is **paused** (sleepy Dia on the card) and resumes automatically after 1, then 4, then 15
-minutes. Every step saves its progress in small batches, so a resumed document continues where it stopped
+minutes, or later if the AI said when its quota resets (up to a day). Every step saves its progress in small batches, so a resumed document continues where it stopped
 instead of starting over.
 
 ---

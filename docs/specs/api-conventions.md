@@ -21,11 +21,13 @@ Every non-2xx response has this shape:
   "message": "Request validation failed",
   "path": "/api/auth/register",
   "timestamp": "2026-10-09T16:11:33.411Z",
-  "fieldErrors": [{ "field": "email", "message": "must be a well-formed email address" }]
+  "fieldErrors": [{ "field": "email", "message": "must be a well-formed email address" }],
+  "requestId": "9b1f0c2e4a6d4e8f8c3b5a7d9e1f2a3b"
 }
 ```
 
-`fieldErrors` appears only for validation failures. Clients branch on **`code`**, never on `message`.
+`fieldErrors` appears only for validation failures. `requestId` equals the `X-Request-Id` response header (see
+[Request ids](#request-ids)). Clients branch on **`code`**, never on `message`.
 
 | Code | HTTP | Meaning |
 |---|---|---|
@@ -39,7 +41,19 @@ Every non-2xx response has this shape:
 | `RESULT_NOT_READY` | 409 | Document result requested before conversion completed |
 | `FILE_TOO_LARGE` | 413 | Upload above the size limit |
 | `UNSUPPORTED_FILE_TYPE` | 415 | Extension not allowed or content doesn't match it |
-| `INTERNAL_ERROR` | 500 | Bug; details only in server logs |
+| `AI_INPUT_REJECTED` | 422 | The AI refused the input itself (e.g. unreadable content); retrying the same input will not help |
+| `AI_UNAVAILABLE` | 503 | The AI is busy, out of quota or misconfigured; retry later. Carries `Retry-After: <seconds>` when the reset time is known |
+| `INTERNAL_ERROR` | 500 | Bug; details only in server logs (the UI shows the first 8 characters of `requestId` as "ref") |
+
+`AI_*` messages are user-safe: operator details (missing keys, contract mismatches) never reach the client and are
+replaced by a generic message.
+
+## Request ids
+
+Every response carries `X-Request-Id`. A client may send its own (`[A-Za-z0-9._:-]{1,128}`, otherwise it is
+replaced by a generated one). The id is on every backend log line (`[requestId]`), forwarded to the inference
+service, inherited by the document processing job an upload starts, and echoed in error bodies: quote it in bug
+reports.
 
 ## Pagination
 

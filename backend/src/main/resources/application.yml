@@ -65,6 +65,7 @@ ved:
       # Multi-instance safety: a document is claimed by one instance, which refreshes a heartbeat while working
       # on it. If the heartbeat is older than this (crash, scale-down), any instance requeues the document.
       lease: 2m
+      heartbeat-interval: 30s # how often an instance refreshes the leases of its documents (well below lease)
   knowledge:
     # Signs figure image URLs. MUST be overridden outside local development.
     figure-url-secret: ${VED_FIGURE_URL_SECRET:dev-only-figure-url-secret-change-me}

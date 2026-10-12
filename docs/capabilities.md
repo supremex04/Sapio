@@ -156,9 +156,13 @@ Guide: [guides/configuration.md](guides/configuration.md), [ADR-0010](adr/0010-v
   frontend; also `-d`, `stop`, `down`, `status`, `logs`, `setup`, `test`.
 - Resilience: provider retries honour server hints (`Retry-After`, `RetryInfo`), model fallbacks,
   automatic document retries (`ved.documents.processing.auto-retry-delays`), resumable, idempotent
-  pipeline stages; unfinished documents resume after a backend restart.
+  pipeline stages; retries wait for the AI's quota-reset hint; unfinished documents resume after a restart or
+  crash (heartbeat lease), and several backend instances can share the processing.
+- Typed errors between the services, a committed OpenAPI contract tested from both sides, and an `X-Request-Id` on
+  every log line and error body ([ADR-0011](adr/0011-contract-first-service-boundary.md)).
 - Every tuning knob lives in `inference/settings.yaml` or `backend/src/main/resources/application.yml`,
-  overridable by environment variables; the backend checks at startup that the embedding size fits the database.
+  overridable by environment variables; the backend checks at startup that the inference contract version matches
+  and the embedding size fits the database.
 
 Guides: [guides/local-development.md](guides/local-development.md), [guides/configuration.md](guides/configuration.md),
 [architecture/backend-inference-integration.md](architecture/backend-inference-integration.md).
@@ -172,7 +176,7 @@ Guides: [guides/local-development.md](guides/local-development.md), [guides/conf
 | Role-specific behaviour (teacher vs student), admin user management | 🧪 |
 | Per-user AI quotas and cost logging; login rate limiting, password reset, refresh-token reuse detection | 🧪 |
 | Streaming lesson generation (SSE), pre-generating the first lesson | 🧪 |
-| Material versioning, DB-backed job queue for > 1 backend instance, S3/MinIO storage | 🧪 |
+| Material versioning, a message broker for document processing (DB coordination today), S3/MinIO storage | 🧪 |
 | Achievements, class challenges, learning-effectiveness dashboard, real-time notifications | 🧪 |
 
 Full list: [roadmap.md](roadmap.md). Specs: [auth](specs/auth.md) · [ocr](specs/ocr.md) ·

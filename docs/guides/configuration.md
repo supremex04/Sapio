@@ -145,8 +145,8 @@ to the **next model** when the current one is unavailable:
 | Server hint > 2 × `max_backoff_seconds` (e.g. "retry in 17 h": daily quota) | next model **immediately** |
 | OpenAI-style `429` with code `insufficient_quota` | next model immediately |
 | 404 (unknown model) | next model immediately |
-| Other 4xx (bad request, bad key) | fail at once (no other model would succeed) |
-| Whole chain exhausted | `503` "busy or out of quota" → backend reports `AI_UNAVAILABLE`; indexing/analysis retry automatically |
+| Other 4xx (bad request, bad key) | fail at once (no other model would succeed): `500 MISCONFIGURED`, logged at ERROR |
+| Whole chain exhausted | `503 MODEL_UNAVAILABLE` "busy or out of quota" (with `Retry-After` when every model reported its quota reset) → backend reports `AI_UNAVAILABLE`; indexing/analysis retry automatically, not before the reset |
 
 `GET /health` reports the model that served the most recent request (`llmModel`, `provider:model`).
 
@@ -178,8 +178,8 @@ Embeddings have no fallback chain: one model must embed everything, or vectors w
    keyword search still covers the rest.
 3. The first search on a document with stale vectors triggers a **background re-embed** of that document
    (on the document worker pool); if the AI is busy it resumes on the next search.
-4. At startup the backend reads `/health` (`embeddingModel`, `embeddingDimensions`) and logs the model,
-   or an **error** if the dimensions are not 768.
+4. At startup the backend reads `/health` (`contractVersion`, `embeddingModel`, `embeddingDimensions`) and logs
+   the model, or an **error** if the dimensions are not 768 (or the contract major version differs).
 5. Re-tune `ved.knowledge.retrieval.figure-min-similarity`: similarity scales differ per model.
 
 ### In-house embeddings (provider type `onnx`)
@@ -496,8 +496,11 @@ Env example: `VED_STUDY_CONTEXT_LESSON_CHARS=30000`.
 | `max-size-bytes` | `26214400` | upload limit; keep `spring.servlet.multipart.max-file-size` (25MB) and `max-request-size` (26MB) in sync |
 | `processing.core-pool-size` | `2` | document worker threads (also bounds concurrent inference calls from processing) |
 | `processing.max-pool-size` | `4` | worker threads under load |
-| `processing.queue-capacity` | `200` | queued documents before new ones wait for a restart |
-| `processing.auto-retry-delays` | `1m, 4m, 15m` | waits before each automatic retry of a transiently failed document (AI busy / out of quota); one entry per attempt; `[]` disables |
+| `processing.queue-capacity` | `200` | queued documents per instance; beyond it a document stays `PENDING` and is picked up once its lease expires |
+| `processing.auto-retry-delays` | `1m, 4m, 15m` | waits before each automatic retry of a transiently failed document (AI busy / out of quota / misconfigured); one entry per attempt; `[]` disables. A retry never starts before the AI's own retry hint (quota reset, capped at 24 h) |
+| `processing.retry-poll` | `30s` | how often due retries and abandoned documents are picked up |
+| `processing.lease` | `2m` | an in-flight document whose heartbeat is older than this is considered abandoned (crash, scale-down) and requeued by any instance; a crash resumes within one lease |
+| `processing.heartbeat-interval` | `30s` (code default, not in `application.yml` or `DocumentProperties`) | how often an instance refreshes the heartbeat of the documents it is working on; keep well below `lease` |
 
 ### `ved.inference.*` and `ved.security.*`
 
@@ -520,5 +523,6 @@ Env example: `VED_STUDY_CONTEXT_LESSON_CHARS=30000`.
 | Route or embeddings reference a provider not under `providers` | inference fails at startup: `Unknown provider(s) [...]; define them under 'providers'` |
 | Unknown task name under `llm.tasks`, unknown `ocr.engine`, `type`, `json_mode` or `flavor`, out-of-range number (e.g. `dpi: 500`) | inference fails at startup (pydantic validation error naming the key) |
 | `gemini` provider in use without its key in the environment | inference fails at startup: `set the API key in $<api_key_env>` |
-| Embedding dimensions ≠ 768 | backend logs an error at startup; embedding calls fail (503) until fixed |
+| Embedding dimensions ≠ 768 | backend logs an error at startup; embedding calls fail (500 `MISCONFIGURED`) until fixed |
+| Inference contract major ≠ the backend's (`InferenceCompatibilityCheck.CONTRACT_MAJOR`) | backend logs an error at startup: deploy matching versions of both services |
 | Backend value violating its constraint (e.g. `rrf-k: 0`, JWT secret < 32 bytes, `figure-min-similarity` outside -1..1) | backend fails at startup with a binding error naming the key |

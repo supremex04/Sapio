@@ -1,19 +1,52 @@
 # Spec: Inference service internal API
 
 The Python service is **internal**: only the backend calls it. Default URL `http://localhost:8000`.
-All JSON is camelCase. Errors are FastAPI `{"detail": "<user-safe message>"}`.
+All JSON is camelCase. The machine-readable contract is `contracts/inference-openapi.json` (see
+[Contract file](#contract-file)); this page explains it.
 
 ## Authentication
 
 Header `X-Internal-Api-Key: <VED_INFERENCE_API_KEY>`, which must equal the backend's `VED_INFERENCE_API_KEY`.
-Missing or wrong key → `401`. `/health` is open.
+Missing or wrong key → `401 UNAUTHORIZED`. `/health` is open.
 
-## Status codes (all endpoints)
+## Request correlation
 
-| Status | Meaning | Backend reaction |
-|---|---|---|
-| 422 | Input rejected (corrupt file, too many pages, too little text) | fail the document / request with `detail` |
-| 503 | Engine or LLM unavailable (after retries and the route's fallbacks), or quota exhausted on every model | `AI_UNAVAILABLE` / retryable failure |
+Every request may carry `X-Request-Id` (the backend sends its own, see
+[api-conventions.md](api-conventions.md#request-ids)). An id matching `[A-Za-z0-9._:-]{1,128}` is adopted,
+anything else is replaced by a new one. The id is echoed in the `X-Request-Id` response header and in error bodies,
+and every `ved_inference.*` log line shows it as `[request-id]`, so one learner action can be followed through both
+services' logs.
+
+## Errors
+
+Every non-2xx response has the same body, built in one place (`api/errors.py`); routes never translate exceptions
+themselves:
+
+```json
+{ "code": "MODEL_UNAVAILABLE", "message": "The AI service is busy or out of quota right now. Please try again later.",
+  "retryable": true, "requestId": "3f2a9c41d7e84b0b9a1c2d3e4f5a6b7c" }
+```
+
+Callers branch on **`code`** and **`retryable`**, never on `message`. `message` is user-safe only for
+`INPUT_REJECTED` and `MODEL_UNAVAILABLE`; for every other code it is written for operators and must not be shown to
+learners. When the service knows when a retry will succeed (a quota reset), the response also carries
+`Retry-After: <seconds>`.
+
+| Code | Status | Retryable | Raised for | Who fixes it | Backend reaction |
+|---|---|---|---|---|---|
+| `INPUT_REJECTED` | 422 | no | `DocumentError`: corrupt/empty/encrypted file, too many pages, no readable text | the learner (other file) | document `FAILED` permanently / `AI_INPUT_REJECTED` (422) with the message |
+| `INPUT_TOO_LARGE` | 413 | no | upload above `parsing.max_upload_bytes` | the learner | treated like `INPUT_REJECTED` |
+| `MODEL_UNAVAILABLE` | 503 | yes | `EngineError`: every model in the route busy or out of quota, OCR server down, unusable model output | nobody (wait) | automatic retry (pipeline) / `AI_UNAVAILABLE` (503) |
+| `MISCONFIGURED` | 500 | no | `ConfigurationError`: missing API key or optional extra, embedding dimension mismatch, provider rejected the request (HTTP 4xx), `onnx` provider asked to generate text | operator | pipeline retries later; requests get `AI_UNAVAILABLE` with a generic message; logged at ERROR |
+| `CONTRACT_VIOLATION` | 400 | no | request body does not match the contract (FastAPI validation) | developer: backend bug or version skew | as `MISCONFIGURED` |
+| `UNAUTHORIZED` | 401 | no | missing/wrong `X-Internal-Api-Key` | operator (align the keys) | as `MISCONFIGURED` |
+| `NOT_FOUND`, `METHOD_NOT_ALLOWED` | 404, 405 | no | unknown route or method | developer (version skew) | as `CONTRACT_VIOLATION` |
+| `INTERNAL_ERROR` | 500 | no | any unexpected exception; the message is generic, details only in the service log | developer | as `MISCONFIGURED` |
+
+`EngineError.retry_after` comes from the provider: a `ModelUnavailable` keeps the quota reset hint
+(`llm/retry.py`), and the router reports the earliest reset only when **every** model in the route gave one
+(otherwise some model may recover sooner, so no hint is sent). The backend's full mapping is in
+[backend-inference-integration.md](../architecture/backend-inference-integration.md#error-propagation).
 
 ## Model routing
 
@@ -26,17 +59,18 @@ carries `model` (`provider:model` that actually served it).
 ## `GET /health`
 
 ```jsonc
-{ "status": "ok", "ocrEngine": "rapidocr-layout", "llmModel": "gemini:gemini-3.5-flash",
+{ "status": "ok", "contractVersion": "1.0", "ocrEngine": "rapidocr-layout", "llmModel": "gemini:gemini-3.5-flash",
   "embeddingModel": "gemini:gemini-embedding-2", "embeddingDimensions": 768 }
 ```
 
 `llmModel` = the model that served the most recent request (initially the default route's primary).
-The backend reads `embeddingModel` / `embeddingDimensions` at startup and logs an error if the
-dimensions don't match its `vector(768)` columns.
+`contractVersion` is `CONTRACT_VERSION` in `api/schemas.py`. The backend (`InferenceCompatibilityCheck`) reads
+`/health` at startup and logs an error if the contract major version differs from the one it implements or if
+`embeddingDimensions` doesn't match its `vector(768)` columns.
 
 ## `POST /v1/extract`
 
-Multipart, one part `file` (with filename), up to `parsing.max_upload_bytes` (413 above). Per page:
+Multipart, one part `file` (with filename), up to `parsing.max_upload_bytes` (413 `INPUT_TOO_LARGE` above). Per page:
 native text if the PDF page has ≥ `parsing.native_min_chars` letters/digits in its text layer, else OCR.
 Also returns the document tree (details: [knowledge.md](knowledge.md)).
 
@@ -62,14 +96,14 @@ Also returns the document tree (details: [knowledge.md](knowledge.md)).
 | `POST /summaries` | `summaries` | `{language, nodes:[{key, path, text, childSummaries}]}` (1–120) | `{summaries:[{key, summary, keyTerms}], model}` |
 | `POST /embed` | (embeddings) | `{task: RETRIEVAL_DOCUMENT \| RETRIEVAL_QUERY, items:[{text?, imageBase64?, mime?}]}` (1–256) | `{vectors, model, dimensions}` |
 
-- `figures`: one entry per input key or 503; `role` is `VISUAL` (shown to students), `TEXTUAL` (its text carries the
+- `figures`: one entry per input key or 503 `MODEL_UNAVAILABLE`; `role` is `VISUAL` (shown to students), `TEXTUAL` (its text carries the
   meaning: terminal output, code, text-only slides; `transcript` holds the key text verbatim, at most
   `indexing.transcript_chars`) or `DECORATIVE` (the backend deletes it). When unsure the model is told to choose
   `VISUAL`; kind `DECORATIVE` always forces role `DECORATIVE`. `transcript` is empty unless the role is `TEXTUAL`.
 - `summaries`: one entry per key or 503; at most 8 deduplicated `keyTerms`.
 - `embed`: `model` (`provider:model`) is stored with every vector; images are used only when the
   embedding model is multimodal, otherwise items are embedded from their text. A vector of a
-  different length than `dimensions` is a 503.
+  different length than `dimensions` is a 500 `MISCONFIGURED`.
 
 ## Study endpoints (`/v1/study/*`, JSON in/out)
 
@@ -109,7 +143,30 @@ Guarantees the service enforces on LLM output:
 - Grades: `score` is clamped into the verdict band (CORRECT 0.8–1, PARTIAL 0.3–0.7, INCORRECT 0–0.2);
   blank answers are INCORRECT without calling the LLM.
 
+## Contract file
+
+`contracts/inference-openapi.json` (repo root) is the OpenAPI document generated from the FastAPI app by
+`inference/scripts/export_openapi.py`. Both services are tested against it:
+
+| Test | Side | Fails when |
+|---|---|---|
+| `inference/tests/test_contract.py` | provider | the file differs from what the code serves; an endpoint does not document `ErrorResponse` |
+| `backend/.../common/inference/InferenceContractTest.java` | consumer | for each call the backend makes: a sent field is not in the contract (it would be silently dropped), a required field is not sent, a field the backend reads is not returned, an enum value is not accepted/known in that direction, types differ, the endpoint is missing, the error envelope differs from `InferenceClient.ErrorBody`, or the contract major ≠ `InferenceCompatibilityCheck.CONTRACT_MAJOR` |
+
+After an intentional API change, from `inference/`:
+
+```bash
+.venv/bin/python scripts/export_openapi.py
+```
+
+Review the diff, then run the backend tests. On a breaking change (field removed or renamed, new required field,
+enum value removed) bump the major of `CONTRACT_VERSION` and `InferenceCompatibilityCheck.CONTRACT_MAJOR` together;
+additive changes bump the minor.
+
 ## Conventions for future endpoints
 
 - Version prefix `/v1/...`; stateless; validate every LLM field before returning it.
+- Raise an `errors.py` exception (`DocumentError`, `EngineError`, `ConfigurationError`); never return an error body
+  or `HTTPException` from a route.
 - Long-running work stays synchronous here; the backend owns queueing, state and retries.
+- Regenerate the contract file in the same change.

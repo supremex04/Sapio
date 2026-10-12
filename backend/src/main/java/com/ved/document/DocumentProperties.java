@@ -19,7 +19,8 @@ public record DocumentProperties(@NotNull Path storageDir, @Positive long maxSiz
     /**
      * @param autoRetryDelays waits before each automatic retry of a transiently failed document
      * @param lease           an in-flight document whose heartbeat is older than this is considered abandoned and
-     *                        requeued (by any instance); heartbeats are sent at a quarter of it
+     *                        requeued (by any instance); keep it several times
+     *                        {@code ved.documents.processing.heartbeat-interval}
      */
     public record Processing(@Positive int corePoolSize, @Positive int maxPoolSize, @Positive int queueCapacity,
                              @NotNull List<Duration> autoRetryDelays, @NotNull Duration lease) {

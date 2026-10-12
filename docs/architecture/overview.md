@@ -41,7 +41,7 @@ Package-by-feature (`com.ved.<feature>`), with a thin layered structure inside e
 
 ```
 com.ved
-├── common/          error model, time, pagination, inference HTTP client
+├── common/          error model, request ids, time, pagination, AI port base exception, inference HTTP client
 ├── security/        JWT issuing/validation, CORS, @CurrentUserId
 ├── user/            User aggregate (time zone, daily goal), /api/users
 ├── auth/            register/login/refresh/logout; publishes UserLoggedInEvent
@@ -49,7 +49,7 @@ com.ved
 ├── document/        upload + processing pipeline (extract → analyze)
 │   ├── storage/     DocumentStorage port + local filesystem adapter
 │   ├── extraction/  ExtractionGateway port + inference adapter
-│   └── processing/  async worker, triggers (after-commit, startup recovery)
+│   └── processing/  async worker, triggers (after-commit, due retries, lease heartbeat + abandoned-job recovery)
 ├── study/           Learn & Test on top of a shared study material
 │   ├── ai/          StudyAi port + inference adapter
 │   ├── material/    StudyMaterial / chunks / topics, MaterialAnalyzer (implements DocumentAnalyzer),
@@ -143,7 +143,18 @@ Details: [specs/study.md](../specs/study.md), [specs/progress.md](../specs/progr
 [ADR-0004](../adr/0004-in-process-async-document-processing.md),
 [ADR-0006](../adr/0006-llm-behind-a-provider-agnostic-port.md),
 [ADR-0007](../adr/0007-shared-study-material-content-vs-learner-state.md),
-[ADR-0008](../adr/0008-progress-via-in-transaction-domain-events.md).
+[ADR-0008](../adr/0008-progress-via-in-transaction-domain-events.md),
+[ADR-0011](../adr/0011-contract-first-service-boundary.md).
+
+### Service boundary and scaling
+
+- **Contract**: the backend ↔ inference API is the committed `contracts/inference-openapi.json`, tested from both
+  sides; every error is a typed envelope (`code`, `message`, `retryable`, `requestId`) and every request carries an
+  `X-Request-Id` that appears in both services' logs
+  ([backend-inference-integration.md](backend-inference-integration.md), [specs/inference-api.md](../specs/inference-api.md)).
+- **Horizontal scaling**: the backend can run as several instances. Document processing is coordinated through the
+  database (row-locked claim + heartbeat lease, [knowledge-storage.md](knowledge-storage.md)); there is no broker yet.
+  The inference service is stateless and scales independently.
 
 ## Data model
 
@@ -215,7 +226,10 @@ Conventions:
 ```
 ved_inference/
 ├── config.py     Settings: settings.yaml + VED_INFERENCE_* env overrides (providers, routes, tunings)
-├── api/          FastAPI routes + wire schemas (camelCase), API-key check: extract, /v1/index/*, /v1/study/*
+├── api/          FastAPI routes + wire schemas (camelCase), API-key check, error envelope (errors.py):
+│                 extract, /v1/index/*, /v1/study/*
+├── errors.py     error taxonomy: DocumentError, EngineError, ConfigurationError
+├── observability.py  X-Request-Id middleware, logging with the request id
 ├── parsing/      DocumentParser: layout blocks, native PDF text or OCR per page, tree, chunks, figures
 ├── documents/    page/document models
 ├── engines/      OcrEngine ABC + Unlimited-OCR remote/local + registry (rapid = built into the layout model)

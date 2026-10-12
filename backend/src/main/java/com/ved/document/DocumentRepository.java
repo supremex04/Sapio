@@ -22,6 +22,8 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
 
     Page<Document> findByOwnerIdOrderByCreatedAtDesc(UUID ownerId, Pageable pageable);
 
+    /** Locked like {@link #findAbandoned}, so concurrent instances resume a due document only once. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     List<Document> findByStatusAndRetryAtLessThanEqual(DocumentStatus status, Instant at);
 
     /** Row-locks the document for the rest of the transaction, so only one instance can claim it. */
@@ -29,7 +31,11 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
     @Query("select d from Document d where d.id = :id")
     Optional<Document> lockById(@Param("id") UUID id);
 
-    /** Documents in these states whose owner has shown no sign of life since {@code cutoff}. */
+    /**
+     * Documents in these states whose owner has shown no sign of life since {@code cutoff}. Locked, and Postgres
+     * re-checks the condition after waiting for a lock, so a document claimed meanwhile is not requeued.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select d from Document d where d.status in :statuses and coalesce(d.heartbeatAt, d.updatedAt) < :cutoff")
     List<Document> findAbandoned(@Param("statuses") Collection<DocumentStatus> statuses,
                                  @Param("cutoff") Instant cutoff);

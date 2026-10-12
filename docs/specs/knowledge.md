@@ -46,8 +46,9 @@ stateDiagram-v2
 
 Each stage is idempotent and resumable: extraction is skipped when the document already has extracted text
 (stored in the same transaction as the tree); indexing only processes items that are still missing
-descriptions / summaries / embeddings and commits per batch. Transient failures (AI provider busy or out of
-quota) are retried automatically after `ved.documents.processing.auto-retry-delays`; the user can also retry.
+descriptions / summaries / embeddings and commits per batch. Transient failures (everything except rejected input:
+AI provider busy, out of quota or misconfigured) are retried automatically after
+`ved.documents.processing.auto-retry-delays`, but not before the AI's quota-reset hint; the user can also retry.
 Details: [knowledge-storage.md](../architecture/knowledge-storage.md#pipeline-states-and-retries).
 
 ### 1. Extraction & structural parsing (inference, `POST /v1/extract`)

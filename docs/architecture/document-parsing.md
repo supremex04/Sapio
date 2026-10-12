@@ -44,11 +44,12 @@ concurrent parses per process (keep `1` on a single GPU).
 
 | Check | Where | Result |
 |---|---|---|
-| Size > `parsing.max_upload_bytes` (25 MiB) | `api/routes.py` | HTTP 413 |
-| Empty file, unsupported extension, corrupt file, password-protected PDF | `DocumentParser._open` | 422 (`DocumentError`) |
+| Size > `parsing.max_upload_bytes` (25 MiB) | `api/routes.py` | 413 `INPUT_TOO_LARGE` |
+| Empty file, unsupported extension, corrupt file, password-protected PDF | `DocumentParser._open` | 422 `INPUT_REJECTED` (`DocumentError`) |
 | 0 pages, or more than `parsing.max_pages` (200) | `DocumentParser.parse` | 422 |
 | No readable text after parsing | `DocumentParser.parse` | 422 `No readable text was found in this document` |
-| OCR engine / model server failure | engines | 503 (`EngineError`) |
+| OCR engine / model server failure | engines | 503 `MODEL_UNAVAILABLE` (`EngineError`) |
+| Local OCR extra not installed | `engines/unlimited_local.py` | 500 `MISCONFIGURED` (`ConfigurationError`) |
 
 Accepted: PDF (by `.pdf` extension or a `%PDF-` header) and images `.png .jpg .jpeg .webp .tif .tiff .bmp` (or no
 extension). Images, including multi-frame TIFFs, are converted to a PDF with `convert_to_pdf()`, so every input takes

@@ -15,5 +15,6 @@ immutable once accepted; to change a decision, add a new ADR that supersedes the
 | [0008](0008-progress-via-in-transaction-domain-events.md) | Progress and analytics via in-transaction domain events | Accepted |
 | [0009](0009-knowledge-store-tree-hybrid-index-figures.md) | Knowledge store: document tree + hybrid index + linked figures, in PostgreSQL | Accepted |
 | [0010](0010-vendor-neutral-model-configuration.md) | Vendor-neutral model configuration: providers, per-task routes, fallbacks; tunings in properties | Accepted |
+| [0011](0011-contract-first-service-boundary.md) | Contract-first service boundary (typed errors, tested OpenAPI contract, request ids) and DB-coordinated processing | Accepted |
 
 New ADR: copy [template.md](template.md) to `NNNN-short-title.md`.

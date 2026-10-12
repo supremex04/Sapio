@@ -2,6 +2,7 @@ package com.ved.document;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Clock;
 import java.util.UUID;
 
 import com.ved.common.error.ApplicationException;
@@ -31,8 +32,11 @@ public class DocumentService {
     private final ApplicationEventPublisher events;
     private final DocumentProperties properties;
 
+    private final Clock clock;
+
     DocumentService(DocumentRepository documents, DocumentStorage storage, ApplicationEventPublisher events,
-                    DocumentProperties properties) {
+                    DocumentProperties properties, Clock clock) {
+        this.clock = clock;
         this.documents = documents;
         this.storage = storage;
         this.events = events;
@@ -92,7 +96,7 @@ public class DocumentService {
         if (document.getStatus() != DocumentStatus.FAILED) {
             throw new ApplicationException(ErrorCode.INVALID_STATE, "Only failed documents can be retried");
         }
-        document.retry();
+        document.retry(clock.instant());
         events.publishEvent(new DocumentQueuedEvent(document.getId()));
         return document;
     }

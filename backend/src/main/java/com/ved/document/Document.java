@@ -178,14 +178,15 @@ public class Document {
     }
 
     /** User-initiated retry of a failed document (also resets the automatic retry budget). */
-    public void retry() {
+    public void retry(Instant now) {
         this.autoRetries = 0;
-        resume();
+        resume(now);
     }
 
     /** Scheduled automatic retry; keeps counting towards the retry budget. */
-    public void resume() {
+    public void resume(Instant now) {
         requireStatus(DocumentStatus.FAILED);
+        this.heartbeatAt = now; // queued again: a fresh lease, not the failed run's stale one
         this.retryAt = null;
         this.status = DocumentStatus.PENDING;
         this.errorMessage = null;
@@ -265,6 +266,10 @@ public class Document {
 
     public int getAutoRetries() {
         return autoRetries;
+    }
+
+    public Instant getHeartbeatAt() {
+        return heartbeatAt;
     }
 
     public Instant getRetryAt() {

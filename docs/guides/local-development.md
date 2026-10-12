@@ -132,10 +132,19 @@ Frontend: `VITE_BACKEND_URL` (dev proxy target, default `http://localhost:8080`)
 - **`./dev.sh`: a dependency seems stale**: run `./dev.sh setup` to force a reinstall.
 - **Port 5432 already in use**: compose maps Postgres to **5433** on purpose. Keep it.
 - **Document stuck in "Queued"/"Processing"**: check that the inference service is running
-  (`curl localhost:8000/health`). Restarting the backend re-queues unfinished documents.
+  (`curl localhost:8000/health`). Unfinished documents are resumed automatically: at once after a clean backend
+  stop, within `processing.lease` (2 min) after a crash.
 - **"The AI service is busy right now"**: Gemini returned 429/5xx after retries and all fallback
   models. Wait a moment and retry; check the provider key in `inference/.env` and the model routes in
   `inference/settings.yaml` ([configuration.md](configuration.md)).
 - **Document FAILED during "Building study guide"**: use *Retry* in the library. Extraction is not repeated.
+- **An error message ends in "(ref 3f2a9c41)"**: the ref is the start of the request id. `grep` it in the backend and
+  inference logs (every line shows `[requestId]`) to follow that request through both services.
+- **Inference logs `MISCONFIGURED` / backend logs an ERROR "Inference … failed"**: an operator problem (missing
+  provider key or extra, embedding dimensions, `VED_INFERENCE_API_KEY` differs between the services). Documents keep
+  retrying automatically and continue once it is fixed.
+- **`test_contract.py` or `InferenceContractTest` fails**: the inference API and the committed
+  `contracts/inference-openapi.json` (or the backend DTOs) disagree. After an intentional change run
+  `.venv/bin/python scripts/export_openapi.py` in `inference/` ([inference-api.md](../specs/inference-api.md#contract-file)).
 - **Logged out after every reload**: the refresh cookie is `Secure` only if
   `VED_COOKIE_SECURE=true`. Over plain http://localhost it must stay `false`.

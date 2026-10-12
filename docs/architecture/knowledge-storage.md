@@ -32,6 +32,7 @@ erDiagram
         varchar language
         int auto_retries
         timestamptz retry_at
+        timestamptz heartbeat_at "processing lease"
     }
     document_nodes {
         uuid id PK
@@ -97,6 +98,7 @@ erDiagram
 | `document_terms` PK `(document_id, term, node_id)` | no duplicate term-node pairs (`ON CONFLICT DO NOTHING`) |
 | `ix_document_terms_lookup` on `(document_id, lower(term))` | case-insensitive term-index lookups and ordering |
 | `ix_documents_retry_at` partial (`WHERE retry_at IS NOT NULL`) | the retry poller's "due retries" query |
+| `ix_documents_in_flight` on `(status, heartbeat_at)`, partial (in-flight statuses) | the "abandoned documents" query (lease expiry) |
 
 `tsv` columns are `GENERATED ALWAYS ... STORED` from `to_tsvector(search_config, ...)`, so they can never drift from
 the text. Persistence is plain JDBC (`KnowledgeStore`) because ltree, pgvector, `regconfig` and generated columns are
@@ -144,13 +146,24 @@ stateDiagram-v2
 - `DocumentProcessor.process` runs on the `documentProcessingExecutor` pool. Each state change is its own short
   transaction; extraction, indexing and analysis calls run outside them.
 - Extraction is skipped on a retry when the document already has extracted text (`isTextExtracted()`).
-- **Transient failures** (AI provider busy, rate-limited or out of quota: `KnowledgeAiException` during indexing, or a
-  transient `ExtractionException` / `AnalysisException`) set `FAILED` with `retry_at = now + delay[auto_retries]` and
-  increment `auto_retries`, while retries remain in `ved.documents.processing.auto-retry-delays`. The message tells the
-  user progress is saved.
+- **Transient failures** (any `PipelineException` with `isTransient()`: AI busy, rate-limited, out of quota or
+  misconfigured; everything except rejected input) set `FAILED` with
+  `retry_at = now + max(delay[auto_retries], retry hint capped at 24 h)` and increment `auto_retries`, while retries
+  remain in `ved.documents.processing.auto-retry-delays`. The message tells the user progress is saved.
 - `DocumentProcessingTriggers.resumeDueRetries` polls every `ved.documents.processing.retry-poll` (default 30s), moves
   due documents back to `PENDING` and resubmits them. A user retry resets `auto_retries`.
-- On startup, documents left in `PENDING/EXTRACTING/INDEXING/ANALYZING` are requeued.
+- **Several backend instances** share the work through the database (V8 adds `documents.heartbeat_at`):
+  - *Claim*: `DocumentProcessor` locks the row (`DocumentRepository.lockById`, `PESSIMISTIC_WRITE`) and only proceeds
+    if it is still `PENDING`, so exactly one instance claims a document. `submit()` queues on this instance's
+    executor and tracks queued + running documents (the in-flight set; a second submit on the same instance is a
+    no-op).
+  - *Lease*: `DocumentProcessingTriggers.heartbeat()` refreshes `heartbeat_at` of the in-flight documents every
+    `processing.heartbeat-interval` (30s). `resumeAbandoned()` (on startup and every `retry-poll`) requeues
+    `PENDING/EXTRACTING/INDEXING/ANALYZING` documents whose `coalesce(heartbeat_at, updated_at)` is older than
+    `processing.lease` (2m): a crashed instance's work resumes within one lease, and live instances' work is never
+    taken. This also picks up documents that could not be queued (full queue).
+  - *Shutdown*: `@PreDestroy` sets this instance's leases to the epoch, so another instance (or the next start) resumes
+    them immediately.
 
 ## Indexing stages
 
@@ -192,10 +205,11 @@ are never compared:
 2. When a query is embedded, `HybridRetriever` checks `hasStaleEmbeddings` (any vector whose model `IS DISTINCT FROM`
    the query's model) and publishes `StaleEmbeddingsDetected(documentId, model)`.
 3. `KnowledgeIndexer.onStaleEmbeddings` (`@Async("documentProcessingExecutor")`, so it shares the worker pool's cap on
-   concurrent inference calls) de-duplicates per document, clears stale vectors (`clearStaleEmbeddings`) and reruns
+   concurrent inference calls) de-duplicates per document (an in-memory set, so per instance only; a duplicate
+   re-embed on another instance is harmless because the writes are idempotent), clears stale vectors (`clearStaleEmbeddings`) and reruns
    stages 3 and 4. If the provider is busy, it stops and resumes on the next search.
 
-At startup, `EmbeddingCompatibilityCheck` reads the inference `/health` and logs an error when its
+At startup, `InferenceCompatibilityCheck` (`common.inference`) reads the inference `/health` and logs an error when its
 `embeddingDimensions` differ from the schema's 768.
 
 ## Figure files and signed URLs
@@ -236,7 +250,9 @@ See [guides/configuration.md](../guides/configuration.md) for env-var overrides.
 | `ved.knowledge.indexing.summary-text-chars` | 6000 | own text per node sent for summarising |
 | `ved.knowledge.retrieval.*` | `candidates: 30`, `rrf-k: 10`, `keyword-weight: 1.0`, `vector-weight: 2.0`, `figure-min-similarity: 0.48` | search tuning, see [retrieval.md](retrieval.md) |
 | `ved.documents.processing.auto-retry-delays` | `1m, 4m, 15m` | one automatic retry per entry; empty disables |
-| `ved.documents.processing.retry-poll` | `30s` (code default, not in yml) | how often due retries are checked |
+| `ved.documents.processing.retry-poll` | `30s` | how often due retries and abandoned documents are checked |
+| `ved.documents.processing.lease` | `2m` | heartbeat age after which an in-flight document is requeued by any instance |
+| `ved.documents.processing.heartbeat-interval` | `30s` (code default, not in yml) | how often an instance refreshes its documents' heartbeats |
 | `ved.documents.processing.core-pool-size` / `max-pool-size` / `queue-capacity` | 2 / 4 / 200 | worker pool shared by processing and re-embedding |
 
 ## Tests
@@ -250,7 +266,7 @@ See [guides/configuration.md](../guides/configuration.md) for env-var overrides.
 
 ## Known limitations
 
-- `vector(768)` is fixed by the schema (and `EmbeddingCompatibilityCheck.DATABASE_DIMENSIONS`). A model with another
+- `vector(768)` is fixed by the schema (and `InferenceCompatibilityCheck.DATABASE_DIMENSIONS`). A model with another
   size needs a migration (new columns or type change, index rebuild) and a full re-embed; set
   `embeddings.dimensions: 768` where the model supports truncation.
 - HNSW is approximate and pgvector applies the `document_id` / `embedding_model` / subtree filters after the index scan;

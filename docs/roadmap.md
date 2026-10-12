@@ -24,6 +24,8 @@
 - [x] Figure similarity threshold for semantic figure matches (`ved.knowledge.retrieval.figure-min-similarity`)
 - [x] Automatic retries of transiently failed documents (AI busy / out of quota)
 - [x] Architecture docs: document parsing, knowledge storage, retrieval, backend ↔ inference integration; [capabilities.md](capabilities.md)
+- [x] Contract-first service boundary: typed error envelope, committed OpenAPI contract tested from both sides, `X-Request-Id` correlation ([ADR-0011](adr/0011-contract-first-service-boundary.md))
+- [x] Several backend instances: row-locked claim + heartbeat lease for document processing; retries honour quota-reset hints
 - [x] Document **Preview**: reading view of the whole document (sections, figures in place, contents), the original upload, raw text; per-section **Expand** / **Revision** notes; inline-HTML cleanup of extracted text
 
 ## Next: hardening M2
@@ -36,7 +38,6 @@
 - [ ] Unlimited-OCR on a GPU server; compare extraction quality on real scans
 - [ ] Material versioning (re-analysis currently replaces the material and its question history)
 - [ ] Login rate limiting / lockout; refresh-token reuse detection; password reset (email port)
-- [ ] Periodic sweeper for `PENDING` jobs; move to a DB-backed queue before running > 1 backend instance
 - [ ] OpenAPI generation (springdoc) + generated TS client; CI running all three suites; containers
 
 ## Later: learning platform
@@ -54,7 +55,7 @@
 
 | Limitation | Impact | Where it's tracked |
 |---|---|---|
-| Single backend instance assumed for job processing | can't scale out yet | ADR-0004 |
+| Processing concurrency is per instance (own executor); a crashed instance's documents wait up to one lease (2 min) | uneven load; short delay after a crash | ADR-0011 |
 | Progress listeners run in the learner's transaction | a progress bug fails the action | ADR-0008 |
 | Lesson/test generation is synchronous (10–40 s) | waiting UI | above: SSE / pre-generation |
 | No per-user AI quotas | cost exposure | above |

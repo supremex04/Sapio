@@ -93,7 +93,7 @@ class DocumentProcessingTriggers {
         Instant now = clock.instant();
         List<UUID> due = tx.execute(status -> {
             List<Document> docs = documents.findByStatusAndRetryAtLessThanEqual(DocumentStatus.FAILED, now);
-            docs.forEach(Document::resume);
+            docs.forEach(d -> d.resume(now));
             return docs.stream().map(Document::getId).toList();
         });
         if (due != null && !due.isEmpty()) {

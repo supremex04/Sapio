@@ -38,7 +38,12 @@ implementation appears.
   Every setting that differs per environment can be overridden by an env var (`VED_*`).
 - **Time** comes from the injected `Clock`, never `Instant.now()` in business logic.
 - **Errors**: throw `ApplicationException(ErrorCode, message)` for expected failures; the
-  `GlobalExceptionHandler` renders the standard error body. Add new codes to `ErrorCode`.
+  `GlobalExceptionHandler` renders the standard error body. Add new codes to `ErrorCode`. AI ports throw an
+  `AiException` subclass (input rejected / retryable / retry-after), never an HTTP or vendor exception; adapters
+  classify by `InferenceException.kind()`, never by message text, and show only `userMessage(fallback)` to learners.
+- **Wire records belong to the port**: what crosses a service boundary is a record declared on the port
+  (`StudyAi.Source`, not `ContextAssembler.Section`), carrying only what the other side needs; internal ids and
+  domain types stay inside.
 - **Authorisation**: every query on user-owned data is scoped by owner id
   (`findByIdAndOwnerId`). Someone else's resource returns **404**, not 403, so ids aren't confirmed.
   Role-based checks use `@PreAuthorize("hasRole('TEACHER')")`.
@@ -55,8 +60,12 @@ implementation appears.
 - Keep layers apart: `api/` (HTTP) → `service.py` (use-case) → `engines/`, `documents/` (work).
 - Engines import heavy optional deps lazily, inside their module, so the service starts with
   only what the configured engine needs.
-- Raise `DocumentError` for bad input (→ HTTP 422) and `EngineError` for engine/infra failures
-  (→ HTTP 503). Messages must be safe to show to end users.
+- Raise from the taxonomy in `errors.py`: `DocumentError` for bad input (→ 422 `INPUT_REJECTED`),
+  `EngineError` for busy/unavailable engines or models (→ 503 `MODEL_UNAVAILABLE`, retryable, with `retry_after`
+  when known), `ConfigurationError` for what an operator must fix (→ 500 `MISCONFIGURED`). Only `DocumentError` and
+  `EngineError` messages are shown to end users. Routes never catch exceptions; `api/errors.py` renders them.
+- Any API change: regenerate `contracts/inference-openapi.json` (`scripts/export_openapi.py`); the contract tests
+  on both sides must pass ([inference-api.md](../specs/inference-api.md#contract-file)).
 - JSON is **camelCase** on the wire (via `ApiModel`), snake_case in Python.
 - **LLM output is untrusted input**: request it with a JSON schema (`LlmClient.generate`) and validate
   every field in the service (references, indices, structure) before returning it.
@@ -81,6 +90,7 @@ See [specs/api-conventions.md](../specs/api-conventions.md).
 |---|---|---|
 | Backend unit | JUnit 5 + AssertJ (`*Test`, `mvn test`) | pure logic (file-type sniffing, adapters against stub servers) |
 | Backend integration | Spring Boot Test + Testcontainers PostgreSQL (`*IT`, `mvn verify`) | full HTTP → DB flows; external ports mocked with `@MockitoBean` |
+| Contract | `test_contract.py` (pytest) + `InferenceContractTest` (JUnit) | committed OpenAPI file = code; backend DTOs agree with it |
 | Inference | pytest | loader, post-processing, engines (mock HTTP transport), API with a fake engine; one real CPU-OCR test |
 | Frontend | Vitest | pure helpers; component tests to be added as UI grows |
 
