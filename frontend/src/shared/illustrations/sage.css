@@ -8,40 +8,33 @@
   fill: var(--text);
   opacity: 0.08;
 }
-.sage-robe {
-  fill: var(--clay-main);
-}
-.sage-foot {
-  fill: var(--clay-edge);
-}
 .sage-band {
   fill: var(--clay-main);
 }
 .sage-skin {
   fill: var(--skin-main);
 }
-.sage-skin-edge,
-.sage-nose {
+.sage-skin-edge {
   fill: var(--skin-edge);
+}
+.sage-glint {
+  fill: #fff;
+  opacity: 0.45;
 }
 .sage-hair {
   fill: var(--hair-main);
-  stroke: var(--hair-edge);
-  stroke-width: 1.4;
-  stroke-linejoin: round;
 }
-.sage-strand {
-  fill: none;
-  stroke: var(--hair-edge);
-  stroke-width: 1.6;
-  stroke-linecap: round;
+.sage-hair-edge {
+  fill: var(--hair-edge);
 }
 .sage-brow {
   fill: none;
   stroke: var(--hair-main);
-  stroke-width: 4;
+  stroke-width: 6.5;
   stroke-linecap: round;
-  filter: drop-shadow(0 1px 0 var(--hair-edge));
+}
+.sage-brow--edge {
+  stroke: var(--hair-edge);
 }
 .sage-ink {
   fill: #2a1a10;
@@ -52,13 +45,13 @@
 .sage-line {
   fill: none;
   stroke: #2a1a10;
-  stroke-width: 2.4;
+  stroke-width: 3.4;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 .sage-cheek {
   fill: #ff8f8f;
-  opacity: 0.3;
+  opacity: 0.45;
 }
 .sage-spark {
   fill: var(--amber-main);
@@ -71,6 +64,9 @@
   fill: var(--blue-main);
   opacity: 0.85;
 }
+.sage-tongue {
+  fill: #ff7b86;
+}
 .sage-z {
   font: 900 16px var(--font-sans);
   fill: var(--text-muted);
@@ -79,24 +75,21 @@
   font-size: 11px;
 }
 
-/* ---- Motion: blink, a slow sway, cheer bounce ---- */
-.sage-eyes,
-.sage-body {
-  transform-box: view-box;
-}
+/* ---- Motion: blink, a slow tilt, cheer bounce ---- */
 .sage-eyes {
-  transform-origin: 60px 45px;
+  transform-box: view-box;
+  transform-origin: 60px 56px;
 }
-.sage-body {
-  transform-origin: 60px 116px;
+.sage {
+  transform-origin: 50% 90%;
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .sage:not(.sage--still) .sage-eyes {
     animation: sage-blink 5s infinite;
   }
-  .sage--happy:not(.sage--still) .sage-body,
-  .sage--thinking:not(.sage--still) .sage-body {
+  .sage--happy:not(.sage--still),
+  .sage--thinking:not(.sage--still) {
     animation: sage-sway 4s ease-in-out infinite alternate;
   }
   .sage--cheer:not(.sage--still) {
