@@ -80,8 +80,10 @@ Nunito Variable (OFL), one family only. Hierarchy via weight and size:
 
 ### Characters
 
-- **Sapi**, the mascot: an original character, a small, kindly sage (white topknot and beard, purple
-  robe, amber sash) who carries the clay diya (lamp of knowledge); the flame and the face show the mood. Moods: `happy`,
+- **Sapi**, the mascot: an original character, a small sage who is mostly beard (white topknot, a face
+  between bushy brows, a long flowing beard as the body, clay robe hem and feet). Brows, eyes and a few marks
+  (sparkles, thought dots, a drop, z) show the mood; no torso or props, so it never reads as an emoji. The
+  logo mark is the same silhouette on a clay tile. Moods: `happy`,
   `cheer`, `thinking`, `encourage`, `oops`, `sleepy`. Sapi appears at moments that matter: onboarding,
   empty states, answer feedback, celebrations, loading. Never more than once per screen.
   Code: `shared/illustrations/Sage.tsx` (hand-made SVG, ours).

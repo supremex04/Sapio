@@ -1,11 +1,15 @@
-/** Sapio mark: a flat diya with its flame (the lamp of knowledge, which Sapi, the mascot, carries). */
+/** Sapio mark: Sapi, the sage mascot (topknot, face, flowing beard) on a clay tile. */
 export function Logo({ size = 32 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden className="logo-mark">
-      <path d="M16 2.5c4.2 4.6 6 8.3 4 11.4-1.4 2.1-6.6 2.1-8 0-2-3.1-.2-6.8 4-11.4z" fill="var(--amber-main)" />
-      <path d="M16 8.5c1.9 2.3 2.5 4.3 1.6 5.8-.6 1-2.6 1-3.2 0-.9-1.5-.3-3.5 1.6-5.8z" fill="#ffe066" />
-      <path d="M3 16.5h26c0 7-5.8 12-13 12S3 23.5 3 16.5z" fill="var(--clay-main)" />
-      <path d="M5.2 21.5c2.4 4 6.3 6 10.8 6s8.4-2 10.8-6c-2.9 2.4-6.6 3.5-10.8 3.5S8.1 23.9 5.2 21.5z" fill="var(--clay-edge)" />
+      <rect x="1" y="2.5" width="30" height="28.5" rx="8" fill="var(--clay-edge)" />
+      <rect x="1" y="1" width="30" height="28" rx="8" fill="var(--clay-main)" />
+      <circle cx="16" cy="6.4" r="2.4" fill="#fff" />
+      <ellipse cx="16" cy="12.8" rx="5.6" ry="5.4" fill="var(--skin-main)" />
+      <path d="M10.4 11.8C10.4 8.8 12.8 7.2 16 7.2s5.6 1.6 5.6 4.6C20 10 18.2 9.4 16 9.4s-4 .6-5.6 2.4z" fill="#fff" />
+      <path d="M10.6 13.6c-1.6 4.2-1.2 9 1.8 12 1.2 1.2 2.4 1.9 3.6 2.6 1.2-.7 2.4-1.4 3.6-2.6 3-3 3.4-7.8 1.8-12-1.4 2.2-3.2 3.2-5.4 3.2s-4-1-5.4-3.2z" fill="#fff" />
+      <circle cx="14" cy="12.6" r=".9" fill="#2a1a10" />
+      <circle cx="18" cy="12.6" r=".9" fill="#2a1a10" />
     </svg>
   );
 }

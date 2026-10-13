@@ -9,13 +9,13 @@
   opacity: 0.08;
 }
 .sage-robe {
-  fill: var(--robe-main);
+  fill: var(--clay-main);
 }
-.sage-robe-edge {
-  fill: var(--robe-edge);
+.sage-foot {
+  fill: var(--clay-edge);
 }
-.sage-sash {
-  fill: var(--amber-main);
+.sage-band {
+  fill: var(--clay-main);
 }
 .sage-skin {
   fill: var(--skin-main);
@@ -27,42 +27,21 @@
 .sage-hair {
   fill: var(--hair-main);
   stroke: var(--hair-edge);
-  stroke-width: 2;
+  stroke-width: 1.4;
   stroke-linejoin: round;
 }
-.sage-moustache {
+.sage-strand {
+  fill: none;
+  stroke: var(--hair-edge);
   stroke-width: 1.6;
-}
-.sage-band {
-  fill: var(--amber-main);
+  stroke-linecap: round;
 }
 .sage-brow {
   fill: none;
   stroke: var(--hair-main);
-  stroke-width: 5;
+  stroke-width: 4;
   stroke-linecap: round;
   filter: drop-shadow(0 1px 0 var(--hair-edge));
-}
-.sage-lamp {
-  fill: var(--clay-main);
-}
-.sage-lamp-edge {
-  fill: var(--clay-edge);
-}
-.sage-oil {
-  fill: #6b3417;
-}
-.sage-wick {
-  fill: #3b2414;
-}
-.sage-flame-outer {
-  fill: var(--amber-main);
-}
-.sage-flame-inner {
-  fill: #ffe066;
-}
-.sage-flame-core {
-  fill: #fffbe8;
 }
 .sage-ink {
   fill: #2a1a10;
@@ -73,19 +52,20 @@
 .sage-line {
   fill: none;
   stroke: #2a1a10;
-  stroke-width: 3;
+  stroke-width: 2.4;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 .sage-cheek {
   fill: #ff8f8f;
-  opacity: 0.5;
-}
-.sage-tongue {
-  fill: #ff7b86;
+  opacity: 0.3;
 }
 .sage-spark {
   fill: var(--amber-main);
+}
+.sage-thought {
+  fill: var(--text-muted);
+  opacity: 0.5;
 }
 .sage-drop {
   fill: var(--blue-main);
@@ -99,24 +79,25 @@
   font-size: 11px;
 }
 
-/* ---- Motion: flame flicker, blink, cheer bounce ---- */
-.sage-flame-wrap,
-.sage-flame {
+/* ---- Motion: blink, a slow sway, cheer bounce ---- */
+.sage-eyes,
+.sage-body {
   transform-box: view-box;
-  transform-origin: 100px 80px;
-  transition: transform var(--duration-slow) var(--ease-bounce);
 }
 .sage-eyes {
-  transform-box: view-box;
-  transform-origin: 58px 49px;
+  transform-origin: 60px 45px;
+}
+.sage-body {
+  transform-origin: 60px 116px;
 }
 
-@mesage (prefers-reduced-motion: no-preference) {
-  .sage:not(.sage--still) .sage-flame {
-    animation: sage-flicker 1.8s ease-in-out infinite alternate;
-  }
+@media (prefers-reduced-motion: no-preference) {
   .sage:not(.sage--still) .sage-eyes {
     animation: sage-blink 5s infinite;
+  }
+  .sage--happy:not(.sage--still) .sage-body,
+  .sage--thinking:not(.sage--still) .sage-body {
+    animation: sage-sway 4s ease-in-out infinite alternate;
   }
   .sage--cheer:not(.sage--still) {
     animation: sage-bounce 0.9s var(--ease-bounce) 2;
@@ -124,22 +105,8 @@
   .sage--oops:not(.sage--still) {
     animation: sage-wobble 0.6s ease-in-out 1;
   }
-  .sage--sleepy:not(.sage--still) .sage-flame {
-    animation-duration: 3.6s;
-  }
 }
 
-@keyframes sage-flicker {
-  0% {
-    transform: scale(1, 1) skewX(0deg);
-  }
-  50% {
-    transform: scale(0.95, 1.05) skewX(2deg);
-  }
-  100% {
-    transform: scale(1.03, 0.97) skewX(-2deg);
-  }
-}
 @keyframes sage-blink {
   0%,
   94%,
@@ -150,13 +117,21 @@
     transform: scaleY(0.1);
   }
 }
+@keyframes sage-sway {
+  from {
+    transform: rotate(-1.5deg);
+  }
+  to {
+    transform: rotate(1.5deg);
+  }
+}
 @keyframes sage-bounce {
   0%,
   100% {
     transform: translateY(0);
   }
   40% {
-    transform: translateY(-14%);
+    transform: translateY(-12%);
   }
   70% {
     transform: translateY(2%);

@@ -222,7 +222,7 @@ export function StyleguidePage() {
         </div>
       </Section>
 
-      <Section title="Sapi" note="Our mascot: a kindly sage carrying the diya, the lamp of knowledge. The flame and the face show the mood. Once per screen, at moments that matter.">
+      <Section title="Sapi" note="Our mascot: a small sage who is mostly beard. Brows, eyes and a few marks show the mood. Once per screen, at moments that matter.">
         <div className="sg-row" style={{ alignItems: "flex-end" }}>
           {MOODS.map((m) => (
             <div key={m} className="sg-mood">
