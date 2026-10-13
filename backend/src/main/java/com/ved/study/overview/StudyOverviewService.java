@@ -97,8 +97,9 @@ public class StudyOverviewService {
         }
         List<StudyMaterial> owned = materials.findByOwnerId(userId);
         if (owned.isEmpty()) {
-            return new NextStep(NextStep.Kind.UPLOAD, null, null, "Upload something to study",
-                    "Turn notes, a syllabus or a textbook chapter into a guided path", 1);
+            return new NextStep(NextStep.Kind.UPLOAD, null, null, "Bring your first document",
+                    "A syllabus, textbook chapter or lecture notes. Ved turns it into lessons and practice in a minute or two.",
+                    1);
         }
         Map<UUID, StudyMaterial> byId = owned.stream()
                 .collect(Collectors.toMap(StudyMaterial::getId, Function.identity()));

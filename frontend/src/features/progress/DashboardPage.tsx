@@ -1,4 +1,4 @@
-import { ArrowRight, Upload } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
@@ -6,7 +6,6 @@ import { ProgressPanel } from "../../app/ProgressPanel";
 import { Emoji } from "../../shared/illustrations/Emoji";
 import type { IconName } from "../../shared/illustrations/Emoji";
 import { firstName, formatRelative, greeting } from "../../shared/lib/format";
-import { ButtonLink } from "../../shared/ui/Button";
 import { Card, CardHeader } from "../../shared/ui/Card";
 import { Chip } from "../../shared/ui/Chip";
 import { EmptyState } from "../../shared/ui/EmptyState";
@@ -78,15 +77,18 @@ export function DashboardPage() {
 
         <ProgressPanel className="progress-panel-inline" />
 
-        <section className="stack">
-          <div className="row-between">
-            <h2>Continue learning</h2>
-            <Link to="/library" className="small">
-              See library
-            </Link>
-          </div>
-          <ContinueLearning items={continueItems} />
-        </section>
+        {/* Nothing to continue yet: the next-step card above is the one place to start (no second upload button). */}
+        {continueItems?.length !== 0 && (
+          <section className="stack">
+            <div className="row-between">
+              <h2>Continue learning</h2>
+              <Link to="/library" className="small">
+                See library
+              </Link>
+            </div>
+            <ContinueLearning items={continueItems} />
+          </section>
+        )}
 
         <Card>{days ? <ActivityChart days={days} goalMinutes={summary?.goal.dailyMinutes ?? null} /> : <Skeleton height={260} />}</Card>
 
@@ -226,23 +228,6 @@ function ContinueLearning({ items }: { items: ContinueItem[] | null }) {
           <Skeleton key={i} height={168} radius="var(--radius-lg)" />
         ))}
       </div>
-    );
-  }
-  if (items.length === 0) {
-    return (
-      <Card>
-        <EmptyState
-          mood="happy"
-          title="Bring your first document"
-          action={
-            <ButtonLink to="/library" variant="primary" icon={<Upload size={18} />}>
-              Upload material
-            </ButtonLink>
-          }
-        >
-          A syllabus, textbook chapter or lecture notes. Ved turns it into lessons and practice in a minute or two.
-        </EmptyState>
-      </Card>
     );
   }
   return (
