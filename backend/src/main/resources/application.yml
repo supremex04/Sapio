@@ -13,9 +13,11 @@ spring:
     enabled: true
   servlet:
     multipart:
-      # Keep in sync with ved.documents.max-size-bytes (the policy check gives the nicer error).
-      max-file-size: 25MB
-      max-request-size: 26MB
+      # The largest upload of any kind (ved.documents.max-media-bytes); per-kind limits give the nicer error.
+      # Large files are streamed to disk, not held in memory.
+      max-file-size: 1GB
+      max-request-size: 1025MB
+      file-size-threshold: 1MB
   threads:
     virtual:
       enabled: true
@@ -53,7 +55,11 @@ ved:
       allowed-origins: ${VED_CORS_ORIGINS:http://localhost:5173}
   documents:
     storage-dir: ${VED_STORAGE_DIR:./var/storage}
-    max-size-bytes: 26214400 # 25 MiB
+    max-size-bytes: 26214400 # 25 MiB: documents (PDF, Word, images)
+    max-media-bytes: 1073741824 # 1 GiB: audio and video (only the audio track is used)
+    # Signs playback URLs for audio / video (streamed with seeking). MUST be overridden outside local development.
+    media-url-secret: ${VED_MEDIA_URL_SECRET:dev-only-media-url-secret-change-me}
+    media-url-ttl: 6h
     processing:
       core-pool-size: 2
       max-pool-size: 4
@@ -112,3 +118,4 @@ ved:
     api-key: ${VED_INFERENCE_API_KEY:dev-internal-key}
     connect-timeout: 5s
     read-timeout: 20m
+    media-read-timeout: 3h # transcribing hours of audio on a CPU (about 7x real time with the default model)

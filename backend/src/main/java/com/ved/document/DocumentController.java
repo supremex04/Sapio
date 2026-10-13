@@ -87,6 +87,12 @@ class DocumentController {
                 .body(original.content());
     }
 
+    /** A signed URL the browser's audio / video element can stream (and seek) without an Authorization header. */
+    @GetMapping("/{id}/playback")
+    MediaUrlSigner.SignedUrl playback(@CurrentUserId UUID userId, @PathVariable UUID id) {
+        return documentService.playback(userId, id);
+    }
+
     @PostMapping("/{id}/retry")
     @ResponseStatus(HttpStatus.ACCEPTED)
     DocumentResponse retry(@CurrentUserId UUID userId, @PathVariable UUID id) {

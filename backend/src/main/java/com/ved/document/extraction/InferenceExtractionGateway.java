@@ -45,8 +45,49 @@ class InferenceExtractionGateway implements ExtractionGateway {
                            List<SegmentDto> segments, TreeDto tree) {
     }
 
+    record TranscriptDto(String language, double durationSeconds, String engine, List<Transcript.Segment> segments) {
+    }
+
+    record LectureNotesRequest(String title, TranscriptDto transcript) {
+    }
+
+    @Override
+    public Transcript transcribe(ExtractionRequest request) throws ExtractionException {
+        try {
+            TranscriptDto t = inference.postMultipartLong("/v1/transcribe", filePart(request), TranscriptDto.class);
+            return new Transcript(t.language(), t.durationSeconds(), t.engine(),
+                    t.segments() == null ? List.of() : t.segments());
+        } catch (InferenceException e) {
+            throw failure(e, "Transcription is unavailable right now");
+        }
+    }
+
+    @Override
+    public ExtractionResult notes(String title, Transcript transcript) throws ExtractionException {
+        TranscriptDto dto = new TranscriptDto(transcript.language(), transcript.durationSeconds(), transcript.engine(),
+                transcript.segments());
+        try {
+            return toResult(inference.postJson("/v1/extract/transcript", new LectureNotesRequest(title, dto),
+                    ExtractResponse.class));
+        } catch (IllegalArgumentException e) {
+            throw new ExtractionException("Writing the notes returned malformed data, please retry", e, true);
+        } catch (InferenceException e) {
+            throw failure(e, "Writing the notes is unavailable right now");
+        }
+    }
+
     @Override
     public ExtractionResult extract(ExtractionRequest request) throws ExtractionException {
+        try {
+            return toResult(inference.postMultipart("/v1/extract", filePart(request), ExtractResponse.class));
+        } catch (IllegalArgumentException e) {
+            throw new ExtractionException("Text extraction returned malformed data, please retry", e, true);
+        } catch (InferenceException e) {
+            throw failure(e, "Text extraction is unavailable right now");
+        }
+    }
+
+    private static MultiValueMap<String, Object> filePart(ExtractionRequest request) {
         HttpHeaders partHeaders = new HttpHeaders();
         partHeaders.setContentType(MediaType.parseMediaType(request.contentType()));
         partHeaders.setContentDisposition(ContentDisposition.formData()
@@ -55,21 +96,22 @@ class InferenceExtractionGateway implements ExtractionGateway {
                 .build());
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", new HttpEntity<>(request.content(), partHeaders));
-        try {
-            ExtractResponse r = inference.postMultipart("/v1/extract", body, ExtractResponse.class);
-            List<ExtractionResult.Segment> segments = r.segments() == null ? List.of() : r.segments().stream()
-                    .map(s -> new ExtractionResult.Segment(s.pageFrom(), s.pageTo(), s.method(), s.markdown()))
-                    .toList();
-            return new ExtractionResult(r.markdown(), r.engine(), r.language(), r.pageCount(), r.textPages(),
-                    r.ocrPages(), segments, toTree(r.tree()));
-        } catch (IllegalArgumentException e) {
-            throw new ExtractionException("Text extraction returned malformed data, please retry", e, true);
-        } catch (InferenceException e) {
-            throw new ExtractionException(e.isInputRejected()
-                    ? "Document could not be processed: " + e.getMessage()
-                    : e.userMessage("Text extraction is unavailable right now"), e, !e.isInputRejected(),
-                    e.retryAfter().orElse(null));
-        }
+        return body;
+    }
+
+    private static ExtractionResult toResult(ExtractResponse r) {
+        List<ExtractionResult.Segment> segments = r.segments() == null ? List.of() : r.segments().stream()
+                .map(s -> new ExtractionResult.Segment(s.pageFrom(), s.pageTo(), s.method(), s.markdown()))
+                .toList();
+        return new ExtractionResult(r.markdown(), r.engine(), r.language(), r.pageCount(), r.textPages(),
+                r.ocrPages(), segments, toTree(r.tree()));
+    }
+
+    /** A rejected input fails the document for good (with the reason); anything else is retried later. */
+    private static ExtractionException failure(InferenceException e, String unavailable) {
+        return new ExtractionException(e.isInputRejected()
+                ? "Document could not be processed: " + e.getMessage()
+                : e.userMessage(unavailable), e, !e.isInputRejected(), e.retryAfter().orElse(null));
     }
 
     private static ExtractionResult.Tree toTree(TreeDto tree) {

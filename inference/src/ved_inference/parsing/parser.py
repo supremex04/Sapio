@@ -16,6 +16,7 @@ from ved_inference.parsing.language import detect_language
 from ved_inference.parsing.layout import blocks_from_markdown, read_layout
 from ved_inference.parsing.models import Block, DocumentTree
 from ved_inference.parsing.tree import build_tree
+from ved_inference.parsing.word import docx_blocks
 
 log = logging.getLogger(__name__)
 
@@ -23,10 +24,17 @@ _ALNUM = re.compile(r"\w", re.UNICODE)
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".tif", ".tiff", ".bmp"}
 
 
+def is_word_document(data: bytes, filename: str) -> bool:
+    """A .docx is a ZIP package whose main part lives under word/."""
+    return data.startswith(b"PK\x03\x04") and (
+        PurePath(filename).suffix.lower() == ".docx" or b"word/" in data[:4096]
+    )
+
+
 @dataclass(frozen=True)
 class PageText:
     page: int
-    method: str  # "text" | "ocr"
+    method: str  # "text" | "ocr" | "stt" (transcript of a recording; page = minute)
     markdown: str
 
 
@@ -67,6 +75,8 @@ class DocumentParser:
         return self._engine.name if self._engine else "rapidocr-layout"
 
     def parse(self, data: bytes, filename: str) -> ParsedDocument:
+        if is_word_document(data, filename):
+            return self._parse_word(data)
         doc = self._open(data, filename)
         with doc, self._slots:
             page_count = doc.page_count
@@ -110,6 +120,24 @@ class DocumentParser:
             language = detect_language(" ".join(c.text for c in tree.chunks[:40]))
             return ParsedDocument(
                 pages=pages, tree=tree, page_count=page_count, engine="+".join(engines), language=language
+            )
+
+    def _parse_word(self, data: bytes) -> ParsedDocument:
+        """A .docx carries its own structure (heading styles, lists, tables), so no layout model or OCR."""
+        with self._slots:
+            blocks, page_count = docx_blocks(data, self._config.figures)
+            if page_count > self._max_pages:
+                raise DocumentError(f"Document has {page_count} pages; the limit is {self._max_pages}")
+            if not any(b.kind != "figure" and b.text.strip() for b in blocks):
+                raise DocumentError("No readable text was found in this document")
+            tree = build_tree(blocks, page_count, self._config)
+            pages = [
+                PageText(page=p, method="text", markdown=_page_markdown([b for b in blocks if b.page == p]))
+                for p in range(1, page_count + 1)
+            ]
+            language = detect_language(" ".join(c.text for c in tree.chunks[:40]))
+            return ParsedDocument(
+                pages=pages, tree=tree, page_count=page_count, engine="docx", language=language
             )
 
     # ------------------------------------------------------------------------------------------

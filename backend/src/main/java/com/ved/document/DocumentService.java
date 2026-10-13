@@ -33,9 +33,11 @@ public class DocumentService {
     private final DocumentProperties properties;
 
     private final Clock clock;
+    private final MediaUrlSigner mediaUrls;
 
     DocumentService(DocumentRepository documents, DocumentStorage storage, ApplicationEventPublisher events,
-                    DocumentProperties properties, Clock clock) {
+                    DocumentProperties properties, Clock clock, MediaUrlSigner mediaUrls) {
+        this.mediaUrls = mediaUrls;
         this.clock = clock;
         this.documents = documents;
         this.storage = storage;
@@ -80,6 +82,25 @@ public class DocumentService {
         return new Original(document, storage.load(document.getStorageKey()));
     }
 
+    /** A signed, expiring URL to stream an audio / video document (with seeking). */
+    @Transactional(readOnly = true)
+    public MediaUrlSigner.SignedUrl playback(UUID ownerId, UUID documentId) {
+        Document document = get(ownerId, documentId);
+        if (!document.getKind().isMedia()) {
+            throw new ApplicationException(ErrorCode.INVALID_STATE, "Only audio and video documents can be played");
+        }
+        return mediaUrls.url(documentId);
+    }
+
+    /** The recording behind a playback URL; the caller has verified its signature. */
+    @Transactional(readOnly = true)
+    public Original media(UUID documentId) {
+        Document document = documents.findById(documentId)
+                .filter(d -> d.getKind().isMedia())
+                .orElseThrow(() -> ApplicationException.notFound("Recording"));
+        return new Original(document, storage.load(document.getStorageKey()));
+    }
+
     @Transactional(readOnly = true)
     public String getResult(UUID ownerId, UUID documentId) {
         Document document = get(ownerId, documentId);
@@ -118,12 +139,13 @@ public class DocumentService {
         if (file == null || file.isEmpty()) {
             throw new ApplicationException(ErrorCode.VALIDATION_FAILED, "File is empty");
         }
-        if (file.getSize() > properties.maxSizeBytes()) {
-            throw new ApplicationException(ErrorCode.FILE_TOO_LARGE,
-                    "File exceeds the maximum size of " + properties.maxSizeBytes() / (1024 * 1024) + " MB");
-        }
         SupportedFileType type = SupportedFileType.fromFilename(file.getOriginalFilename())
                 .orElseThrow(() -> unsupported());
+        long limit = type.kind().isMedia() ? properties.maxMediaBytes() : properties.maxSizeBytes();
+        if (file.getSize() > limit) {
+            throw new ApplicationException(ErrorCode.FILE_TOO_LARGE, (type.kind().isMedia() ? "Recordings" : "Documents")
+                    + " can be at most " + limit / (1024 * 1024) + " MB");
+        }
         try (InputStream in = file.getInputStream()) {
             if (!type.matchesSignature(in.readNBytes(SIGNATURE_BYTES))) {
                 throw unsupported();

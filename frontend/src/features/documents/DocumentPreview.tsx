@@ -1,7 +1,8 @@
-import { ExternalLink, List } from "lucide-react";
+import { Download, ExternalLink, List } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { errorMessage } from "../../shared/api/errors";
+import { API_BASE } from "../../shared/api/http";
 import { Dia } from "../../shared/illustrations/Dia";
 import { Emoji } from "../../shared/illustrations/Emoji";
 import { Alert } from "../../shared/ui/Alert";
@@ -14,7 +15,7 @@ import { TextSizeControl } from "./TextSizeControl";
 import { Skeleton, SkeletonText } from "../../shared/ui/Skeleton";
 import { documentsApi } from "./api";
 import { ExtractedText } from "./ExtractedText";
-import type { ContentSection, DocumentContent, DocumentDto, NoteStyle, SectionNotes } from "./types";
+import { isMedia, spanLabel, type ContentSection, type DocumentContent, type DocumentDto, type NoteStyle, type SectionNotes } from "./types";
 import "./preview.css";
 
 type Mode = "reading" | "original" | "raw";
@@ -40,8 +41,8 @@ export function DocumentPreview({ doc, ready }: { doc: DocumentDto; ready: boole
           onChange={setMode}
           options={[
             { value: "reading", label: "Reading view" },
-            { value: "original", label: "Original" },
-            { value: "raw", label: "Raw text" },
+            { value: "original", label: isMedia(doc) ? "Recording" : "Original" },
+            { value: "raw", label: isMedia(doc) ? "Transcript" : "Raw text" },
           ]}
         />
       </div>
@@ -96,6 +97,7 @@ function ReadingView({ doc, ready }: { doc: DocumentDto; ready: boolean }) {
         return (
           <PreviewSection
             key={section.id}
+            media={isMedia(doc)}
             documentId={doc.id}
             section={section}
             figures={content.figures}
@@ -121,12 +123,11 @@ export function coveringUnits(sections: ContentSection[]): Map<string, string> {
 }
 
 /** "1.1–1.1.3 · pp. 1–5" or "this section · p. 2". */
-function coverage(section: ContentSection): string {
+function coverage(section: ContentSection, media: boolean): string {
   const u = section.unit;
   if (!u) return "";
-  const pages = u.pageFrom === u.pageTo ? `p. ${u.pageFrom}` : `pp. ${u.pageFrom}–${u.pageTo}`;
   const range = u.sections <= 1 ? "this section" : `${u.fromLabel || section.title}–${u.toLabel}`;
-  return `${range} · ${pages}`;
+  return `${range} · ${spanLabel(u.pageFrom, u.pageTo, media)}`;
 }
 
 function Contents({ sections }: { sections: ContentSection[] }) {
@@ -163,6 +164,7 @@ const REWRITE_COPY: Record<NoteStyle, { working: string; badge: string }> = {
 
 /** One section: its text and figures, with Original / Expand / Revision views. */
 function PreviewSection({
+  media,
   documentId,
   section,
   figures,
@@ -170,6 +172,8 @@ function PreviewSection({
   view,
   onView,
 }: {
+  /** Audio / video: spans are times (page = minute). */
+  media: boolean;
   documentId: string;
   section: ContentSection;
   figures: Record<string, FigureView>;
@@ -218,10 +222,10 @@ function PreviewSection({
                 { value: "REVISION", label: <><Emoji name="high-voltage" size={16} /> Revision</> },
               ]}
             />
-            <span className="preview-coverage xs muted">Covers {coverage(section)}</span>
+            <span className="preview-coverage xs muted">Covers {coverage(section, media)}</span>
           </div>
         ) : (
-          <span className="xs muted">{section.pageFrom === section.pageTo ? `p. ${section.pageFrom}` : `pp. ${section.pageFrom}–${section.pageTo}`}</span>
+          <span className="xs muted">{spanLabel(section.pageFrom, section.pageTo, media)}</span>
         )}
       </header>
       <AnimatePresence mode="wait" initial={false}>
@@ -245,7 +249,7 @@ function PreviewSection({
             </Alert>
           ) : current ? (
             <div className={cx("preview-notes", `preview-notes-${view.toLowerCase()}`)}>
-              <span className="preview-notes-badge xs">{REWRITE_COPY[view].badge} · covers {coverage(section)}</span>
+              <span className="preview-notes-badge xs">{REWRITE_COPY[view].badge} · covers {coverage(section, media)}</span>
               <Markdown figures={current.figures}>{current.markdown}</Markdown>
             </div>
           ) : null}
@@ -279,17 +283,84 @@ function firstSentence(text: string | null): string {
 // ---------------------------------------------------------------------------------------------------- original
 
 function OriginalView({ doc }: { doc: DocumentDto }) {
+  if (isMedia(doc)) return <RecordingView doc={doc} />;
+  if (doc.contentType === WORD) return <WordOriginal doc={doc} />;
+  return <FileOriginal doc={doc} />;
+}
+
+const WORD = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+/** PDFs in the browser's viewer, images as images. */
+function FileOriginal({ doc }: { doc: DocumentDto }) {
+  const url = useOriginalUrl(doc.id);
+  if (url.error) return <Alert>{url.error}</Alert>;
+  if (!url.value) return <Skeleton height={480} />;
+  const isPdf = doc.contentType === "application/pdf";
+  return (
+    <div className="preview-original">
+      <div className="row-between">
+        <p className="small muted">Exactly as you uploaded it.</p>
+        <Button size="sm" variant="soft" iconRight={<ExternalLink size={16} />} onClick={() => window.open(url.value!, "_blank", "noopener")}>
+          Open in new tab
+        </Button>
+      </div>
+      {isPdf ? (
+        <iframe className="preview-frame" src={url.value} title={`Original: ${doc.filename}`} />
+      ) : (
+        <img className="preview-image" src={url.value} alt={`Original: ${doc.filename}`} />
+      )}
+    </div>
+  );
+}
+
+/** Browsers cannot display a .docx: offer the file itself; Reading view shows its content. */
+function WordOriginal({ doc }: { doc: DocumentDto }) {
+  const url = useOriginalUrl(doc.id);
+  if (url.error) return <Alert>{url.error}</Alert>;
+  return (
+    <div className="preview-original preview-word">
+      <p className="small muted">Browsers can't show Word files directly. Reading view has the whole document; here is the file itself.</p>
+      <a className="btn btn-soft btn-sm" href={url.value ?? undefined} download={doc.filename} aria-disabled={!url.value}>
+        <Download size={16} aria-hidden /> Download {doc.filename}
+      </a>
+    </div>
+  );
+}
+
+/** Audio / video: streamed from a signed URL, so the player can seek without downloading the whole recording. */
+function RecordingView({ doc }: { doc: DocumentDto }) {
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    documentsApi.playback(doc.id).then((p) => setUrl(p.url), (e) => setError(errorMessage(e)));
+  }, [doc.id]);
+  if (error) return <Alert>{error}</Alert>;
+  if (!url) return <Skeleton height={doc.kind === "VIDEO" ? 360 : 64} />;
+  const src = `${API_BASE}${url.replace(/^\/api/, "")}`;
+  return (
+    <div className="preview-original">
+      <p className="small muted">The recording as you uploaded it. Reading view has the notes written from it; Transcript has every word.</p>
+      {doc.kind === "VIDEO" ? (
+        <video className="preview-media" src={src} controls preload="metadata" />
+      ) : (
+        <audio className="preview-media preview-audio" src={src} controls preload="metadata" />
+      )}
+    </div>
+  );
+}
 
+/** The uploaded file as an object URL (fetched with the access token), revoked on unmount. */
+function useOriginalUrl(documentId: string): { value: string | null; error: string | null } {
+  const [value, setValue] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     let objectUrl: string | null = null;
     let cancelled = false;
-    documentsApi.original(doc.id).then(
+    documentsApi.original(documentId).then(
       (blob) => {
         if (cancelled) return;
         objectUrl = URL.createObjectURL(blob);
-        setUrl(objectUrl);
+        setValue(objectUrl);
       },
       (e) => !cancelled && setError(errorMessage(e)),
     );
@@ -297,24 +368,6 @@ function OriginalView({ doc }: { doc: DocumentDto }) {
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [doc.id]);
-
-  if (error) return <Alert>{error}</Alert>;
-  if (!url) return <Skeleton height={480} />;
-  const isPdf = doc.contentType === "application/pdf";
-  return (
-    <div className="preview-original">
-      <div className="row-between">
-        <p className="small muted">Exactly as you uploaded it.</p>
-        <Button size="sm" variant="soft" iconRight={<ExternalLink size={16} />} onClick={() => window.open(url, "_blank", "noopener")}>
-          Open in new tab
-        </Button>
-      </div>
-      {isPdf ? (
-        <iframe className="preview-frame" src={url} title={`Original: ${doc.filename}`} />
-      ) : (
-        <img className="preview-image" src={url} alt={`Original: ${doc.filename}`} />
-      )}
-    </div>
-  );
+  }, [documentId]);
+  return { value, error };
 }

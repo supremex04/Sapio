@@ -3,6 +3,7 @@ package com.ved.document;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import com.ved.FakeAi;
@@ -12,6 +13,7 @@ import com.ved.TestUsers;
 import com.ved.TestUsers.Registered;
 import com.ved.document.extraction.ExtractionException;
 import com.ved.document.extraction.ExtractionGateway;
+import com.ved.document.extraction.Transcript;
 import com.ved.knowledge.ai.KnowledgeAi;
 import com.ved.study.ai.StudyAi;
 import com.ved.study.ai.StudyAiException;
@@ -28,6 +30,7 @@ import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -202,6 +205,60 @@ public class DocumentFlowIT {
         assertThat(status).isEqualTo("READY");
         assertThat(jdbc.queryForObject("select status from documents where id = ?", String.class, live))
                 .isEqualTo("INDEXING");
+    }
+
+    @Test
+    void recordingsAreTranscribedOnceAndTurnedIntoNotesThatSurviveARetry() throws Exception {
+        byte[] mp3 = {'I', 'D', '3', 4, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6};
+        Transcript transcript = new Transcript("en", 1250.4, "fake-stt",
+                List.of(new Transcript.Segment(0, 5, "Today we talk about osmosis.")));
+        when(extraction.transcribe(argThat(r -> r != null && r.filename().equals("lecture.mp3")))).thenReturn(transcript);
+        when(extraction.notes(eq("lecture.mp3"), any()))
+                .thenThrow(new ExtractionException("The AI service is busy", null, true))
+                .thenReturn(FakeAi.extraction());
+        Registered user = TestUsers.register(mvc, json);
+
+        UUID id = upload(mvc, json, user, "lecture.mp3", mp3);
+        JsonNode paused = awaitTerminal(mvc, json, user, id);
+        assertThat(paused.get("status").asString()).isEqualTo("FAILED");
+        assertThat(paused.get("kind").asString()).isEqualTo("AUDIO");
+        assertThat(paused.get("durationSeconds").asInt()).isEqualTo(1250);
+
+        clock.advance(Duration.ofMinutes(20));
+        long deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos();
+        String status = "FAILED";
+        while (!"READY".equals(status) && System.nanoTime() < deadline) {
+            Thread.sleep(100);
+            status = json.readTree(mvc.perform(get("/api/documents/{id}", id).header("Authorization", user.bearer()))
+                    .andReturn().getResponse().getContentAsString()).get("status").asString();
+        }
+        assertThat(status).isEqualTo("READY");
+        // The slow part ran once: the retry reused the stored transcript.
+        verify(extraction, times(1)).transcribe(argThat(r -> r != null && r.filename().equals("lecture.mp3")));
+        verify(extraction, times(2)).notes(eq("lecture.mp3"), argThat(t -> t != null && t.durationSeconds() == 1250.4));
+
+        // Playback: a signed URL streams the recording with seeking (Range), without an Authorization header.
+        String url = json.readTree(mvc.perform(get("/api/documents/{id}/playback", id)
+                        .header("Authorization", user.bearer()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).get("url").asString();
+        byte[] head = mvc.perform(get(url).header("Range", "bytes=0-2"))
+                .andExpect(status().isPartialContent())
+                .andExpect(header().string("Content-Type", "audio/mpeg"))
+                .andReturn().getResponse().getContentAsByteArray();
+        assertThat(new String(head)).isEqualTo("ID3");
+        mvc.perform(get(url.replaceAll("sig=[^&]+", "sig=forged"))).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void documentsHaveNoPlaybackAndMediaHasItsOwnSizeLimit() throws Exception {
+        when(extraction.extract(any())).thenReturn(FakeAi.extraction());
+        Registered user = TestUsers.register(mvc, json);
+        UUID pdf = upload(mvc, json, user, "notes.pdf", "%PDF-1.7 tiny".getBytes());
+        mvc.perform(get("/api/documents/{id}/playback", pdf).header("Authorization", user.bearer()))
+                .andExpect(status().isConflict());
+        // Word documents are accepted (and parsed by the inference service like PDFs).
+        UUID docx = upload(mvc, json, user, "essay.docx", new byte[]{'P', 'K', 3, 4, 20, 0, 6, 0});
+        assertThat(awaitTerminal(mvc, json, user, docx).get("kind").asString()).isEqualTo("DOCUMENT");
     }
 
     @Test

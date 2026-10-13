@@ -24,7 +24,7 @@ import { LearningPath } from "./LearningPath";
 import { pipelineState } from "../../documents/pipeline";
 import { PipelineStepper } from "../../documents/PipelineStepper";
 import { DocumentWorkbench } from "../../documents/DocumentWorkbench";
-import { displayTitle, hasExtractedText, isSettled, type DocumentDto } from "../../documents/types";
+import { displayTitle, hasExtractedText, isSettled, type DocumentDto, isMedia, lengthLabel } from "../../documents/types";
 import "../../documents/documents.css";
 import { studyApi } from "../api";
 import { reviewMinutes } from "../nextStep";
@@ -107,7 +107,7 @@ export function StudyHubPage() {
           )}
           <div className="row">
             {material && <Chip emoji="card-index-dividers">{material.stats.topicCount} topics</Chip>}
-            {doc.pageCount != null && <Chip emoji="document">{doc.pageCount} pages</Chip>}
+            {lengthLabel(doc) && <Chip emoji={isMedia(doc) ? "recall" : "document"}>{lengthLabel(doc)}</Chip>}
             {material?.language && <Chip>{material.language.toUpperCase()}</Chip>}
             {doc.origin && <OriginTag origin={doc.origin} />}
           </div>

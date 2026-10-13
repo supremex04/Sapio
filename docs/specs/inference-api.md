@@ -59,8 +59,8 @@ carries `model` (`provider:model` that actually served it).
 ## `GET /health`
 
 ```jsonc
-{ "status": "ok", "contractVersion": "1.0", "ocrEngine": "rapidocr-layout", "llmModel": "gemini:gemini-3.5-flash",
-  "embeddingModel": "gemini:gemini-embedding-2", "embeddingDimensions": 768 }
+{ "status": "ok", "contractVersion": "1.1", "ocrEngine": "rapidocr-layout", "llmModel": "gemini:gemini-3.5-flash",
+  "embeddingModel": "gemini:gemini-embedding-2", "embeddingDimensions": 768, "speechModel": "faster-whisper:small" }
 ```
 
 `llmModel` = the model that served the most recent request (initially the default route's primary).
@@ -87,6 +87,29 @@ Also returns the document tree (details: [knowledge.md](knowledge.md)).
   }
 }
 ```
+
+`/v1/extract` also accepts Word documents (`.docx`): parsed from their own structure (heading styles, lists,
+tables, embedded images), `engine: "docx"`, pages from Word's recorded page breaks.
+
+## Recordings: `POST /v1/transcribe`, `POST /v1/extract/transcript`
+
+Audio and video (only the first audio track is used). Two calls, so the backend can store the transcript and retry
+the notes alone when the AI is busy. Design: [ADR-0013](../adr/0013-lectures-from-audio-and-video.md).
+
+`POST /v1/transcribe`: multipart `file`, up to `speech.max_upload_bytes` (413) and `speech.max_duration_seconds`
+(422 `INPUT_REJECTED`); no audio track or a corrupt file is 422. Slow (about 7x real time on CPU): the backend uses
+its `media-read-timeout`.
+
+```jsonc
+{ "language": "en", "durationSeconds": 2891.4, "engine": "faster-whisper:small",
+  "segments": [ { "start": 0.0, "end": 3.5, "text": "Today we are going to talk about database indexing." } ] }
+```
+
+`POST /v1/extract/transcript` (task `lecture_notes`): `{ "title": "<file name>", "transcript": <the above> }` →
+the same response as `/v1/extract`. The tree holds the study notes (topic sections with time ranges); `markdown` and
+`segments` (`method: "stt"`) hold the transcript as paragraphs starting with their time (`**12:30** ...`).
+"Page" means minute of the recording (page 1 = 00:00-00:59). Less than `lecture_notes.min_words` of speech is 422
+("No speech was found in this recording").
 
 ## Indexing endpoints (`/v1/index/*`, JSON in/out)
 

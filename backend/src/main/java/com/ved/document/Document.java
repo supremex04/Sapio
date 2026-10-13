@@ -103,6 +103,10 @@ public class Document {
     @Column(name = "retry_at")
     private Instant retryAt;
 
+    /** Length of an audio / video recording (set when it is transcribed); null for documents. */
+    @Column(name = "duration_seconds")
+    private Integer durationSeconds;
+
     /** Set on a copy imported from Explore: the share it came from (null once that share is withdrawn). */
     @Column(name = "origin_share_id", updatable = false)
     private UUID originShareId;
@@ -281,6 +285,19 @@ public class Document {
 
     public Instant getHeartbeatAt() {
         return heartbeatAt;
+    }
+
+    /** Document, audio or video: decides how the pipeline extracts its content. */
+    public SupportedFileType.Kind getKind() {
+        return SupportedFileType.kindOf(contentType);
+    }
+
+    public Integer getDurationSeconds() {
+        return durationSeconds;
+    }
+
+    public void recordDuration(double seconds) {
+        this.durationSeconds = (int) Math.round(seconds);
     }
 
     /** Imported from Explore (a copy of someone else's document), rather than uploaded. */

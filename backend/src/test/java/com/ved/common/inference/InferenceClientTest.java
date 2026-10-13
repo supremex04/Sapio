@@ -60,7 +60,8 @@ class InferenceClientTest {
     private InferenceClient client() {
         URI base = URI.create("http://127.0.0.1:" + server.getAddress().getPort());
         return new InferenceClient(RestClient.builder(),
-                new InferenceProperties(base, "secret-key", Duration.ofSeconds(2), Duration.ofSeconds(5)));
+                new InferenceProperties(base, "secret-key", Duration.ofSeconds(2), Duration.ofSeconds(5),
+                        Duration.ofSeconds(10)));
     }
 
     record Echo(String verdict, double score) {

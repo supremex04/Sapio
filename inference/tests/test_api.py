@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 from tests.conftest import textbook_pdf
-from tests.fakes import FakeEmbedder, FakeLlm
+from tests.fakes import FakeEmbedder, FakeLlm, FakeSpeech
 from ved_inference.errors import ConfigurationError, EngineError
 from ved_inference.main import create_app
 
@@ -14,6 +14,7 @@ def client(llm=None) -> TestClient:
             engine_factory=lambda _s: None,
             llm_factory=lambda _s: llm or FakeLlm(),
             embedder_factory=lambda _s: FakeEmbedder(),
+            speech_factory=lambda _s: FakeSpeech(),
         ),
         raise_server_exceptions=False,
     )
@@ -34,11 +35,12 @@ def test_health_reports_engines():
     with client() as c:
         assert c.get("/health").json() == {
             "status": "ok",
-            "contractVersion": "1.0",
+            "contractVersion": "1.1",
             "ocrEngine": "rapidocr-layout",
             "llmModel": "fake-llm",
             "embeddingModel": "fake-embed",
             "embeddingDimensions": 4,
+            "speechModel": "fake-stt",
         }
 
 

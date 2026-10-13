@@ -3,7 +3,7 @@ import { Dia } from "../../shared/illustrations/Dia";
 import { formatBytes } from "../../shared/lib/format";
 import { cx } from "../../shared/ui/cx";
 import { SpeechBubble } from "../../shared/ui/SpeechBubble";
-import { ACCEPTED_FILE_TYPES, MAX_FILE_BYTES } from "./types";
+import { ACCEPTED_FILE_TYPES, MAX_FILE_BYTES, MAX_MEDIA_BYTES } from "./types";
 
 interface Props {
   onFiles: (files: File[]) => void;
@@ -56,7 +56,8 @@ export function UploadDropzone({ onFiles, disabled, busy, inputRef }: Props) {
       <div className="dropzone-text">
         <SpeechBubble>{busy ? "Uploading… I'll read it in a moment!" : dragging ? "Yes! Drop it here!" : "Feed me a PDF, a scan or your notes!"}</SpeechBubble>
         <p className="small muted">
-          Drag files here or <span className="dropzone-link">browse</span>. PDF, PNG, JPEG, WEBP, TIFF, BMP · up to {formatBytes(MAX_FILE_BYTES)}
+          Drag files here or <span className="dropzone-link">browse</span>. PDF, Word or images up to {formatBytes(MAX_FILE_BYTES)} · lecture audio or
+          video up to {formatBytes(MAX_MEDIA_BYTES)}
         </p>
       </div>
     </div>

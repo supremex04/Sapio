@@ -23,7 +23,7 @@ import { documentsApi } from "./api";
 import { pipelineState } from "./pipeline";
 import { PipelineStepper } from "./PipelineStepper";
 import { DocumentWorkbench } from "./DocumentWorkbench";
-import { displayTitle, isSettled, MAX_FILE_BYTES, type DocumentDto } from "./types";
+import { displayTitle, isSettled, lengthLabel, uploadLimit, type DocumentDto } from "./types";
 import { UploadDropzone } from "./UploadDropzone";
 import "./documents.css";
 
@@ -63,8 +63,9 @@ export function LibraryPage() {
     setErrors([]);
     const problems: string[] = [];
     const accepted = files.filter((f) => {
-      const ok = f.size <= MAX_FILE_BYTES;
-      if (!ok) problems.push(`${f.name}: larger than ${formatBytes(MAX_FILE_BYTES)}`);
+      const limit = uploadLimit(f.name);
+      const ok = f.size <= limit;
+      if (!ok) problems.push(`${f.name}: larger than ${formatBytes(limit)}`);
       return ok;
     });
     setUploading((n) => n + accepted.length);
@@ -197,7 +198,7 @@ function DocumentCard({ doc, share, onShare, onRetry, onDelete }: {
       )}
       <p className="small muted">
         {doc.title && <span className="break">{doc.filename} · </span>}
-        {doc.pageCount != null && `${doc.pageCount} page${doc.pageCount === 1 ? "" : "s"} · `}
+        {lengthLabel(doc) && `${lengthLabel(doc)} · `}
         {formatRelative(doc.createdAt)}
       </p>
       {doc.origin && <OriginTag origin={doc.origin} />}

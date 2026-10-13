@@ -55,3 +55,27 @@ class FakeEmbedder(Embedder):
     def embed(self, items, task):
         self.calls.append((len(items), task))
         return [[float(len(i.text or "")), 1.0 if i.image else 0.0, 0.0, 1.0] for i in items]
+
+
+class FakeSpeech:
+    """Speech engine double: consumes the audio windows and returns fixed segments."""
+
+    name = "fake-stt"
+
+    def __init__(self, segments=None) -> None:
+        from ved_inference.speech.base import TranscriptSegment
+
+        self.segments = segments or [
+            TranscriptSegment(0.0, 6.0, "Today we talk about database indexes."),
+            TranscriptSegment(6.0, 12.0, "A B-tree keeps keys sorted."),
+        ]
+        self.windows: list[float] = []
+
+    def transcribe(self, windows, duration):
+        from ved_inference.speech.base import Transcript
+
+        self.windows = [w.offset for w in windows]
+        return Transcript(language="en", duration=duration, engine=self.name, segments=self.segments)
+
+    def close(self) -> None:
+        pass

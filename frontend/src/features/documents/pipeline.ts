@@ -3,8 +3,13 @@ import type { DiaMood } from "../../shared/illustrations/Dia";
 import type { DocumentDto } from "./types";
 
 export const PIPELINE_STEPS = ["Uploaded", "Reading text", "Building your course", "Ready"] as const;
+/** Recordings: the second step listens (speech-to-text) and writes notes. */
+export const MEDIA_PIPELINE_STEPS = ["Uploaded", "Listening", "Building your course", "Ready"] as const;
 
-type PipelineDoc = Pick<DocumentDto, "status" | "textPages" | "retryAt">;
+type PipelineDoc = Pick<DocumentDto, "status" | "textPages" | "retryAt"> & Partial<Pick<DocumentDto, "kind">>;
+
+export const pipelineSteps = (doc: PipelineDoc) =>
+  doc.kind === "AUDIO" || doc.kind === "VIDEO" ? MEDIA_PIPELINE_STEPS : PIPELINE_STEPS;
 
 export interface PipelineState {
   /** Index of the step currently running (or failed), 0..3. 3 + done = ready. */
@@ -23,7 +28,7 @@ export function pipelineState(doc: PipelineDoc): PipelineState {
     case "PENDING":
       return step(1, "Queued");
     case "EXTRACTING":
-      return step(1, "Reading text");
+      return step(1, doc.kind === "AUDIO" || doc.kind === "VIDEO" ? "Listening and taking notes" : "Reading text");
     case "INDEXING":
       return step(2, "Organising chapters");
     case "ANALYZING":
@@ -66,6 +71,19 @@ export function workStage(doc: PipelineDoc): WorkStage {
     case "PENDING":
       return { emoji: "hourglass-not-done", mood: "happy", lines: ["Waiting my turn…", "Sharpening my pencil…"], band: [0.04, 0.12] };
     case "EXTRACTING":
+      if (doc.kind === "AUDIO" || doc.kind === "VIDEO") {
+        return {
+          emoji: "writing-hand",
+          mood: "thinking",
+          lines: [
+            "Listening to the recording…",
+            "Writing down what was said…",
+            "Turning the talk into tidy notes…",
+            "Picking out definitions and examples…",
+          ],
+          band: [0.12, 0.45],
+        };
+      }
       return {
         emoji: "open-book",
         mood: "thinking",

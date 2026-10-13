@@ -118,6 +118,20 @@
         "title": "Body_extract_v1_extract_post",
         "type": "object"
       },
+      "Body_transcribe_v1_transcribe_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_transcribe_v1_transcribe_post",
+        "type": "object"
+      },
       "ChatTurn": {
         "properties": {
           "role": {
@@ -793,7 +807,7 @@
       "HealthResponse": {
         "properties": {
           "contractVersion": {
-            "default": "1.0",
+            "default": "1.1",
             "title": "Contractversion",
             "type": "string"
           },
@@ -813,6 +827,10 @@
             "title": "Ocrengine",
             "type": "string"
           },
+          "speechModel": {
+            "title": "Speechmodel",
+            "type": "string"
+          },
           "status": {
             "title": "Status",
             "type": "string"
@@ -823,9 +841,29 @@
           "ocrEngine",
           "llmModel",
           "embeddingModel",
-          "embeddingDimensions"
+          "embeddingDimensions",
+          "speechModel"
         ],
         "title": "HealthResponse",
+        "type": "object"
+      },
+      "LectureNotesRequest": {
+        "description": "A transcript (from /v1/transcribe, stored by the backend) to turn into study notes.",
+        "properties": {
+          "title": {
+            "description": "Shown to the model as the recording's name, e.g. the file name",
+            "title": "Title",
+            "type": "string"
+          },
+          "transcript": {
+            "$ref": "#/components/schemas/TranscriptModel"
+          }
+        },
+        "required": [
+          "title",
+          "transcript"
+        ],
+        "title": "LectureNotesRequest",
         "type": "object"
       },
       "LessonRequest": {
@@ -1584,7 +1622,8 @@
           "method": {
             "enum": [
               "text",
-              "ocr"
+              "ocr",
+              "stt"
             ],
             "title": "Method",
             "type": "string"
@@ -1789,6 +1828,63 @@
         "title": "TopicResult",
         "type": "object"
       },
+      "TranscriptModel": {
+        "properties": {
+          "durationSeconds": {
+            "title": "Durationseconds",
+            "type": "number"
+          },
+          "engine": {
+            "title": "Engine",
+            "type": "string"
+          },
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/TranscriptSegmentModel"
+            },
+            "title": "Segments",
+            "type": "array"
+          }
+        },
+        "required": [
+          "language",
+          "durationSeconds",
+          "engine",
+          "segments"
+        ],
+        "title": "TranscriptModel",
+        "type": "object"
+      },
+      "TranscriptSegmentModel": {
+        "properties": {
+          "end": {
+            "minimum": 0.0,
+            "title": "End",
+            "type": "number"
+          },
+          "start": {
+            "description": "Seconds from the start of the recording",
+            "minimum": 0.0,
+            "title": "Start",
+            "type": "number"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "text"
+        ],
+        "title": "TranscriptSegmentModel",
+        "type": "object"
+      },
       "TreeOut": {
         "properties": {
           "chunks": {
@@ -1969,6 +2065,112 @@
           }
         },
         "summary": "Extract"
+      }
+    },
+    "/v1/extract/transcript": {
+      "post": {
+        "operationId": "lecture_notes_v1_extract_transcript_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LectureNotesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Lecture Notes"
       }
     },
     "/v1/index/embed": {
@@ -3029,6 +3231,112 @@
           }
         },
         "summary": "Questions"
+      }
+    },
+    "/v1/transcribe": {
+      "post": {
+        "operationId": "transcribe_v1_transcribe_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_transcribe_v1_transcribe_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranscriptModel"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Transcribe"
       }
     }
   }

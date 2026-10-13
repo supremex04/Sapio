@@ -12,7 +12,7 @@ homework, importing worksheets into assignments, grading support.
 
 | ID | Requirement |
 |---|---|
-| OCR-1 | Accept PDF, PNG, JPEG, WEBP, TIFF (multi-page) and BMP up to **25 MB**. |
+| OCR-1 | Accept PDF, Word (.docx), PNG, JPEG, WEBP, TIFF (multi-page) and BMP up to **25 MB**; lecture audio and video (MP3, M4A, AAC, WAV, OGG / Opus, FLAC, MP4, MOV, WEBM, MKV, AVI) up to **1 GB**, transcribed and turned into notes ([ADR-0013](../adr/0013-lectures-from-audio-and-video.md)). |
 | OCR-2 | The file type comes from the extension and must match the file's magic bytes; the client's Content-Type is ignored. |
 | OCR-3 | Upload returns immediately (202); conversion runs in the background. |
 | OCR-4 | The user can see status: `PENDING → EXTRACTING → INDEXING → ANALYZING → READY / FAILED`, with a readable reason on failure. |

@@ -37,6 +37,7 @@ def health(request: Request) -> HealthResponse:
         llm_model=llm.model_name,
         embedding_model=embedder.model_name,
         embedding_dimensions=embedder.dimensions,
+        speech_model=request.app.state.speech.name,
     )
 
 

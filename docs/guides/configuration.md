@@ -406,6 +406,28 @@ llm:
 When the Gemini daily quota runs out, requests go straight to OpenRouter instead of waiting.
 Add the same fallback to every route in `llm.tasks`; a task route does not inherit `llm.default`'s fallbacks.
 
+## Speech-to-text (audio and video uploads)
+
+`speech.*` in `inference/settings.yaml` (install the `stt` extra; `./dev.sh` does). faster-whisper runs Whisper on
+CTranslate2: any CPU (Linux, macOS Intel / Apple Silicon, Windows), an NVIDIA GPU when present. Why this model:
+[ADR-0013](../adr/0013-lectures-from-audio-and-video.md).
+
+| Key | Default | Notes |
+|---|---|---|
+| `model` | `small` | `base` is ~2.5x faster but makes ~4x more errors; `medium` / `large-v3` / `distil-large-v3` are more accurate on a GPU |
+| `device` | `auto` | `cuda` when available, else `cpu`; a GPU that fails to load falls back to CPU |
+| `compute_type` | `auto` | `int8_float16` on GPU, `int8` on CPU |
+| `beam_size` | `1` | `5` is a little more accurate and ~1.5x slower |
+| `language` | `null` | detected from the first window; force `en`, `ne`, `hi`… for mixed or noisy audio |
+| `window_seconds` | `600` | decode / transcribe window (memory stays flat for long recordings); cuts at the quietest moment |
+| `max_duration_seconds` | `14400` | longer recordings are rejected |
+| `max_concurrency` | `1` | transcriptions at once per process (~1.5 GB each with `small`) |
+
+`lecture_notes.window_seconds` (900) sets how much transcript goes into one notes request; the LLM route is task
+`lecture_notes` (the default route unless overridden under `llm.tasks`). Backend side: `ved.documents.max-media-bytes`
+(1 GiB), `ved.documents.media-url-secret` / `media-url-ttl` (signed playback URLs), `ved.inference.media-read-timeout`
+(3 h, for transcribing long recordings).
+
 ## Inference tuning knobs
 
 ### `parsing.*` (structural parsing)

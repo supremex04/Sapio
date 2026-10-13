@@ -30,7 +30,16 @@ EngineName = Literal["rapid", "unlimited-remote", "unlimited-local"]
 # "openai" = any OpenAI-compatible API (OpenAI, vLLM, Ollama, …); "onnx" = embedding models run in-process (CPU)
 ProviderType = Literal["gemini", "openai", "onnx"]
 TaskName = Literal[
-    "outline", "lesson", "questions", "grade", "feedback", "answer", "notes", "figures", "summaries"
+    "outline",
+    "lesson",
+    "questions",
+    "grade",
+    "feedback",
+    "answer",
+    "notes",
+    "figures",
+    "summaries",
+    "lecture_notes",
 ]
 TASKS: tuple[str, ...] = TaskName.__args__  # type: ignore[attr-defined]
 
@@ -153,6 +162,42 @@ class IndexingConfig(BaseModel):
     transcript_chars: int = 2_000  # max text kept from a text-only image (terminal, code)
 
 
+class SpeechConfig(BaseModel):
+    """Speech-to-text for audio and video uploads (lectures, recorded courses).
+
+    faster-whisper runs OpenAI's open Whisper models on CTranslate2: multilingual, punctuated, with timestamps,
+    on any CPU (Linux, macOS Intel and Apple Silicon, Windows) or an NVIDIA GPU when present. "small" is the
+    measured sweet spot: ~7x real time on an 8-core CPU, ~38x on a laptop GPU, far fewer errors than "base".
+    """
+
+    engine: Literal["faster-whisper"] = "faster-whisper"
+    #: tiny | base | small | medium | large-v3 | distil-large-v3 | a local path / Hugging Face repo id
+    model: str = "small"
+    #: auto = GPU (CUDA) when available, else CPU
+    device: Literal["auto", "cpu", "cuda"] = "auto"
+    #: auto = int8_float16 on GPU, int8 on CPU
+    compute_type: str = "auto"
+    cpu_threads: int = Field(default=0, ge=0)  # 0 = CTranslate2 default
+    beam_size: int = Field(default=1, ge=1, le=10)  # 1 = greedy (fastest); 5 = a little more accurate
+    #: Force a language ("en", "ne", "hi"…); None detects it from the first minute
+    language: str | None = None
+    #: Audio is decoded and transcribed in windows of this length, so memory stays flat for long recordings
+    window_seconds: int = Field(default=600, ge=60)
+    max_duration_seconds: int = Field(default=4 * 3600, ge=60)
+    max_upload_bytes: int = 1024 * 1024 * 1024  # 1 GiB (video); the backend enforces its own limits too
+    #: Concurrent transcriptions per process (each holds its audio window and the model's working memory)
+    max_concurrency: int = Field(default=1, ge=1)
+
+
+class LectureNotesConfig(BaseModel):
+    """Turning a transcript into study notes (LLM task "lecture_notes")."""
+
+    #: Transcript sent per notes request; long lectures are processed window by window
+    window_seconds: int = Field(default=900, ge=120)
+    #: Spoken words per minute is ~130-160; a window of 15 min is ~2.5k words, well inside any model's context
+    min_words: int = Field(default=40, ge=1)  # less speech than this is rejected as "no speech"
+
+
 class StudyConfig(BaseModel):
     max_topics: int = 12
     outline_summary_chars: int = 400
@@ -192,6 +237,8 @@ class Settings(BaseSettings):
     parsing: ParsingConfig = Field(default_factory=ParsingConfig)
     indexing: IndexingConfig = Field(default_factory=IndexingConfig)
     study: StudyConfig = Field(default_factory=StudyConfig)
+    speech: SpeechConfig = Field(default_factory=SpeechConfig)
+    lecture_notes: LectureNotesConfig = Field(default_factory=LectureNotesConfig)
 
     @model_validator(mode="after")
     def _routes_reference_known_providers(self) -> "Settings":

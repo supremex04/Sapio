@@ -10,7 +10,7 @@ frontend routes, inference endpoints) as of 2026-10-10. Details live in the link
 | Area | Status |
 |---|---|
 | Accounts & sessions | Available |
-| Document upload & extraction (PDF, images, native text + OCR) | Available |
+| Upload & extraction: PDF, Word, images (native text + OCR); lecture audio and video (speech-to-text + AI notes) | Available |
 | Knowledge store: tree, term index, figures, hybrid search | API only (used internally by Learn/Test and the document Preview; tree, search and term endpoints not in the UI) |
 | Learn mode: learning path, lessons with checks, AI tutor, figures and source chips | Available |
 | Test mode: assessments, grading, report | Available |
@@ -36,8 +36,10 @@ Roles are recorded but **no feature differs by role yet** (see [Not yet](#not-ye
 
 | | |
 |---|---|
-| Formats | PDF, PNG, JPEG, WEBP, TIFF (multi-page), BMP; type from extension, verified against magic bytes |
-| Limits | 25 MB per file (`ved.documents.max-size-bytes`, inference `parsing.max_upload_bytes`); 200 pages (`parsing.max_pages`) |
+| Formats | Documents: PDF, Word (.docx), PNG, JPEG, WEBP, TIFF (multi-page), BMP. Recordings: MP3, M4A, AAC, WAV, OGG / Opus, FLAC, MP4, MOV, WEBM, MKV, AVI. Type from extension, verified against magic bytes |
+| Word documents | parsed from the document's own structure: heading styles, lists, tables, embedded images; pages from Word's recorded page breaks |
+| Recordings | only the audio is used (video tracks ignored): transcribed with faster-whisper (Whisper small, CPU or GPU), then the AI writes study notes by topic with time ranges; the notes become the document (lessons, tests, recall, search), the transcript is its raw text, the recording plays with seeking. A busy AI never repeats transcription ([ADR-0013](adr/0013-lectures-from-audio-and-video.md)) |
+| Limits | Documents 25 MB (`ved.documents.max-size-bytes`), 200 pages (`parsing.max_pages`); recordings 1 GB (`ved.documents.max-media-bytes`), 4 hours (`speech.max_duration_seconds`) |
 | Text | **Hybrid**: PDF pages with a text layer are read natively; only scanned pages and images are OCR'd |
 | OCR engines | `rapid` (RapidOCR, CPU, default), `unlimited-remote` (baidu/Unlimited-OCR on SGLang/vLLM, full Markdown), `unlimited-local` (in-process, needs ~8 GB+ VRAM) |
 | Pipeline | `PENDING → EXTRACTING → INDEXING → ANALYZING → READY`, async (upload returns 202); live stepper in the library |

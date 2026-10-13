@@ -20,11 +20,13 @@ import com.ved.document.DocumentRepository;
 import com.ved.document.DocumentSegment;
 import com.ved.document.DocumentSegmentRepository;
 import com.ved.document.DocumentStatus;
+import com.ved.document.DocumentTranscripts;
 import com.ved.document.PipelineException;
 import com.ved.document.extraction.ExtractionException;
 import com.ved.document.extraction.ExtractionGateway;
 import com.ved.document.extraction.ExtractionRequest;
 import com.ved.document.extraction.ExtractionResult;
+import com.ved.document.extraction.Transcript;
 import com.ved.document.storage.DocumentStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,11 +59,13 @@ public class DocumentProcessor {
     private final Clock clock;
     private final List<Duration> retryDelays;
     private final TaskExecutor executor;
+    private final DocumentTranscripts transcripts;
 
     DocumentProcessor(DocumentRepository documents, DocumentSegmentRepository segments, DocumentStorage storage,
                       ExtractionGateway extraction, DocumentIndexer indexer, DocumentAnalyzer analyzer,
                       TransactionTemplate tx, Clock clock, DocumentProperties properties,
-                      @Qualifier(ProcessingConfig.EXECUTOR) TaskExecutor executor) {
+                      @Qualifier(ProcessingConfig.EXECUTOR) TaskExecutor executor, DocumentTranscripts transcripts) {
+        this.transcripts = transcripts;
         this.executor = executor;
         // Retry schedule for transient failures; progress is kept, so each retry resumes where it stopped.
         this.retryDelays = properties.processing().autoRetryDelays();
@@ -75,7 +79,9 @@ public class DocumentProcessor {
         this.clock = clock;
     }
 
-    private record Claim(UUID ownerId, String filename, String contentType, String storageKey, boolean extract) {
+    /** @param media audio / video: transcribed, then turned into notes */
+    private record Claim(UUID ownerId, String filename, String contentType, String storageKey, boolean extract,
+                         boolean media) {
     }
 
     /** Documents queued or running on this instance; their lease is kept alive by heartbeats. */
@@ -182,12 +188,13 @@ public class DocumentProcessor {
         }
         doc.startProcessing(clock.instant());
         return new Claim(doc.getOwnerId(), doc.getOriginalFilename(), doc.getContentType(), doc.getStorageKey(),
-                doc.getStatus() == DocumentStatus.EXTRACTING);
+                doc.getStatus() == DocumentStatus.EXTRACTING, doc.getKind().isMedia());
     }
 
     private void extract(UUID documentId, Claim claim) throws ExtractionException {
-        ExtractionResult result = extraction.extract(
-                new ExtractionRequest(storage.load(claim.storageKey()), claim.filename(), claim.contentType()));
+        ExtractionRequest request =
+                new ExtractionRequest(storage.load(claim.storageKey()), claim.filename(), claim.contentType());
+        ExtractionResult result = claim.media() ? lectureNotes(documentId, claim, request) : extraction.extract(request);
         if (result.segments().stream().allMatch(s -> s.markdown() == null || s.markdown().isBlank())) {
             throw new ExtractionException("No readable text was found in this document");
         }
@@ -202,6 +209,26 @@ public class DocumentProcessor {
             documents.findById(documentId).ifPresent(d -> d.markExtracted(result.markdown(), result.engine(),
                     result.pageCount(), result.textPages(), result.ocrPages(), result.language()));
         });
+    }
+
+    /**
+     * Audio / video: transcribe once (slow) and keep the transcript, then have the AI write study notes from it. A
+     * retry after a failed notes step (AI busy) reuses the stored transcript.
+     */
+    private ExtractionResult lectureNotes(UUID documentId, Claim claim, ExtractionRequest request)
+            throws ExtractionException {
+        Transcript transcript = transcripts.find(documentId).orElse(null);
+        if (transcript == null) {
+            Transcript fresh = extraction.transcribe(request);
+            tx.executeWithoutResult(status -> {
+                transcripts.save(documentId, fresh);
+                documents.findById(documentId).ifPresent(d -> d.recordDuration(fresh.durationSeconds()));
+            });
+            log.info("Document {}: transcribed {} s of audio ({} segments, {})", documentId,
+                    Math.round(fresh.durationSeconds()), fresh.segments().size(), fresh.engine());
+            transcript = fresh;
+        }
+        return extraction.notes(claim.filename(), transcript);
     }
 
     private void update(UUID documentId, Consumer<Document> change) {

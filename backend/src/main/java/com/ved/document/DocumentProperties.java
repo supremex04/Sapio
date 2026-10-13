@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.util.List;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
@@ -13,7 +14,13 @@ import org.springframework.validation.annotation.Validated;
 
 @Validated
 @ConfigurationProperties("ved.documents")
-public record DocumentProperties(@NotNull Path storageDir, @Positive long maxSizeBytes,
+/**
+ * @param maxSizeBytes  documents (PDF, Word, images)
+ * @param maxMediaBytes audio and video (lecture recordings, course videos)
+ * @param mediaUrlSecret signs playback URLs so audio / video elements can stream without an Authorization header
+ */
+public record DocumentProperties(@NotNull Path storageDir, @Positive long maxSizeBytes, @Positive long maxMediaBytes,
+                                 @NotBlank String mediaUrlSecret, @NotNull Duration mediaUrlTtl,
                                  @Valid @NotNull Processing processing) {
 
     /**

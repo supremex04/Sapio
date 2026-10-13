@@ -40,6 +40,13 @@
 - [ ] Login rate limiting / lockout; refresh-token reuse detection; password reset (email port)
 - [ ] OpenAPI generation (springdoc) + generated TS client; CI running all three suites; containers
 
+## Recordings and more formats
+
+- [x] Word documents (.docx) from their own structure
+- [x] Lecture audio / video: faster-whisper speech-to-text, AI study notes, transcript, seekable playback (ADR-0013)
+- [ ] Speaker turns (diarisation) for discussions and Q&A; slide frames from video as figures
+- [ ] PowerPoint (.pptx) decks
+
 ## Next: community
 
 - [x] Share to Explore with a category; import as an independent copy; "Imported" tag (ADR-0012)

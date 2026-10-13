@@ -18,7 +18,9 @@ public record DocumentResponse(
         Instant createdAt,
         Instant completedAt,
         Instant retryAt,
-        Origin origin) {
+        Origin origin,
+        SupportedFileType.Kind kind,
+        Integer durationSeconds) {
 
     /**
      * Present on documents imported from Explore.
@@ -32,6 +34,7 @@ public record DocumentResponse(
         return new DocumentResponse(d.getId(), d.getOriginalFilename(), d.getTitle(), d.getContentType(),
                 d.getSizeBytes(), d.getStatus(), d.getEngine(), d.getPageCount(), d.getTextPages(), d.getOcrPages(),
                 d.getErrorMessage(), d.getCreatedAt(), d.getCompletedAt(), d.getRetryAt(),
-                d.isImported() ? new Origin(d.getOriginShareId(), d.getOriginOwnerName(), d.getImportedAt()) : null);
+                d.isImported() ? new Origin(d.getOriginShareId(), d.getOriginOwnerName(), d.getImportedAt()) : null,
+                d.getKind(), d.getDurationSeconds());
     }
 }

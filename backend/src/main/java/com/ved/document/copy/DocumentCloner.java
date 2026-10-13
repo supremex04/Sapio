@@ -86,6 +86,7 @@ public class DocumentCloner {
                 "src.id = :source", params);
         copy.copyRows("document_segments", DocumentCopy.set("id", "gen_random_uuid()", "document_id", ":target"),
                 "src.document_id = :source");
+        copy.copyRows("document_transcripts", DocumentCopy.set("document_id", ":target"), "src.document_id = :source");
 
         for (DocumentCopyStep step : steps) {
             step.copy(copy);

@@ -39,6 +39,11 @@ class InferenceContractTest {
     private static final List<Call> CALLS = List.of(
             new Call("get", "/health", null, InferenceCompatibilityCheck.Health.class),
             new Call("post", "/v1/extract", null, type("com.ved.document.extraction.InferenceExtractionGateway$ExtractResponse")),
+            new Call("post", "/v1/transcribe", null,
+                    type("com.ved.document.extraction.InferenceExtractionGateway$TranscriptDto")),
+            new Call("post", "/v1/extract/transcript",
+                    type("com.ved.document.extraction.InferenceExtractionGateway$LectureNotesRequest"),
+                    type("com.ved.document.extraction.InferenceExtractionGateway$ExtractResponse")),
             new Call("post", "/v1/index/figures", type("com.ved.knowledge.ai.InferenceKnowledgeAi$DescribeRequest"),
                     type("com.ved.knowledge.ai.InferenceKnowledgeAi$DescribeResponse")),
             new Call("post", "/v1/index/summaries", type("com.ved.knowledge.ai.InferenceKnowledgeAi$SummarizeRequest"),

@@ -128,3 +128,23 @@ indexing:
 study:
   max_topics: 12
   outline_summary_chars: 400
+
+# ------------------------------------------------------------------ speech (audio / video uploads)
+# faster-whisper (Whisper on CTranslate2). Runs on any CPU (Linux, macOS Intel / Apple Silicon, Windows) and uses
+# an NVIDIA GPU when one is present. Measured on a 50 s lecture clip: base 18x real time but 20% word errors;
+# small 7x real time on CPU (38x on a laptop RTX 3050) with 5.5% word errors. Notes need the accuracy: small.
+# The model (~480 MB) downloads from Hugging Face on the first recording.
+speech:
+  model: small              # tiny | base | small | medium | large-v3 | distil-large-v3 | HF repo id / path
+  device: auto              # auto = cuda when available, else cpu
+  compute_type: auto        # auto = int8_float16 on GPU, int8 on CPU
+  beam_size: 1              # 1 = greedy (fastest); 5 = slightly more accurate, ~1.5x slower
+  language: null            # null = detect; or force e.g. en, ne, hi
+  window_seconds: 600       # decoded and transcribed in 10-minute windows (flat memory for long recordings)
+  max_duration_seconds: 14400
+  max_concurrency: 1        # transcriptions at once per process
+
+# Transcript -> study notes (LLM task "lecture_notes", default route unless overridden under llm.tasks).
+lecture_notes:
+  window_seconds: 900       # transcript per notes request (15 minutes of speech)
+  min_words: 40             # less speech than this is rejected as "no speech"

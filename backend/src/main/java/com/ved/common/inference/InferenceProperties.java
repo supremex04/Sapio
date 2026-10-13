@@ -11,6 +11,9 @@ import org.springframework.validation.annotation.Validated;
 
 @Validated
 @ConfigurationProperties("ved.inference")
+/**
+ * @param mediaReadTimeout transcription of long recordings (hours of audio on a CPU take a while)
+ */
 public record InferenceProperties(@NotNull URI baseUrl, @NotBlank String apiKey, @NotNull Duration connectTimeout,
-                                  @NotNull Duration readTimeout) {
+                                  @NotNull Duration readTimeout, @NotNull Duration mediaReadTimeout) {
 }

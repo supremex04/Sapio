@@ -1,3 +1,4 @@
+import { formatDuration } from "../../shared/lib/format";
 import type { FigureView } from "../../shared/ui/Markdown";
 
 export type DocumentStatus = "PENDING" | "EXTRACTING" | "INDEXING" | "ANALYZING" | "READY" | "FAILED";
@@ -20,7 +21,14 @@ export interface DocumentDto {
   retryAt: string | null;
   /** Set on documents imported from Explore (a copy of someone else's shared document). */
   origin: { shareId: string | null; sharedBy: string; importedAt: string } | null;
+  /** Documents are parsed; audio and video are transcribed and turned into notes (pages are then minutes). */
+  kind: DocumentKind;
+  /** Length of a recording; null for documents. */
+  durationSeconds: number | null;
 }
+
+export type DocumentKind = "DOCUMENT" | "AUDIO" | "VIDEO";
+export const isMedia = (doc: Pick<DocumentDto, "kind">) => doc.kind === "AUDIO" || doc.kind === "VIDEO";
 
 export interface DocumentResult {
   id: string;
@@ -35,9 +43,35 @@ export const hasExtractedText = (status: DocumentStatus) =>
   status === "INDEXING" || status === "ANALYZING" || status === "READY";
 export const displayTitle = (doc: Pick<DocumentDto, "title" | "filename">) => doc.title?.trim() || doc.filename;
 
-/** Keep in sync with backend SupportedFileType. */
-export const ACCEPTED_FILE_TYPES = ".pdf,.png,.jpg,.jpeg,.webp,.tif,.tiff,.bmp";
+/** Keep in sync with backend SupportedFileType and ved.documents.max-size-bytes / max-media-bytes. */
+const DOCUMENT_EXTENSIONS = ["pdf", "docx", "png", "jpg", "jpeg", "webp", "tif", "tiff", "bmp"];
+const MEDIA_EXTENSIONS = ["mp3", "m4a", "aac", "wav", "ogg", "oga", "opus", "flac", "mp4", "m4v", "mov", "webm", "mkv", "avi"];
+export const ACCEPTED_FILE_TYPES = [...DOCUMENT_EXTENSIONS, ...MEDIA_EXTENSIONS].map((e) => `.${e}`).join(",");
 export const MAX_FILE_BYTES = 25 * 1024 * 1024;
+export const MAX_MEDIA_BYTES = 1024 * 1024 * 1024;
+
+const extension = (name: string) => name.slice(name.lastIndexOf(".") + 1).toLowerCase();
+export const isMediaFile = (name: string) => MEDIA_EXTENSIONS.includes(extension(name));
+/** The size limit for this file: recordings may be much larger than documents. */
+export const uploadLimit = (name: string) => (isMediaFile(name) ? MAX_MEDIA_BYTES : MAX_FILE_BYTES);
+
+/** "52 pages" for documents, "48m" for recordings. */
+export function lengthLabel(doc: Pick<DocumentDto, "kind" | "pageCount" | "durationSeconds">): string | null {
+  if (isMedia(doc)) return doc.durationSeconds != null ? formatDuration(doc.durationSeconds) : null;
+  return doc.pageCount != null ? `${doc.pageCount} page${doc.pageCount === 1 ? "" : "s"}` : null;
+}
+
+/** A span of a document: "pp. 3–8" for documents; for recordings (page = minute) "12:00–19:00". */
+export function spanLabel(from: number, to: number, media: boolean): string {
+  if (!media) return from === to ? `p. ${from}` : `pp. ${from}–${to}`;
+  return `${clock((from - 1) * 60)}–${clock(to * 60)}`;
+}
+
+function clock(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return h > 0 ? `${h}:${String(m).padStart(2, "0")}:00` : `${String(m).padStart(2, "0")}:00`;
+}
 
 // ---- Preview (knowledge store reading view)
 

@@ -23,6 +23,8 @@ export const documentsApi = {
   remove: (id: string) => apiRequest(`/documents/${id}`, { method: "DELETE" }),
   /** The whole document in reading order (tree sections with text and figures in place). */
   content: (id: string) => apiJson<DocumentContent>(`/documents/${id}/content`),
+  /** A signed URL an audio / video element can stream (with seeking) without an Authorization header. */
+  playback: (id: string) => apiJson<{ url: string; expiresAt: string }>(`/documents/${id}/playback`),
   /** The uploaded file itself (fetched with auth, shown via an object URL). */
   async original(id: string): Promise<Blob> {
     return (await apiRequest(`/documents/${id}/original`)).blob();

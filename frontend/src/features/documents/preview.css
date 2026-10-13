@@ -201,3 +201,21 @@
   border-radius: var(--radius-md);
 }
 /* Prose uses the full width of the reading column (no line-length cap, by preference). */
+
+/* Recordings (Original → "Recording") and Word files */
+.preview-media {
+  display: block;
+  width: 100%;
+  max-height: calc(70 * var(--vh));
+  border-radius: var(--radius-md);
+  background: #000;
+}
+.preview-audio {
+  background: transparent;
+}
+.preview-word {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}

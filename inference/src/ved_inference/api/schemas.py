@@ -13,7 +13,7 @@ class ApiModel(BaseModel):
 class SegmentOut(ApiModel):
     page_from: int
     page_to: int
-    method: Literal["text", "ocr"]
+    method: Literal["text", "ocr", "stt"]  # stt: a recording's transcript (page = minute)
     markdown: str
 
 
@@ -70,7 +70,7 @@ class ExtractResponse(ApiModel):
 
 
 #: Bumped on breaking wire changes; the backend refuses to talk to a different major version.
-CONTRACT_VERSION = "1.0"
+CONTRACT_VERSION = "1.1"
 
 
 class HealthResponse(ApiModel):
@@ -80,3 +80,4 @@ class HealthResponse(ApiModel):
     llm_model: str
     embedding_model: str
     embedding_dimensions: int
+    speech_model: str

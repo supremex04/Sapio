@@ -31,15 +31,22 @@ public class InferenceClient {
     public static final String API_KEY_HEADER = "X-Internal-Api-Key";
 
     private final RestClient client;
+    /** Same service, longer read timeout: transcribing a long recording. */
+    private final RestClient mediaClient;
 
     public InferenceClient(RestClient.Builder builder, InferenceProperties properties) {
+        this.client = build(builder.clone(), properties, properties.readTimeout());
+        this.mediaClient = build(builder.clone(), properties, properties.mediaReadTimeout());
+    }
+
+    private static RestClient build(RestClient.Builder builder, InferenceProperties properties, Duration readTimeout) {
         HttpClient httpClient = HttpClient.newBuilder()
                 .connectTimeout(properties.connectTimeout())
                 .version(HttpClient.Version.HTTP_1_1)
                 .build();
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
-        requestFactory.setReadTimeout(properties.readTimeout());
-        this.client = builder
+        requestFactory.setReadTimeout(readTimeout);
+        return builder
                 .baseUrl(properties.baseUrl().toString())
                 .requestFactory(requestFactory)
                 .defaultHeader(API_KEY_HEADER, properties.apiKey())
@@ -66,6 +73,13 @@ public class InferenceClient {
     public <T> T postMultipart(String path, MultiValueMap<String, ?> body, Class<T> responseType)
             throws InferenceException {
         return call(path, () -> client.post().uri(path).contentType(MediaType.MULTIPART_FORM_DATA).body(body)
+                .retrieve().body(responseType));
+    }
+
+    /** A multipart upload that may take long to answer (transcribing a recording): uses the media read timeout. */
+    public <T> T postMultipartLong(String path, MultiValueMap<String, ?> body, Class<T> responseType)
+            throws InferenceException {
+        return call(path, () -> mediaClient.post().uri(path).contentType(MediaType.MULTIPART_FORM_DATA).body(body)
                 .retrieve().body(responseType));
     }
 

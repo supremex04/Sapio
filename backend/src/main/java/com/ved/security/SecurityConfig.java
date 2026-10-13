@@ -44,6 +44,8 @@ class SecurityConfig {
                         .requestMatchers("/actuator/health/**", "/error").permitAll()
                         // Figure images are authorised by the HMAC signature in their URL (FigureUrlSigner).
                         .requestMatchers(HttpMethod.GET, "/api/figures/*/image").permitAll()
+                        // Recordings likewise, by the signature in their playback URL (MediaUrlSigner).
+                        .requestMatchers(HttpMethod.GET, "/api/media/*").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(rs -> rs
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))

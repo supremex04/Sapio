@@ -1,6 +1,6 @@
 import { Check } from "lucide-react";
 import { cx } from "../../shared/ui/cx";
-import { PIPELINE_STEPS, pipelineState } from "./pipeline";
+import { pipelineState, pipelineSteps } from "./pipeline";
 import type { DocumentDto } from "./types";
 
 /**
@@ -12,7 +12,7 @@ export function PipelineStepper({ doc, compact }: { doc: Pick<DocumentDto, "stat
   return (
     <div className={cx("pipeline", compact && "pipeline-compact")}>
       <ol className="pipeline-steps" aria-label={`Processing: ${state.label}`}>
-        {PIPELINE_STEPS.map((label, i) => {
+        {pipelineSteps(doc).map((label, i) => {
           const done = i < state.current || (state.done && i === state.current);
           const active = i === state.current && !state.done;
           const failed = active && state.failed;
