@@ -1,5 +1,5 @@
 import type { IconName } from "../../shared/illustrations/Emoji";
-import type { DiaMood } from "../../shared/illustrations/Dia";
+import type { SageMood } from "../../shared/illustrations/Sage";
 import type { DocumentDto } from "./types";
 
 export const PIPELINE_STEPS = ["Uploaded", "Reading text", "Building your course", "Ready"] as const;
@@ -47,10 +47,10 @@ export function pipelineState(doc: PipelineDoc): PipelineState {
   }
 }
 
-/** What Dia is visibly doing at each stage ("labor illusion": seeing the work makes waiting feel worthwhile). */
+/** What Sapi is visibly doing at each stage ("labor illusion": seeing the work makes waiting feel worthwhile). */
 export interface WorkStage {
   emoji: IconName;
-  mood: DiaMood;
+  mood: SageMood;
   /** Concrete, rotating descriptions of the work in progress. */
   lines: string[];
   /** Share of the overall progress bar this stage covers [from, to]. */

@@ -53,7 +53,7 @@ export function RegisterPage() {
       title="Create your account"
       subtitle="Two minutes from now you'll be learning from your own material."
       mood="cheer"
-      greeting="Hi! I'm Dia. Let's turn your notes into a course."
+      greeting="Hi! I'm Sapi. Let's turn your notes into a course."
     >
       <form onSubmit={onSubmit} className="stack" noValidate>
         {error && <Alert>{error}</Alert>}

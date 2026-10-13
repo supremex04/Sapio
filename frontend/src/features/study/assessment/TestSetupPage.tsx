@@ -2,7 +2,7 @@ import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { ApiError, errorMessage } from "../../../shared/api/errors";
-import { Dia } from "../../../shared/illustrations/Dia";
+import { Sage } from "../../../shared/illustrations/Sage";
 import { Emoji } from "../../../shared/illustrations/Emoji";
 import type { IconName } from "../../../shared/illustrations/Emoji";
 import { Alert } from "../../../shared/ui/Alert";
@@ -78,7 +78,7 @@ export function TestSetupPage() {
           <p className="eyebrow">Test my knowledge{material ? ` · ${material.title}` : ""}</p>
           <h1>Set up your test</h1>
           <div className="ts-dia">
-            <Dia mood="happy" size={80} />
+            <Sage mood="happy" size={80} />
             <SpeechBubble>Recalling answers strengthens memory far more than re-reading, even the misses help!</SpeechBubble>
           </div>
         </header>

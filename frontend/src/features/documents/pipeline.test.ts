@@ -31,7 +31,7 @@ describe("pipelineState", () => {
 });
 
 describe("workStage", () => {
-  it("tells what Dia is doing, with a sleepy pause", () => {
+  it("tells what Sapi is doing, with a sleepy pause", () => {
     expect(workStage(doc("INDEXING", 3)).lines.length).toBeGreaterThan(1);
     expect(workStage(doc("FAILED", 3, "2026-10-10T12:00:00Z")).mood).toBe("sleepy");
   });

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { Wordmark } from "../../app/Logo";
-import { Dia, type DiaMood } from "../../shared/illustrations/Dia";
+import { Sage, type SageMood } from "../../shared/illustrations/Sage";
 import { PageTransition } from "../../shared/ui/PageTransition";
 import { SpeechBubble } from "../../shared/ui/SpeechBubble";
 import "./auth.css";
@@ -9,12 +9,12 @@ import "./auth.css";
 interface Props {
   title: string;
   subtitle: string;
-  mood: DiaMood;
+  mood: SageMood;
   greeting: ReactNode;
   children: ReactNode;
 }
 
-/** Centered, airy auth screen: Dia says hello, then one clean form card. */
+/** Centered, airy auth screen: Sapi says hello, then one clean form card. */
 export function AuthLayout({ title, subtitle, mood, greeting, children }: Props) {
   return (
     <main className="auth-screen">
@@ -26,7 +26,7 @@ export function AuthLayout({ title, subtitle, mood, greeting, children }: Props)
       <PageTransition>
         <div className="auth-column">
           <div className="auth-hello">
-            <Dia mood={mood} size={104} />
+            <Sage mood={mood} size={104} />
             <SpeechBubble>{greeting}</SpeechBubble>
           </div>
           <div className="auth-card">

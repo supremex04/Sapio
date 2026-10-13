@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { errorMessage } from "../../../shared/api/errors";
-import { Dia } from "../../../shared/illustrations/Dia";
+import { Sage } from "../../../shared/illustrations/Sage";
 import { celebrate } from "../../../shared/lib/celebrate";
 import { Alert } from "../../../shared/ui/Alert";
 import { Badge } from "../../../shared/ui/Badge";
@@ -118,7 +118,7 @@ export function RecallPage() {
       <>
         {header(1, "Recall complete")}
         <motion.div className="rv-done" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: "spring", stiffness: 300, damping: 24 }}>
-          <Dia mood="cheer" size={140} />
+          <Sage mood="cheer" size={140} />
           <div className="stack-sm">
             <h1>Recall complete!</h1>
             <p className="text-2">Each card you recalled now comes back a little later. The ones that slipped come back sooner, and that's how memories get stronger.</p>

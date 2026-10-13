@@ -8,7 +8,7 @@ import { useProgress } from "../features/progress/ProgressContext";
 import { useActivityHeartbeat } from "../features/progress/useActivityHeartbeat";
 import { ThemeSwitch, ThemeToggle } from "../features/theme/ThemeToggle";
 import { Avatar } from "../shared/illustrations/Avatar";
-import { Dia } from "../shared/illustrations/Dia";
+import { Sage } from "../shared/illustrations/Sage";
 import { Emoji } from "../shared/illustrations/Emoji";
 import type { IconName } from "../shared/illustrations/Emoji";
 import { Chip } from "../shared/ui/Chip";
@@ -44,7 +44,7 @@ function Shell() {
     <Suspense
       fallback={
         <div className="page-loading">
-          <Dia mood="thinking" size={72} />
+          <Sage mood="thinking" size={72} />
           Loading…
         </div>
       }

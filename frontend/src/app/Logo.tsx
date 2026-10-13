@@ -1,4 +1,4 @@
-/** Sapio mark: a flat diya with its flame (the lamp of knowledge; Dia is its character form). */
+/** Sapio mark: a flat diya with its flame (the lamp of knowledge, which Sapi, the mascot, carries). */
 export function Logo({ size = 32 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden className="logo-mark">

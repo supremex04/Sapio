@@ -111,8 +111,14 @@
   --pink-edge: #c4437b;
   --pink-ink: #9c2c5d;
 
-  --clay-main: #e77d43; /* Dia's lamp */
+  --clay-main: #e77d43; /* the diya Sapi carries */
   --clay-edge: #bf5a26;
+  --skin-main: #f6c9a0; /* Sapi, the sage mascot */
+  --skin-edge: #e3a77a;
+  --hair-main: #fbfaf7;
+  --hair-edge: #d5d8de;
+  --robe-main: var(--purple-main);
+  --robe-edge: var(--purple-edge);
 
   /* Neutrals */
   --bg: #ffffff;
@@ -173,6 +179,10 @@
 
   --clay-main: #f08a50;
   --clay-edge: #b85a28;
+  --skin-main: #f0c29a;
+  --skin-edge: #cf9568;
+  --hair-main: #f4f2ee;
+  --hair-edge: #b9bdc6;
 
   --bg: #121a23;
   --surface: #17212c;

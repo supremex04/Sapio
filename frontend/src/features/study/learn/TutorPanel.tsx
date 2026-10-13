@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { errorMessage } from "../../../shared/api/errors";
-import { Dia } from "../../../shared/illustrations/Dia";
+import { Sage } from "../../../shared/illustrations/Sage";
 import { Alert } from "../../../shared/ui/Alert";
 import { Badge } from "../../../shared/ui/Badge";
 import { Button, IconButton } from "../../../shared/ui/Button";
@@ -125,7 +125,7 @@ export function TutorPanel({ topicId, topicTitle, focus }: { topicId: string; to
                   {messages.length === 0 && (
                     <div className="tutor-empty">
                       <div className="chat-row">
-                        <Dia mood="happy" size={40} still />
+                        <Sage mood="happy" size={40} still />
                         <div className="chat-msg chat-tutor">Asking "why" and "how" helps ideas connect. What would you like to know?</div>
                       </div>
                       {starters(focus).map((s) => (
@@ -137,7 +137,7 @@ export function TutorPanel({ topicId, topicTitle, focus }: { topicId: string; to
                   )}
                   {messages.map((m, i) => (
                     <motion.div key={i} className={m.role === "user" ? "chat-row chat-row-user" : "chat-row"} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
-                      {m.role === "tutor" && <Dia mood={m.grounded === false ? "thinking" : "happy"} size={32} still />}
+                      {m.role === "tutor" && <Sage mood={m.grounded === false ? "thinking" : "happy"} size={32} still />}
                       <div className={m.role === "user" ? "chat-msg chat-user" : "chat-msg chat-tutor"}>
                         {m.role === "tutor" ? <Markdown figures={m.figures}>{m.text}</Markdown> : <p>{m.text}</p>}
                         {m.role === "tutor" && m.grounded === false && (
@@ -150,7 +150,7 @@ export function TutorPanel({ topicId, topicTitle, focus }: { topicId: string; to
                   ))}
                   {sending && (
                     <div className="chat-row">
-                      <Dia mood="thinking" size={32} still />
+                      <Sage mood="thinking" size={32} still />
                       <div className="chat-msg chat-tutor chat-typing" role="status" aria-label="Tutor is typing">
                         <span />
                         <span />

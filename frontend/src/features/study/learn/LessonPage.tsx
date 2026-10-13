@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useParams } from "react-router";
 import { ApiError, errorMessage } from "../../../shared/api/errors";
-import { Dia } from "../../../shared/illustrations/Dia";
+import { Sage } from "../../../shared/illustrations/Sage";
 import { Emoji } from "../../../shared/illustrations/Emoji";
 import type { IconName } from "../../../shared/illustrations/Emoji";
 import { celebrate } from "../../../shared/lib/celebrate";
@@ -324,10 +324,10 @@ function CheckStep({
   const explain = check.type === "SHORT_ANSWER";
   return (
     <>
-      {/* Pretesting: a guess before teaching. Dia steps aside once answered (the sheet has Dia's reaction). */}
+      {/* Pretesting: a guess before teaching. Sapi steps aside once answered (the sheet has Sapi's reaction). */}
       {warmup && !answer && (
         <div className="ls-warmup-intro">
-          <Dia mood="encourage" size={72} />
+          <Sage mood="encourage" size={72} />
           <SpeechBubble>Make a guess, guessing first helps you remember!</SpeechBubble>
         </div>
       )}
@@ -417,7 +417,7 @@ function LessonComplete({
   const accuracy = lessonAccuracy(lesson, answers);
   return (
     <motion.div className="ls-done" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: "spring", stiffness: 300, damping: 24 }}>
-      <Dia mood="cheer" size={150} />
+      <Sage mood="cheer" size={150} />
       <div className="stack-sm">
         <h1>Lesson complete!</h1>
         <p className="text-2">You explained, practised and checked this idea. That's exactly how knowledge sticks.</p>

@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { errorMessage } from "../../shared/api/errors";
 import { API_BASE } from "../../shared/api/http";
-import { Dia } from "../../shared/illustrations/Dia";
+import { Sage } from "../../shared/illustrations/Sage";
 import { Emoji } from "../../shared/illustrations/Emoji";
 import { Alert } from "../../shared/ui/Alert";
 import { Button } from "../../shared/ui/Button";
@@ -158,8 +158,8 @@ function Contents({ sections }: { sections: ContentSection[] }) {
 type View = "source" | NoteStyle;
 
 const REWRITE_COPY: Record<NoteStyle, { working: string; badge: string }> = {
-  EXPAND: { working: "Dia is explaining this section step by step…", badge: "Expanded by AI" },
-  REVISION: { working: "Dia is boiling this section down to what matters…", badge: "Revision notes by AI" },
+  EXPAND: { working: "Sapi is explaining this section step by step…", badge: "Expanded by AI" },
+  REVISION: { working: "Sapi is boiling this section down to what matters…", badge: "Revision notes by AI" },
 };
 
 /** One section: its text and figures, with Original / Expand / Revision views. */
@@ -234,7 +234,7 @@ function PreviewSection({
             markdown && <Markdown figures={figures}>{markdown}</Markdown>
           ) : loading === view ? (
             <div className="preview-working" role="status">
-              <Dia mood="thinking" size={48} />
+              <Sage mood="thinking" size={48} />
               <span>{REWRITE_COPY[view].working}</span>
             </div>
           ) : error ? (
