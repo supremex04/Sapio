@@ -1,4 +1,4 @@
-# Ved design system ("Diya")
+# Sapio design system ("Diya")
 
 Status: **v2** (replaces the v1 gradient/glass look). Living reference: **`/styleguide`** in the running
 app shows every token and component in both themes.
@@ -39,7 +39,7 @@ on `soft` surfaces uses that hue's `ink`. Contrast ≥ 4.5:1 for body text in bo
 
 ### Depth: the "edge"
 
-Ved's signature. Interactive things sit on a solid lip (`--edge: 4px`) in a darker shade of their own
+Sapio's signature. Interactive things sit on a solid lip (`--edge: 4px`) in a darker shade of their own
 colour: `box-shadow: 0 var(--edge) 0 <edge colour>`. Pressing moves the element down by the edge
 (`translateY(var(--edge))`) and removes the lip: a physical "click". Cards use a 2px border with a 4px
 bottom lip. **No blurred drop shadows** except for floating layers (toasts, popovers, footer sheet).
@@ -69,7 +69,7 @@ Nunito Variable (OFL), one family only. Hierarchy via weight and size:
 ### Iconography
 
 - **Lucide** (stroke 2.5) for **actions and controls**: close, back, upload, settings, chevrons.
-- **Ved glyphs** (`shared/illustrations/glyphs.tsx`) for the **core concepts**: `library`, `document`,
+- **Sapio glyphs** (`shared/illustrations/glyphs.tsx`) for the **core concepts**: `library`, `document`,
   `recall`, `activity`. Drawn in the design system's own style: a rounded tile in one hue with the chunky
   bottom edge (`--<hue>-main` / `--<hue>-edge`, so they follow the theme), a soft top sheen and a bold white
   symbol. Rendered through `<Emoji name="recall">` like the emoji set. Add one here (48 × 48 viewBox, use
@@ -115,7 +115,7 @@ Nunito Variable (OFL), one family only. Hierarchy via weight and size:
 | `Avatar` | DiceBear notionists by seed |
 
 **Interface scale.** On desktop (≥ 1024 px) the whole interface renders at 80% (`zoom: var(--ui-zoom)` on
-`<html>`, `--ui-zoom: 0.8`), the density Ved is designed for at the browser's default 100%; phones stay at 100%
+`<html>`, `--ui-zoom: 0.8`), the density Sapio is designed for at the browser's default 100%; phones stay at 100%
 for legible text. Lengths tied to the screen size use `--vh` / `--vw` / `--dvh` (they cancel the zoom; a zoomed
 `100vh` would cover only 80% of the screen), and scripts measure layout sizes rather than `getBoundingClientRect`,
 which is already scaled. Breakpoints stay in real screen pixels.
@@ -126,7 +126,7 @@ on wide screens (≥ 1200 px), top stat bar + bottom tab bar on mobile.
 The sidebar collapses to an 84 px icon strip (`--sidebar-collapsed-width`): labels become tooltips (still read by
 screen readers), the Recall count a corner badge, the theme switch a single toggle and the profile an avatar
 menu. Toggle with the button at its foot or `[`. The choice is remembered in this browser (`localStorage`
-`ved.sidebar`); without one it starts collapsed below 1440 px and expanded above. The column width animates
+`sapio.sidebar`); without one it starts collapsed below 1440 px and expanded above. The column width animates
 (off with reduced motion).
 
 ## Signature patterns
@@ -155,7 +155,7 @@ menu. Toggle with the button at its foot or `[`. The choice is remembered in thi
 
 Short, warm, second person. Praise strategy, not ability. Never shame. Errors say what to do next.
 
-## Why Ved works: UI pattern → principle
+## Why Sapio works: UI pattern → principle
 
 | UI pattern | Principle ([learning-science.md](../architecture/learning-science.md)) |
 |---|---|

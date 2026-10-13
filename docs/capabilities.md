@@ -1,4 +1,4 @@
-# What Ved can do today
+# What Sapio can do today
 
 A capability map for product and engineering readers, derived from the code (backend controllers,
 frontend routes, inference endpoints) as of 2026-10-10. Details live in the linked specs.
@@ -40,7 +40,7 @@ Roles are recorded but **no feature differs by role yet** (see [Not yet](#not-ye
 | Formats | Documents: PDF, Word (.docx), PNG, JPEG, WEBP, TIFF (multi-page), BMP. Recordings: MP3, M4A, AAC, WAV, OGG / Opus, FLAC, MP4, MOV, WEBM, MKV, AVI. Type from extension, verified against magic bytes |
 | Word documents | parsed from the document's own structure: heading styles, lists, tables, embedded images; pages from Word's recorded page breaks |
 | Recordings | only the audio is used (video tracks ignored): transcribed with faster-whisper (Whisper small, CPU or GPU), then the AI writes study notes by topic with time ranges; the notes become the document (lessons, tests, recall, search), the transcript is its raw text, the recording plays with seeking. A busy AI never repeats transcription ([ADR-0013](adr/0013-lectures-from-audio-and-video.md)) |
-| Limits | Documents 25 MB (`ved.documents.max-size-bytes`), 200 pages (`parsing.max_pages`); recordings 1 GB (`ved.documents.max-media-bytes`), 4 hours (`speech.max_duration_seconds`) |
+| Limits | Documents 25 MB (`sapio.documents.max-size-bytes`), 200 pages (`parsing.max_pages`); recordings 1 GB (`sapio.documents.max-media-bytes`), 4 hours (`speech.max_duration_seconds`) |
 | Text | **Hybrid**: PDF pages with a text layer are read natively; only scanned pages and images are OCR'd |
 | OCR engines | `rapid` (RapidOCR, CPU, default), `unlimited-remote` (baidu/Unlimited-OCR on SGLang/vLLM, full Markdown), `unlimited-local` (in-process, needs ~8 GB+ VRAM) |
 | Pipeline | `PENDING → EXTRACTING → INDEXING → ANALYZING → READY`, async (upload returns 202); live stepper in the library |
@@ -115,7 +115,7 @@ documents; Home shows "N cards to recall". Skipped test items are scheduled like
 | Ask the whole document (or a subtree): long-form, cited answer with sources and figures | `POST /api/documents/{id}/ask` | API only |
 
 Notes appear in the document **Preview** (study hub → Preview → Reading view), on **study units** once the course is
-`READY`. A unit is the highest section whose whole subtree has 300–6,000 characters of text (`ved.knowledge.reading`):
+`READY`. A unit is the highest section whose whole subtree has 300–6,000 characters of text (`sapio.knowledge.reading`):
 each passage belongs to at most one unit, the buttons say what they cover ("Covers 1–1.1.3 · pp. 1–5"), and while a
 rewrite is shown it stands in for the unit's subsections. Bigger chapters are split into their sections; tiny
 fragments are covered by no unit of their own. The rest
@@ -161,7 +161,7 @@ Guide: [guides/configuration.md](guides/configuration.md), [ADR-0010](adr/0010-v
 - `./dev.sh` installs what changed and starts Postgres (pgvector, port 5433), inference, backend and
   frontend; also `-d`, `stop`, `down`, `status`, `logs`, `setup`, `test`.
 - Resilience: provider retries honour server hints (`Retry-After`, `RetryInfo`), model fallbacks,
-  automatic document retries (`ved.documents.processing.auto-retry-delays`), resumable, idempotent
+  automatic document retries (`sapio.documents.processing.auto-retry-delays`), resumable, idempotent
   pipeline stages; retries wait for the AI's quota-reset hint; unfinished documents resume after a restart or
   crash (heartbeat lease), and several backend instances can share the processing.
 - Typed errors between the services, a committed OpenAPI contract tested from both sides, and an `X-Request-Id` on

@@ -12,7 +12,7 @@ function Tile({ tone }: { tone: "teal" | "blue" | "amber" | "green" | "purple" }
 }
 
 /**
- * Ved's own icons for core product concepts, drawn in the design system's style (rounded tile, chunky bottom
+ * Sapio's own icons for core product concepts, drawn in the design system's style (rounded tile, chunky bottom
  * edge, colours from tokens, so they follow the theme). Used through <Emoji name="…">, like the Fluent set.
  */
 const GLYPHS = {

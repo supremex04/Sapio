@@ -6,7 +6,7 @@
  *   above. Header rows and tables that genuinely have empty cells are left alone.
  * - a table continued after a page break repeats its header: consecutive tables with the same header, separated
  *   only by blank lines or a page-break rule (`---`), become one table.
- * Mirrors inference/src/ved_inference/parsing/tables.py (applied at parse time to new documents).
+ * Mirrors inference/src/sapio_inference/parsing/tables.py (applied at parse time to new documents).
  */
 const ROW = /^\s*\|.*\|\s*$/;
 const DELIMITER = /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$/;

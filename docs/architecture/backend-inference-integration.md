@@ -4,7 +4,7 @@ How the Java backend and the Python inference service connect: ports and adapter
 provider-agnostic LLM layer behind it, and how failures cross the boundary.
 
 Code: `backend/.../common/inference`, `backend/.../document/extraction`, `backend/.../knowledge/ai`,
-`backend/.../study/ai`, `backend/.../document/processing`, `inference/src/ved_inference/{main.py,api,llm,config.py}`,
+`backend/.../study/ai`, `backend/.../document/processing`, `inference/src/sapio_inference/{main.py,api,llm,config.py}`,
 `inference/settings.yaml`
 
 Related: [overview](overview.md), [spec: inference API](../specs/inference-api.md),
@@ -69,8 +69,8 @@ and `label` / `title` fields that the service silently dropped; the contract tes
 | Concern | Implementation |
 |---|---|
 | Transport | Spring `RestClient` on the JDK `HttpClient`, HTTP/1.1 |
-| Base URL | `ved.inference.base-url` (`VED_INFERENCE_URL`, default `http://localhost:8000`) |
-| Auth | default header `X-Internal-Api-Key: ved.inference.api-key` (`VED_INFERENCE_API_KEY`) |
+| Base URL | `sapio.inference.base-url` (`SAPIO_INFERENCE_URL`, default `http://localhost:8000`) |
+| Auth | default header `X-Internal-Api-Key: sapio.inference.api-key` (`SAPIO_INFERENCE_API_KEY`) |
 | Timeouts | `connect-timeout: 5s`, `read-timeout: 20m` (OCR of a long scan and large generations are slow) |
 | Methods | `getJson`, `postJson`, `postMultipart` |
 | Correlation | request interceptor sets `X-Request-Id` from the MDC (see [Request correlation](#request-correlation)) |
@@ -114,7 +114,7 @@ once from `Settings` and stores it on `app.state`:
 Routers: `routes` (`/health`, `/v1/extract`), `study_routes` (`/v1/study`), `index_routes` (`/v1/index`). The latter
 two declare `dependencies=[Depends(require_internal_api_key)]` router-wide; `/v1/extract` declares it per route.
 `create_app` also installs the error handlers (`api.errors.install_error_handlers`, the only place error bodies are
-built) and `observability.RequestIdMiddleware`, and configures `ved_inference.*` logging with the request id.
+built) and `observability.RequestIdMiddleware`, and configures `sapio_inference.*` logging with the request id.
 
 ### Provider-agnostic LLM layer
 
@@ -203,7 +203,7 @@ Where it ends up:
   `AnalysisException` (`MaterialAnalyzer`) share the base `document.PipelineException` (`isTransient()`,
   `retryAfter()`); the processor catches it once and marks the document `FAILED`. Background rule: **anything except
   rejected input is transient** (busy, quota, or a misconfiguration an operator will fix) and schedules an automatic
-  retry after `ved.documents.processing.auto-retry-delays` (`1m, 4m, 15m`), but never before the retry hint
+  retry after `sapio.documents.processing.auto-retry-delays` (`1m, 4m, 15m`), but never before the retry hint
   (capped at 24 h): a daily quota exhaustion no longer burns all three retries in 20 minutes. Due retries are picked
   up by `DocumentProcessingTriggers.resumeDueRetries`; stages are resumable, so a retry continues where it stopped.
 - **Requests** (lesson, grade, ask, notes…): `GlobalExceptionHandler.handleAi` renders any `AiException` as
@@ -220,14 +220,14 @@ One id follows a learner action through both services:
 2. The backend log pattern prints it (`logging.pattern.level: "%5p [%X{requestId:-}]"`); `ApiError.requestId`
    echoes it; the frontend shows its first 8 characters as "(ref …)" on `INTERNAL_ERROR`.
 3. `InferenceClient` forwards it as `X-Request-Id`; the inference `RequestIdMiddleware` (pure ASGI) adopts it, logs it
-   on every `ved_inference.*` line and echoes it in error bodies.
+   on every `sapio_inference.*` line and echoes it in error bodies.
 4. Document jobs inherit the id of the upload that queued them (`RequestId.propagatingDecorator()` on the worker
    pool); jobs started by the scheduler (retries, resumes) log as `doc-<first 8 chars of the document id>`.
 
 ## Contract tests
 
 `contracts/inference-openapi.json` is generated from the FastAPI app and committed. `inference/tests/test_contract.py`
-fails when it differs from the code; `backend/src/test/java/com/ved/common/inference/InferenceContractTest.java` checks
+fails when it differs from the code; `backend/src/test/java/com/sapio/common/inference/InferenceContractTest.java` checks
 every backend call (endpoint list in `CALLS`) against it: sent fields exist and required ones are sent, read fields
 exist, enums are compatible in the direction they flow, types match, the error envelope matches
 `InferenceClient.ErrorBody`, and the contract major equals `InferenceCompatibilityCheck.CONTRACT_MAJOR`. Details and
@@ -246,10 +246,10 @@ the regenerate command: [inference-api.md § Contract file](../specs/inference-a
 
 | Limit | Value | Where |
 |---|---|---|
-| Connect / read timeout (backend → inference) | 5 s / 20 min | `ved.inference.*` |
+| Connect / read timeout (backend → inference) | 5 s / 20 min | `sapio.inference.*` |
 | Provider HTTP timeout (inference → LLM) | 180 s | `providers.<name>.timeout_seconds` |
 | Remote OCR timeout | 1200 s | `ocr.remote` (`timeout_seconds` default) |
-| Document worker pool | core 2, max 4, queue 200, **per instance** | `ved.documents.processing` (`documentProcessingExecutor`) |
+| Document worker pool | core 2, max 4, queue 200, **per instance** | `sapio.documents.processing` (`documentProcessingExecutor`) |
 
 The worker pool caps concurrent **pipeline** calls (extraction, indexing, analysis, and background re-embedding via
 `KnowledgeIndexer.onStaleEmbeddings`, which runs on the same executor). Interactive calls (lessons, answers, grading)
@@ -259,7 +259,7 @@ in FastAPI's thread pool and `/v1/extract` offloads parsing with `run_in_threadp
 
 ## Security
 
-- Shared secret: `X-Internal-Api-Key` compared with `secrets.compare_digest` against `VED_INFERENCE_API_KEY`
+- Shared secret: `X-Internal-Api-Key` compared with `secrets.compare_digest` against `SAPIO_INFERENCE_API_KEY`
   (`Settings.api_key`). Missing/wrong → 401. `/health` is open. If the key is configured empty, the check is
   **disabled**: never do that outside local development. Both sides default to `dev-internal-key`; override it.
 - Not public: browsers never call the service; run it on a private network (uvicorn binds `127.0.0.1` by default).
@@ -285,6 +285,6 @@ in FastAPI's thread pool and `/v1/extract` offloads parsing with `run_in_threadp
 7. **Backend port**: a method + records on `StudyAi` / `KnowledgeAi` (the port's own wire records, no domain or DB
    types, no HTTP), implemented in the adapter (`InferenceStudyAi` / `InferenceKnowledgeAi`) via
    `post("/v1/…", body, Type.class)`; add the call to `InferenceContractTest.CALLS`; update the test fake
-   (`backend/src/test/java/com/ved/FakeAi.java`).
+   (`backend/src/test/java/com/sapio/FakeAi.java`).
 8. **Docs**: endpoint, shapes and guarantees in [inference-api.md](../specs/inference-api.md); budgets or settings
    in [configuration.md](../guides/configuration.md).

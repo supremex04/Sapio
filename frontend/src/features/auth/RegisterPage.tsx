@@ -58,7 +58,7 @@ export function RegisterPage() {
       <form onSubmit={onSubmit} className="stack" noValidate>
         {error && <Alert>{error}</Alert>}
         <fieldset className="role-picker">
-          <legend>How will you use Ved?</legend>
+          <legend>How will you use Sapio?</legend>
           <div className="role-options">
             {ROLES.map(({ value, label, hint, emoji }) => (
               <label key={value} className={cx("role-option", role === value && "is-selected")}>

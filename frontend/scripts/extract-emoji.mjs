@@ -1,4 +1,4 @@
-// Copies the curated subset of Microsoft Fluent Emoji (MIT) that Ved uses into
+// Copies the curated subset of Microsoft Fluent Emoji (MIT) that Sapio uses into
 // src/shared/illustrations/emoji/*.svg. The full icon set is ~100 MB, so it is not a project
 // dependency; regenerate with:
 //

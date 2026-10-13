@@ -4,10 +4,10 @@ import httpx
 import pytest
 from PIL import Image
 
-from ved_inference.config import OcrConfig, RemoteOcrConfig, Settings
-from ved_inference.documents.models import PageImage
-from ved_inference.engines.unlimited_remote import UnlimitedOcrRemoteEngine
-from ved_inference.errors import EngineError
+from sapio_inference.config import OcrConfig, RemoteOcrConfig, Settings
+from sapio_inference.documents.models import PageImage
+from sapio_inference.engines.unlimited_remote import UnlimitedOcrRemoteEngine
+from sapio_inference.errors import EngineError
 
 
 def pages(n: int) -> list[PageImage]:

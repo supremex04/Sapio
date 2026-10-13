@@ -38,12 +38,12 @@ errors. Batched decoding gained little on CPU.
   and sharing work unchanged. The transcript is the raw text; the recording plays from a signed, seekable URL.
   "Page" means minute of the recording; the UI shows time ranges instead of pages.
 - **Uploads only.** No fetching from YouTube or other sites (their terms forbid downloading); learners upload files
-  they have. Media may be up to 1 GB (`ved.documents.max-media-bytes`), documents 25 MB.
+  they have. Media may be up to 1 GB (`sapio.documents.max-media-bytes`), documents 25 MB.
 
 ## Consequences
 
 - A one-hour lecture takes about 8-9 minutes to transcribe on an 8-core CPU, about 1.5 minutes on a small GPU, plus
-  the notes. Long recordings use the separate `ved.inference.media-read-timeout` (3 h).
+  the notes. Long recordings use the separate `sapio.inference.media-read-timeout` (3 h).
 - The ~480 MB model downloads on the first recording; one transcription per inference process at a time
   (`speech.max_concurrency`) bounds memory (~1.5 GB).
 - Notes are AI-written: they are only as faithful as the model and the prompt; the transcript stays available for

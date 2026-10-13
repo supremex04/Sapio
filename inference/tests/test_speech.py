@@ -6,13 +6,13 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
+from sapio_inference.config import LectureNotesConfig, ParsingConfig
+from sapio_inference.errors import DocumentError
+from sapio_inference.main import create_app
+from sapio_inference.speech.audio import SAMPLE_RATE, decode_windows, probe_duration, quiet_cut
+from sapio_inference.speech.base import Transcript, TranscriptSegment
+from sapio_inference.speech.notes import LectureNotes, transcript_markdown
 from tests.fakes import FakeEmbedder, FakeLlm, FakeSpeech
-from ved_inference.config import LectureNotesConfig, ParsingConfig
-from ved_inference.errors import DocumentError
-from ved_inference.main import create_app
-from ved_inference.speech.audio import SAMPLE_RATE, decode_windows, probe_duration, quiet_cut
-from ved_inference.speech.base import Transcript, TranscriptSegment
-from ved_inference.speech.notes import LectureNotes, transcript_markdown
 
 KEY = {"X-Internal-Api-Key": "test-key"}
 

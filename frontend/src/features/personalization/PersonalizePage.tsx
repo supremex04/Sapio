@@ -64,7 +64,7 @@ export function PersonalizePage() {
           <Emoji name="personalize" size={56} />
           <div className="lib-header-text">
             <h1>Personalize</h1>
-            <p className="muted">Tell Ved who you are and how you like to learn. Lessons, notes, tests and the tutor adapt to it. Change it any time.</p>
+            <p className="muted">Tell Sapio who you are and how you like to learn. Lessons, notes, tests and the tutor adapt to it. Change it any time.</p>
           </div>
         </header>
 
@@ -147,7 +147,7 @@ export function PersonalizePage() {
 
             <Card className="pz-card pz-summary" tone="purple">
               <h2 className="pz-title">
-                <Emoji name="sparkles" size={24} /> Ved will
+                <Emoji name="sparkles" size={24} /> Sapio will
               </h2>
               {summary.length ? (
                 <ul>

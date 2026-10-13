@@ -4,9 +4,9 @@ from docx import Document
 from docx.enum.text import WD_BREAK
 from docx.shared import Inches
 
+from sapio_inference.config import ParsingConfig
+from sapio_inference.parsing.parser import DocumentParser
 from tests.conftest import png_bytes
-from ved_inference.config import ParsingConfig
-from ved_inference.parsing.parser import DocumentParser
 
 
 def make_docx() -> bytes:
@@ -45,7 +45,7 @@ def test_word_documents_keep_their_own_structure():
 def test_a_corrupt_word_file_is_rejected():
     import pytest
 
-    from ved_inference.errors import DocumentError
+    from sapio_inference.errors import DocumentError
 
     with pytest.raises(DocumentError, match="Word document"):
         DocumentParser(None, ParsingConfig()).parse(b"PK\x03\x04garbage word/", "notes.docx")

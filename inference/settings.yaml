@@ -1,8 +1,8 @@
-# Ved inference service configuration: providers, model routes and tunings.
+# Sapio inference service configuration: providers, model routes and tunings.
 #
-# Any value can be overridden with an environment variable: prefix VED_INFERENCE_, nested keys joined
-# with "__", e.g.  VED_INFERENCE_LLM__DEFAULT__PRIMARY__MODEL=gemini-3.8-flash
-#                  VED_INFERENCE_OCR__ENGINE=unlimited-remote
+# Any value can be overridden with an environment variable: prefix SAPIO_INFERENCE_, nested keys joined
+# with "__", e.g.  SAPIO_INFERENCE_LLM__DEFAULT__PRIMARY__MODEL=gemini-3.8-flash
+#                  SAPIO_INFERENCE_OCR__ENGINE=unlimited-remote
 # Secrets never go here: providers name the environment variable that holds their key (api_key_env),
 # usually set in inference/.env (gitignored). Reference: docs/guides/configuration.md
 
@@ -13,7 +13,7 @@
 providers:
   gemini:
     type: gemini
-    api_key_env: VED_INFERENCE_GEMINI_API_KEY
+    api_key_env: SAPIO_INFERENCE_GEMINI_API_KEY
     timeout_seconds: 180
     max_retries: 4           # per model, on 429 / 5xx
     max_backoff_seconds: 45  # longer server hints (daily quota) switch to the next model immediately
@@ -72,7 +72,7 @@ embeddings:
   # Measured on our own documents (scripts/eval_embeddings.py, 134 questions), keyword + meaning search as in
   # production: right passage first 74% (Gemini 76%), in the top 3 94% (Gemini 96%). ~0.3 s per passage on CPU.
   # Figures are embedded from their caption + description (not the image). Re-tune
-  # ved.knowledge.retrieval.figure-min-similarity after switching.
+  # sapio.knowledge.retrieval.figure-min-similarity after switching.
   # provider: local
   # model: onnx-community/Qwen3-Embedding-0.6B-ONNX
   # dimensions: 768

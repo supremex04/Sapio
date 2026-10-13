@@ -1,6 +1,6 @@
-# Learning science: the principles behind Ved's design
+# Learning science: the principles behind Sapio's design
 
-Ved should feel effortless and pleasant, while quietly steering learners toward the study
+Sapio should feel effortless and pleasant, while quietly steering learners toward the study
 habits research shows actually work. Each product decision below is tied to a well-replicated
 finding. When a feature or design choice is debated, check it against this page.
 
@@ -10,7 +10,7 @@ finding. When a feature or design choice is debated, check it against this page.
 
 ## 1. How memory works → what the learner does
 
-| Principle | Evidence (short) | How Ved applies it |
+| Principle | Evidence (short) | How Sapio applies it |
 |---|---|---|
 | **Retrieval practice** (testing effect) | Recalling information strengthens memory more than re-reading it (Roediger & Karpicke, 2006; Dunlosky et al., 2013 rate it "high utility"). | Comprehension checks inside every lesson; "Test my knowledge"; reviews are questions, never re-reading. |
 | **Pretesting / generation effect** | Trying to answer *before* being taught improves later learning, even when the guess is wrong (Richland et al., 2009; Kornell et al., 2009). | Each lesson opens with a **warm-up question** (`afterSection: -1`): "Make a guess. Guessing first helps you remember, even if you're wrong." |
@@ -23,9 +23,9 @@ finding. When a feature or design choice is debated, check it against this page.
 | **Cognitive load theory** | Working memory is small; split information and remove distractions (Sweller, 1988). | One section or one question at a time, progressive reveal, compact structured section context (summaries + passages within a per-use budget, never the whole document), calm reading layouts. |
 | **Mastery learning** | Advance when a concept is mastered, not after a fixed time (Bloom, 1968). | Per-topic **mastery** (recency-weighted accuracy) drives "recommended next" and weak-area advice. |
 
-## 2. Why people keep going → how Ved motivates
+## 2. Why people keep going → how Sapio motivates
 
-| Principle | Evidence (short) | How Ved applies it |
+| Principle | Evidence (short) | How Sapio applies it |
 |---|---|---|
 | **Self-determination theory**: autonomy, competence, relatedness | Intrinsic motivation needs choice, a sense of growth and connection (Ryan & Deci, 2000). | Learner chooses mode, topics, difficulty (autonomy); mastery, levels and progress make growth visible (competence); classes/teachers come next (relatedness). |
 | **Goal-gradient effect** | Effort increases as people near a goal (Kivetz et al., 2006). | Progress rings and bars everywhere: daily goal ring, topic path, question progress. |

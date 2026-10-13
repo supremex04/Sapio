@@ -1,5 +1,5 @@
 # Overlay: in-house embeddings instead of the Gemini API (everything else stays as in settings.yaml).
-# Enable with `./dev.sh --local-embedding`, or VED_INFERENCE_CONFIG=settings.yaml,settings.local-embedding.yaml.
+# Enable with `./dev.sh --local-embedding`, or SAPIO_INFERENCE_CONFIG=settings.yaml,settings.local-embedding.yaml.
 #
 # Qwen3-Embedding-0.6B, 8-bit, ONNX Runtime on CPU: no API calls, nothing leaves the machine. Needs the "embed"
 # extra (dev.sh installs it); the model (614 MB) downloads on first use to ~/.cache/huggingface. On our documents it

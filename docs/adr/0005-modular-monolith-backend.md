@@ -11,7 +11,7 @@ Microservices per domain would be heavy for a small team; one big layered codeba
 
 ## Decision
 
-One Spring Boot application. Code is grouped by feature (`com.ved.auth`, `com.ved.document`, …),
+One Spring Boot application. Code is grouped by feature (`com.sapio.auth`, `com.sapio.document`, …),
 each feature exposing a small public surface (services, events, DTOs) and keeping the rest
 package-private. External systems sit behind ports (interfaces) inside the feature.
 

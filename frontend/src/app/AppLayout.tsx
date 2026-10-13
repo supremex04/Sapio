@@ -95,7 +95,7 @@ const NAV: { to: string; label: string; emoji: IconName; end: boolean }[] = [
 function Sidebar({ reviewsDue, collapsed, onToggle }: { reviewsDue: number; collapsed: boolean; onToggle: () => void }) {
   return (
     <nav className="sidebar" aria-label="Main">
-      <Link to="/" className="sidebar-brand" aria-label="Ved home">
+      <Link to="/" className="sidebar-brand" aria-label="Sapio home">
         <Wordmark />
       </Link>
       <div className="sidebar-nav">
@@ -134,7 +134,7 @@ function MobileTopBar() {
   const { summary } = useProgress();
   return (
     <header className="mobile-top">
-      <Link to="/" aria-label="Ved home">
+      <Link to="/" aria-label="Sapio home">
         <Wordmark />
       </Link>
       <div className="row" style={{ gap: "var(--space-1)" }}>

@@ -21,7 +21,7 @@ import "./preview.css";
 type Mode = "reading" | "original" | "raw";
 
 /**
- * Preview of the uploaded document. "Reading" is Ved's structured version (sections in order, figures in place,
+ * Preview of the uploaded document. "Reading" is Sapio's structured version (sections in order, figures in place,
  * readable in any theme and on phones) with per-section AI rewrites; "Original" is the file exactly as uploaded;
  * "Raw text" is the extracted Markdown.
  */
@@ -83,7 +83,7 @@ function ReadingView({ doc, ready }: { doc: DocumentDto; ready: boolean }) {
     );
   }
   if (content.sections.length === 0) {
-    return <p className="muted">Ved is still organising this document. The preview appears once its chapters are ready.</p>;
+    return <p className="muted">Sapio is still organising this document. The preview appears once its chapters are ready.</p>;
   }
 
   return (

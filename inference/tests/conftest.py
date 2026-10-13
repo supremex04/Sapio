@@ -4,15 +4,15 @@ import pymupdf
 import pytest
 from PIL import Image, ImageDraw, ImageFont
 
-from ved_inference.config import get_settings
+from sapio_inference.config import get_settings
 
 
 @pytest.fixture(autouse=True)
 def _isolated_settings(monkeypatch, tmp_path):
     # Tests never read the developer's settings.yaml or .env.
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv("VED_INFERENCE_CONFIG", str(tmp_path / "absent.yaml"))
-    monkeypatch.setenv("VED_INFERENCE_API_KEY", "test-key")
+    monkeypatch.setenv("SAPIO_INFERENCE_CONFIG", str(tmp_path / "absent.yaml"))
+    monkeypatch.setenv("SAPIO_INFERENCE_API_KEY", "test-key")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()

@@ -1,11 +1,11 @@
 /*
- * Ved design tokens ("Diya" design system v2): the only place raw colours, sizes and timings live.
+ * Sapio design tokens ("Diya" design system v2): the only place raw colours, sizes and timings live.
  * Components use semantic tokens (--color-primary, --surface, --text, …), never palette values directly.
  * Spec: docs/specs/design-system.md. Living reference: /styleguide.
  */
 :root {
   /* ---------- Interface scale ----------
-     On desktop the whole interface renders at 80% (CSS zoom on <html>, like browser zoom): Ved's design reads
+     On desktop the whole interface renders at 80% (CSS zoom on <html>, like browser zoom): Sapio's design reads
      best at that density on common laptop and desktop screens. Phones stay at 100% for legible text. Viewport-sized
      lengths must use --vh / --vw / --dvh below, which cancel the zoom (a zoomed 100vh would be 80% of the screen). */
   --ui-zoom: 1;

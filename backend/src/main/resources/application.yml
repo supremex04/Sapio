@@ -1,10 +1,10 @@
 spring:
   application:
-    name: ved-backend
+    name: sapio-backend
   datasource:
-    url: ${VED_DB_URL:jdbc:postgresql://localhost:5433/ved}
-    username: ${VED_DB_USERNAME:ved}
-    password: ${VED_DB_PASSWORD:ved}
+    url: ${SAPIO_DB_URL:jdbc:postgresql://localhost:5433/sapio}
+    username: ${SAPIO_DB_USERNAME:sapio}
+    password: ${SAPIO_DB_PASSWORD:sapio}
   jpa:
     open-in-view: false
     hibernate:
@@ -13,7 +13,7 @@ spring:
     enabled: true
   servlet:
     multipart:
-      # The largest upload of any kind (ved.documents.max-media-bytes); per-kind limits give the nicer error.
+      # The largest upload of any kind (sapio.documents.max-media-bytes); per-kind limits give the nicer error.
       # Large files are streamed to disk, not held in memory.
       max-file-size: 1GB
       max-request-size: 1025MB
@@ -23,7 +23,7 @@ spring:
       enabled: true
 
 server:
-  port: ${VED_PORT:8080}
+  port: ${SAPIO_PORT:8080}
   error:
     include-message: never
 
@@ -38,27 +38,27 @@ management:
       exposure:
         include: health,info
 
-ved:
+sapio:
   security:
     jwt:
       # HS256 signing key, at least 32 bytes. MUST be overridden outside local development.
-      secret: ${VED_JWT_SECRET:dev-only-secret-change-me-dev-only-secret-change-me}
-      issuer: ved
+      secret: ${SAPIO_JWT_SECRET:dev-only-secret-change-me-dev-only-secret-change-me}
+      issuer: sapio
       access-token-ttl: 15m
     refresh-token:
       ttl: 14d
-      cookie-name: ved_refresh
+      cookie-name: sapio_refresh
       cookie-path: /api/auth
-      cookie-secure: ${VED_COOKIE_SECURE:false}
+      cookie-secure: ${SAPIO_COOKIE_SECURE:false}
       cookie-same-site: Strict
     cors:
-      allowed-origins: ${VED_CORS_ORIGINS:http://localhost:5173}
+      allowed-origins: ${SAPIO_CORS_ORIGINS:http://localhost:5173}
   documents:
-    storage-dir: ${VED_STORAGE_DIR:./var/storage}
+    storage-dir: ${SAPIO_STORAGE_DIR:./var/storage}
     max-size-bytes: 26214400 # 25 MiB: documents (PDF, Word, images)
     max-media-bytes: 1073741824 # 1 GiB: audio and video (only the audio track is used)
     # Signs playback URLs for audio / video (streamed with seeking). MUST be overridden outside local development.
-    media-url-secret: ${VED_MEDIA_URL_SECRET:dev-only-media-url-secret-change-me}
+    media-url-secret: ${SAPIO_MEDIA_URL_SECRET:dev-only-media-url-secret-change-me}
     media-url-ttl: 6h
     processing:
       core-pool-size: 2
@@ -78,7 +78,7 @@ ved:
       per-minute: 5 # comments one learner may post per minute, across all shares (flood guard)
   knowledge:
     # Signs figure image URLs. MUST be overridden outside local development.
-    figure-url-secret: ${VED_FIGURE_URL_SECRET:dev-only-figure-url-secret-change-me}
+    figure-url-secret: ${SAPIO_FIGURE_URL_SECRET:dev-only-figure-url-secret-change-me}
     figure-url-ttl: 6h
     retrieval:
       candidates: 30 # per ranker (keyword, vector) before fusion
@@ -94,7 +94,7 @@ ved:
       # unrelated ~0.36-0.38). Re-tune when switching embedding models.
       figure-min-similarity: 0.48
     # Study units of the Preview: the sections that get Expand / Revision. A unit is the highest section whose
-    # whole subtree has between min and max characters of text; keep max below ved.study.context.notes.chars.
+    # whole subtree has between min and max characters of text; keep max below sapio.study.context.notes.chars.
     reading:
       unit-min-chars: 300   # below this, a rewrite adds nothing (a title line, two bullets)
       unit-max-chars: 6000  # ~2-4 textbook pages: a 5-10 minute read, like a lesson
@@ -114,8 +114,8 @@ ved:
       ask:       { chars: 14000, figures: 5 }
       notes:     { chars: 18000, figures: 5 }
   inference:
-    base-url: ${VED_INFERENCE_URL:http://localhost:8000}
-    api-key: ${VED_INFERENCE_API_KEY:dev-internal-key}
+    base-url: ${SAPIO_INFERENCE_URL:http://localhost:8000}
+    api-key: ${SAPIO_INFERENCE_API_KEY:dev-internal-key}
     connect-timeout: 5s
     read-timeout: 20m
     media-read-timeout: 3h # transcribing hours of audio on a CPU (about 7x real time with the default model)

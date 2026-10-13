@@ -43,7 +43,7 @@ export const hasExtractedText = (status: DocumentStatus) =>
   status === "INDEXING" || status === "ANALYZING" || status === "READY";
 export const displayTitle = (doc: Pick<DocumentDto, "title" | "filename">) => doc.title?.trim() || doc.filename;
 
-/** Keep in sync with backend SupportedFileType and ved.documents.max-size-bytes / max-media-bytes. */
+/** Keep in sync with backend SupportedFileType and sapio.documents.max-size-bytes / max-media-bytes. */
 const DOCUMENT_EXTENSIONS = ["pdf", "docx", "png", "jpg", "jpeg", "webp", "tif", "tiff", "bmp"];
 const MEDIA_EXTENSIONS = ["mp3", "m4a", "aac", "wav", "ogg", "oga", "opus", "flac", "mp4", "m4v", "mov", "webm", "mkv", "avi"];
 export const ACCEPTED_FILE_TYPES = [...DOCUMENT_EXTENSIONS, ...MEDIA_EXTENSIONS].map((e) => `.${e}`).join(",");

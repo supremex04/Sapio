@@ -43,7 +43,7 @@ What it does, in order:
 
 **`--local-embedding`** (combine with `./dev.sh`, `up` or `-d`): computes embeddings in-house
 (Qwen3-Embedding-0.6B on the CPU, no API calls) instead of the Gemini API, by starting inference with
-`VED_INFERENCE_CONFIG=settings.yaml,settings.local-embedding.yaml`
+`SAPIO_INFERENCE_CONFIG=settings.yaml,settings.local-embedding.yaml`
 ([overlay](configuration.md#in-house-embeddings-provider-type-onnx)). Gemini stays the default. The startup summary
 prints the active embedding model. If inference is already running in the other mode, the script warns and keeps it
 running: `./dev.sh stop` first to switch. Switching either way re-embeds each document in the background the next
@@ -55,14 +55,14 @@ service on its own (e.g. running the backend from your IDE).
 ## Manual setup
 
 ```bash
-# Database (PostgreSQL 17 on localhost:5433, db/user/password: ved)
+# Database (PostgreSQL 17 on localhost:5433, db/user/password: sapio)
 docker compose up -d
 
 # Inference service
 cd inference
 python3.12 -m venv .venv
 .venv/bin/pip install -e '.[rapid,dev]'      # add ',local' only on a big-GPU machine
-cp .env.example .env                          # then set VED_INFERENCE_GEMINI_API_KEY (required for study features)
+cp .env.example .env                          # then set SAPIO_INFERENCE_GEMINI_API_KEY (required for study features)
 
 # Frontend
 cd ../frontend && npm install
@@ -74,7 +74,7 @@ The backend downloads its dependencies on first build.
 
 ```bash
 # 1. Inference  → http://localhost:8000  (GET /health)
-cd inference && .venv/bin/uvicorn ved_inference.main:app --port 8000 --reload
+cd inference && .venv/bin/uvicorn sapio_inference.main:app --port 8000 --reload
 
 # 2. Backend    → http://localhost:8080  (Flyway migrates the DB on start)
 cd backend && mvn spring-boot:run
@@ -89,9 +89,9 @@ Open http://localhost:5173 and create an account.
 
 | Email | Password | Role |
 |---|---|---|
-| `demo@ved.dev` | `demo-password-1` | STUDENT |
-| `teacher@ved.dev` | `demo-password-1` | TEACHER |
-| `learner@ved.dev` | `demo-password-1` | STUDENT (has a studied biology handout, a test and a report) |
+| `demo@sapio.dev` | `demo-password-1` | STUDENT |
+| `teacher@sapio.dev` | `demo-password-1` | TEACHER |
+| `learner@sapio.dev` | `demo-password-1` | STUDENT (has a studied biology handout, a test and a report) |
 
 `docker compose down -v` wipes the database (and these accounts).
 
@@ -110,20 +110,46 @@ Backend (`backend/src/main/resources/application.yml`, override with env vars):
 
 | Env var | Default | Purpose |
 |---|---|---|
-| `VED_DB_URL` / `VED_DB_USERNAME` / `VED_DB_PASSWORD` | `jdbc:postgresql://localhost:5433/ved`, `ved`, `ved` | database |
-| `VED_JWT_SECRET` | dev value | **must** be set in any shared environment (≥ 32 random bytes) |
-| `VED_COOKIE_SECURE` | `false` | `true` behind HTTPS |
-| `VED_CORS_ORIGINS` | `http://localhost:5173` | only needed when UI and API are on different origins |
-| `VED_STORAGE_DIR` | `./var/storage` | uploaded files |
-| `VED_INFERENCE_URL` | `http://localhost:8000` | inference service |
-| `VED_INFERENCE_API_KEY` | `dev-internal-key` | must equal the inference service's key |
+| `SAPIO_DB_URL` / `SAPIO_DB_USERNAME` / `SAPIO_DB_PASSWORD` | `jdbc:postgresql://localhost:5433/sapio`, `sapio`, `sapio` | database |
+| `SAPIO_JWT_SECRET` | dev value | **must** be set in any shared environment (≥ 32 random bytes) |
+| `SAPIO_COOKIE_SECURE` | `false` | `true` behind HTTPS |
+| `SAPIO_CORS_ORIGINS` | `http://localhost:5173` | only needed when UI and API are on different origins |
+| `SAPIO_STORAGE_DIR` | `./var/storage` | uploaded files |
+| `SAPIO_INFERENCE_URL` | `http://localhost:8000` | inference service |
+| `SAPIO_INFERENCE_API_KEY` | `dev-internal-key` | must equal the inference service's key |
 
 Inference: see [`inference/.env.example`](../../inference/.env.example) and [ocr-engines.md](ocr-engines.md).
-The Gemini key (`VED_INFERENCE_GEMINI_API_KEY`) goes only in `inference/.env`, which is gitignored.
+The Gemini key (`SAPIO_INFERENCE_GEMINI_API_KEY`) goes only in `inference/.env`, which is gitignored.
 Without it the inference service refuses to start (by design: study features can't work without an LLM).
 
 Frontend: `VITE_BACKEND_URL` (dev proxy target, default `http://localhost:8080`),
 `VITE_API_BASE` (default `/api`).
+
+## Migrating a checkout from the old name (Ved)
+
+The product was renamed from Ved to Sapio. A checkout set up before the rename needs three local steps (data is
+kept):
+
+1. **Secrets:** in `inference/.env`, rename every `VED_` key to `SAPIO_`
+   (`sed -i -E 's/^VED_/SAPIO_/' inference/.env`).
+2. **Database:** copy the old volume, then rename the database and role inside it:
+
+   ```bash
+   docker stop ved-postgres-1 && docker rm ved-postgres-1
+   docker volume create sapio_sapio-postgres
+   docker run --rm -v ved_ved-postgres:/from:ro -v sapio_sapio-postgres:/to alpine sh -c 'cp -a /from/. /to/'
+   docker compose up -d postgres
+   docker exec -i sapio-postgres-1 psql -U ved -d postgres -c "CREATE ROLE sapio_migrator SUPERUSER LOGIN"
+   docker exec -i sapio-postgres-1 psql -U sapio_migrator -d postgres \
+     -c "ALTER DATABASE ved RENAME TO sapio" -c "ALTER ROLE ved RENAME TO sapio" -c "ALTER ROLE sapio PASSWORD 'sapio'"
+   docker exec -i sapio-postgres-1 psql -U sapio -d sapio -c "DROP ROLE sapio_migrator"
+   ```
+
+   The old `ved_ved-postgres` volume is left as a backup; remove it with `docker volume rm` once all is well.
+3. **Inference package:** `cd inference && .venv/bin/pip uninstall -y ved-inference && .venv/bin/pip install -e '.[rapid,embed,stt,dev]'`
+   (`./dev.sh` reinstalls when `pyproject.toml` changes).
+
+Everyone has to sign in again: tokens carry the new issuer and the refresh cookie has a new name.
 
 ## Troubleshooting
 
@@ -141,10 +167,10 @@ Frontend: `VITE_BACKEND_URL` (dev proxy target, default `http://localhost:8080`)
 - **An error message ends in "(ref 3f2a9c41)"**: the ref is the start of the request id. `grep` it in the backend and
   inference logs (every line shows `[requestId]`) to follow that request through both services.
 - **Inference logs `MISCONFIGURED` / backend logs an ERROR "Inference … failed"**: an operator problem (missing
-  provider key or extra, embedding dimensions, `VED_INFERENCE_API_KEY` differs between the services). Documents keep
+  provider key or extra, embedding dimensions, `SAPIO_INFERENCE_API_KEY` differs between the services). Documents keep
   retrying automatically and continue once it is fixed.
 - **`test_contract.py` or `InferenceContractTest` fails**: the inference API and the committed
   `contracts/inference-openapi.json` (or the backend DTOs) disagree. After an intentional change run
   `.venv/bin/python scripts/export_openapi.py` in `inference/` ([inference-api.md](../specs/inference-api.md#contract-file)).
 - **Logged out after every reload**: the refresh cookie is `Secure` only if
-  `VED_COOKIE_SECURE=true`. Over plain http://localhost it must stay `false`.
+  `SAPIO_COOKIE_SECURE=true`. Over plain http://localhost it must stay `false`.

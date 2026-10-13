@@ -16,7 +16,7 @@ export function PersonalizeNudge() {
     <Card tight className="pz-nudge">
       <Emoji name="personalize" size={40} />
       <div className="pz-nudge-text">
-        <strong>Make Ved yours</strong>
+        <strong>Make Sapio yours</strong>
         <span className="small muted">Tell us your level and how you like to learn; lessons and notes will be written for you.</span>
       </div>
       <ButtonLink to="/personalize" variant="soft" size="sm" iconRight={<ArrowRight size={16} />}>

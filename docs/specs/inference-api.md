@@ -6,7 +6,7 @@ All JSON is camelCase. The machine-readable contract is `contracts/inference-ope
 
 ## Authentication
 
-Header `X-Internal-Api-Key: <VED_INFERENCE_API_KEY>`, which must equal the backend's `VED_INFERENCE_API_KEY`.
+Header `X-Internal-Api-Key: <SAPIO_INFERENCE_API_KEY>`, which must equal the backend's `SAPIO_INFERENCE_API_KEY`.
 Missing or wrong key → `401 UNAUTHORIZED`. `/health` is open.
 
 ## Request correlation
@@ -14,7 +14,7 @@ Missing or wrong key → `401 UNAUTHORIZED`. `/health` is open.
 Every request may carry `X-Request-Id` (the backend sends its own, see
 [api-conventions.md](api-conventions.md#request-ids)). An id matching `[A-Za-z0-9._:-]{1,128}` is adopted,
 anything else is replaced by a new one. The id is echoed in the `X-Request-Id` response header and in error bodies,
-and every `ved_inference.*` log line shows it as `[request-id]`, so one learner action can be followed through both
+and every `sapio_inference.*` log line shows it as `[request-id]`, so one learner action can be followed through both
 services' logs.
 
 ## Errors

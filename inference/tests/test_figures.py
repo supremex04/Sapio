@@ -1,7 +1,7 @@
 from PIL import Image, ImageDraw
 
-from ved_inference.parsing.figures import encode, filter_figures
-from ved_inference.parsing.models import Block
+from sapio_inference.parsing.figures import encode, filter_figures
+from sapio_inference.parsing.models import Block
 
 PAGE = (0.0, 0.0, 1000.0, 1000.0)
 AREAS = {p: 1_000_000.0 for p in range(1, 10)}

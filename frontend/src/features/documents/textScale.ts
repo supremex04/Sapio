@@ -3,7 +3,7 @@ export const TEXT_STEPS = [0, 25, 50, 75, 100] as const;
 export type TextStep = (typeof TEXT_STEPS)[number];
 /** The base reading size is small for long documents, so the preview starts one step up. */
 export const DEFAULT_TEXT_STEP: TextStep = 25;
-export const TEXT_STEP_KEY = "ved.preview.textStep";
+export const TEXT_STEP_KEY = "sapio.preview.textStep";
 
 export function stepBy(current: TextStep, direction: 1 | -1): TextStep {
   const i = TEXT_STEPS.indexOf(current) + direction;

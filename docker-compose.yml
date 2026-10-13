@@ -1,20 +1,21 @@
 # Local development infrastructure. Application services run on the host (see docs/guides/local-development.md).
+name: sapio # container and volume names, independent of the checkout folder's name
 services:
   postgres:
     image: pgvector/pgvector:pg17 # PostgreSQL 17 + pgvector for vector search (ADR-0009)
     environment:
-      POSTGRES_DB: ved
-      POSTGRES_USER: ved
-      POSTGRES_PASSWORD: ved
+      POSTGRES_DB: sapio
+      POSTGRES_USER: sapio
+      POSTGRES_PASSWORD: sapio
     ports:
       - "5433:5432" # 5433 to avoid clashing with a system PostgreSQL on 5432
     volumes:
-      - ved-postgres:/var/lib/postgresql/data
+      - sapio-postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ved -d ved"]
+      test: ["CMD-SHELL", "pg_isready -U sapio -d sapio"]
       interval: 5s
       timeout: 3s
       retries: 10
 
 volumes:
-  ved-postgres:
+  sapio-postgres:

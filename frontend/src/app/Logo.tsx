@@ -1,4 +1,4 @@
-/** Ved mark: a flat diya with its flame (the lamp of knowledge; Dia is its character form). */
+/** Sapio mark: a flat diya with its flame (the lamp of knowledge; Dia is its character form). */
 export function Logo({ size = 32 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden className="logo-mark">
@@ -14,7 +14,7 @@ export function Wordmark() {
   return (
     <span className="brand">
       <Logo />
-      <span className="brand-name">ved</span>
+      <span className="brand-name">sapio</span>
     </span>
   );
 }

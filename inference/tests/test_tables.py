@@ -1,5 +1,5 @@
-from ved_inference.parsing.layout import inline_html_to_markdown
-from ved_inference.parsing.tables import repair_tables, split_row
+from sapio_inference.parsing.layout import inline_html_to_markdown
+from sapio_inference.parsing.tables import repair_tables, split_row
 
 
 def test_cell_line_breaks_stay_inside_the_row():

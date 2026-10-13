@@ -1,12 +1,12 @@
 # 0010. Vendor-neutral model configuration: providers, per-task routes, fallbacks
 
-- Status: Accepted (extends 0006; replaces its `VED_INFERENCE_GEMINI_*` configuration)
+- Status: Accepted (extends 0006; replaces its `SAPIO_INFERENCE_GEMINI_*` configuration)
 - Date: 2026-10-10
 
 ## Context
 
 ADR-0006 put the LLM behind a port, but configuration still assumed one vendor: a Gemini client,
-a model list in `VED_INFERENCE_GEMINI_*` env vars, and the same model for every job. In practice:
+a model list in `SAPIO_INFERENCE_GEMINI_*` env vars, and the same model for every job. In practice:
 
 - Jobs differ: bulk indexing (summaries of hundreds of sections) wants a cheap model; notes and
   lessons want a strong one; figure descriptions need vision.
@@ -31,7 +31,7 @@ a model list in `VED_INFERENCE_GEMINI_*` env vars, and the same model for every 
   an exhausted quota (hint > 2 × the backoff cap, or `insufficient_quota`) as **model unavailable** →
   next model immediately.
 - Keys are referenced by **env var name** (`api_key_env`), never stored in YAML.
-- Precedence: env `VED_INFERENCE_*` (`__` for nesting) > `.env` > `settings.yaml` (`VED_INFERENCE_CONFIG`
+- Precedence: env `SAPIO_INFERENCE_*` (`__` for nesting) > `.env` > `settings.yaml` (`SAPIO_INFERENCE_CONFIG`
   picks the file) > code defaults. Pydantic validates the whole tree at startup, including that
   every route names a defined provider.
 - `embeddings` names one provider/model with fixed `dimensions` (768, matching `vector(768)`) and a
@@ -42,8 +42,8 @@ a model list in `VED_INFERENCE_GEMINI_*` env vars, and the same model for every 
 - Every vector stores the `embedding_model` that produced it. Search compares only vectors of the
   query's model; a document with stale vectors is re-embedded in the background on its next search.
   A startup check logs an error when the inference service's dimensions don't fit the database.
-- Tunings move to validated `@ConfigurationProperties` records (`ved.knowledge.*`, `ved.study.context.*`,
-  `ved.documents.processing.*`) in `application.yml`, overridable by env vars through relaxed binding.
+- Tunings move to validated `@ConfigurationProperties` records (`sapio.knowledge.*`, `sapio.study.context.*`,
+  `sapio.documents.processing.*`) in `application.yml`, overridable by env vars through relaxed binding.
 
 ## Alternatives considered
 
@@ -60,7 +60,7 @@ a model list in `VED_INFERENCE_GEMINI_*` env vars, and the same model for every 
   adding a new *wire format* is one `Provider` subclass + a branch in `llm/registry.py`.
 - Quota exhaustion degrades to the next model instead of failing or stalling.
 - Changing the embedding model is safe and gradual, but similarity thresholds
-  (`ved.knowledge.retrieval.figure-min-similarity`) are model-specific and must be re-tuned; changing
+  (`sapio.knowledge.retrieval.figure-min-similarity`) are model-specific and must be re-tuned; changing
   the **dimensions** still needs a database migration.
 - Output quality now depends on configuration: a weak model in a route degrades lessons or grading
   without any code change. An evaluation harness (roadmap) becomes more important.

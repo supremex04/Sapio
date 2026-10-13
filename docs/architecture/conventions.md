@@ -26,7 +26,7 @@ implementation appears.
 
 ## Backend (Java / Spring Boot)
 
-- **Package by feature**: `com.ved.<feature>`. Classes are package-private by default; make
+- **Package by feature**: `com.sapio.<feature>`. Classes are package-private by default; make
   public only what other features use.
 - **Constructor injection only**, no field injection, final fields.
 - **Entities protect their invariants**: state transitions are methods (`document.markCompleted(..)`),
@@ -34,8 +34,8 @@ implementation appears.
 - **DTOs are records** (`*Request`, `*Response`); entities never leave the service layer through HTTP.
 - **Transactions** live on service methods. Never call slow external systems inside a transaction
   (see `DocumentProcessor`).
-- **Configuration** is typed: `@ConfigurationProperties` records with validation, under the `ved.*` prefix.
-  Every setting that differs per environment can be overridden by an env var (`VED_*`).
+- **Configuration** is typed: `@ConfigurationProperties` records with validation, under the `sapio.*` prefix.
+  Every setting that differs per environment can be overridden by an env var (`SAPIO_*`).
 - **Time** comes from the injected `Clock`, never `Instant.now()` in business logic.
 - **Errors**: throw `ApplicationException(ErrorCode, message)` for expected failures; the
   `GlobalExceptionHandler` renders the standard error body. Add new codes to `ErrorCode`. AI ports throw an

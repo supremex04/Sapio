@@ -79,7 +79,7 @@ const LEARNER: Record<AcademicLevel, string> = {
   NONE: "someone new to the subject",
 };
 
-/** A plain-language summary of what Ved will do with the profile (shown live while editing). */
+/** A plain-language summary of what Sapio will do with the profile (shown live while editing). */
 export function describe(p: Personalization): string[] {
   const lines: string[] = [];
   const field = p.fieldOfStudy?.trim();

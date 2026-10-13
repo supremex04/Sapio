@@ -42,7 +42,7 @@ export function LoginPage() {
         </Button>
       </form>
       <p className="muted small center">
-        New to Ved? <Link to="/register">Create a free account</Link>
+        New to Sapio? <Link to="/register">Create a free account</Link>
       </p>
     </AuthLayout>
   );

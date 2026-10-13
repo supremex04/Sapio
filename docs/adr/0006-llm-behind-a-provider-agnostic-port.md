@@ -17,7 +17,7 @@ validated output, not free text.
   the Pydantic model, a low thinking level for latency, retries with backoff on 429/5xx or invalid
   output, then fallback through a configured model list.
 - Default model `gemini-3.5-flash` (≈2–8 s per call with structured output in our tests); fallbacks
-  `gemini-3.8-flash`, `gemini-3.5-flash-lite`. All configurable via `VED_INFERENCE_GEMINI_*`.
+  `gemini-3.8-flash`, `gemini-3.5-flash-lite`. All configurable via `SAPIO_INFERENCE_GEMINI_*`.
 - `StudyService` treats LLM output as untrusted: it validates chunk references, drops malformed
   questions, shuffles multiple-choice options (LLMs favour certain answer positions), clamps
   grades into their verdict band, and enforces lesson structure (warm-up first, explain-back last).
@@ -31,7 +31,7 @@ validated output, not free text.
   so each piece of content is generated once.
 - The API key lives only in the inference service's environment (`inference/.env`, gitignored).
 
-> **Note (2026-10-10):** models are no longer configured with `VED_INFERENCE_LLM_PROVIDER` /
-> `VED_INFERENCE_GEMINI_*`; providers, per-task routes and cross-vendor fallbacks live in
+> **Note (2026-10-10):** models are no longer configured with `SAPIO_INFERENCE_LLM_PROVIDER` /
+> `SAPIO_INFERENCE_GEMINI_*`; providers, per-task routes and cross-vendor fallbacks live in
 > `inference/settings.yaml` ([ADR-0010](0010-vendor-neutral-model-configuration.md),
-> [configuration.md](../guides/configuration.md)). Only the key, `VED_INFERENCE_GEMINI_API_KEY`, kept its name.
+> [configuration.md](../guides/configuration.md)). Only the key, `SAPIO_INFERENCE_GEMINI_API_KEY`, kept its name.

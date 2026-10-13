@@ -24,10 +24,10 @@ from pathlib import Path
 import numpy as np
 from pydantic import BaseModel
 
-from ved_inference.config import EmbeddingConfig, ProviderConfig, get_settings
-from ved_inference.llm.base import EmbedItem, ImagePart
-from ved_inference.llm.registry import build_llm, build_provider
-from ved_inference.llm.router import RoutedEmbedder
+from sapio_inference.config import EmbeddingConfig, ProviderConfig, get_settings
+from sapio_inference.llm.base import EmbedItem, ImagePart
+from sapio_inference.llm.registry import build_llm, build_provider
+from sapio_inference.llm.router import RoutedEmbedder
 
 QWEN = {
     "file": "onnx/model_int8.onnx",
@@ -38,7 +38,7 @@ QWEN = {
 }
 CANDIDATES = {
     "gemini-embedding-2 (API, multimodal)": (
-        ProviderConfig(type="gemini", api_key_env="VED_INFERENCE_GEMINI_API_KEY"),
+        ProviderConfig(type="gemini", api_key_env="SAPIO_INFERENCE_GEMINI_API_KEY"),
         EmbeddingConfig(
             provider="p", model="gemini-embedding-2", dimensions=768, multimodal=True, batch_size=64
         ),

@@ -1,6 +1,6 @@
 /** Below this width (and above the 1024px desktop breakpoint) the sidebar starts collapsed unless the user chose. */
 export const AUTO_COLLAPSE_BELOW = 1440;
-export const STORAGE_KEY = "ved.sidebar";
+export const STORAGE_KEY = "sapio.sidebar";
 
 export type SidebarPreference = "collapsed" | "expanded" | null;
 

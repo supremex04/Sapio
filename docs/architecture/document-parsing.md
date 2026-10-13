@@ -2,8 +2,8 @@
 
 How the inference service turns an uploaded PDF or image into a structured tree (nodes → leaf chunks → figures) in one call to `POST /v1/extract`.
 
-Code: `inference/src/ved_inference/parsing/` (`parser.py`, `layout.py`, `tree.py`, `figures.py`, `models.py`, `language.py`),
-`inference/src/ved_inference/engines/`, `inference/src/ved_inference/api/routes.py`, `inference/src/ved_inference/config.py`,
+Code: `inference/src/sapio_inference/parsing/` (`parser.py`, `layout.py`, `tree.py`, `figures.py`, `models.py`, `language.py`),
+`inference/src/sapio_inference/engines/`, `inference/src/sapio_inference/api/routes.py`, `inference/src/sapio_inference/config.py`,
 `inference/settings.yaml`
 
 Requirements live in the [knowledge spec](../specs/knowledge.md) (KN-1 to KN-3) and [ADR-0009](../adr/0009-knowledge-store-tree-hybrid-index-figures.md);
@@ -201,7 +201,7 @@ pre-order, so a parent always precedes its children. Schemas: `api/schemas.py`.
 
 ## Tuning knobs (`inference/settings.yaml`)
 
-Override any key with `VED_INFERENCE_<SECTION>__<KEY>` (see [guides/configuration.md](../guides/configuration.md)).
+Override any key with `SAPIO_INFERENCE_<SECTION>__<KEY>` (see [guides/configuration.md](../guides/configuration.md)).
 
 | Key | Default | Effect |
 |---|---|---|

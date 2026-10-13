@@ -1,4 +1,4 @@
-from ved_inference.study import prompts
+from sapio_inference.study import prompts
 
 
 def test_answer_prompt_puts_the_learners_screen_first():

@@ -1,6 +1,6 @@
-# Ved — Technical Documentation
+# Sapio — Technical Documentation
 
-Ved is an interactive learning platform. Students learn and submit work; teachers follow their
+Sapio is an interactive learning platform. Students learn and submit work; teachers follow their
 progress and assign personalised tasks, homework and exams, driven by analytics and AI.
 
 **Current milestone (M3):** upload any educational document → it is parsed into a navigable knowledge store
@@ -12,7 +12,7 @@ plus spaced review, XP/levels/streaks, daily goals and learning analytics.
 
 | Area | Document | Read it when… |
 |---|---|---|
-| Product | [capabilities.md](capabilities.md) | you want to know what Ved can do today (UI vs API-only vs planned) |
+| Product | [capabilities.md](capabilities.md) | you want to know what Sapio can do today (UI vs API-only vs planned) |
 | Architecture | [architecture/overview.md](architecture/overview.md) | you need the big picture: services, data flow, data model |
 | | [architecture/conventions.md](architecture/conventions.md) | you write code: layering, SOLID in practice, how to add a feature |
 | | [architecture/learning-science.md](architecture/learning-science.md) | you design anything learner-facing: the evidence behind every UX decision |
@@ -31,7 +31,7 @@ plus spaced review, XP/levels/streaks, daily goals and learning analytics.
 | | [specs/api-conventions.md](specs/api-conventions.md) | adding or consuming any public REST endpoint |
 | | [specs/inference-api.md](specs/inference-api.md) | changing the backend ↔ Python contract |
 | Decisions | [adr/](adr/README.md) | you wonder *why* something is the way it is |
-| Guides | [guides/how-ved-works.md](guides/how-ved-works.md) | **start here**: a plain-language tour of the whole flow (documents, embeddings, search, lessons) |
+| Guides | [guides/how-sapio-works.md](guides/how-sapio-works.md) | **start here**: a plain-language tour of the whole flow (documents, embeddings, search, lessons) |
 | | [guides/local-development.md](guides/local-development.md) | setting up, running and testing locally |
 | | [guides/configuration.md](guides/configuration.md) | switching AI vendors/models, OCR engines, or tuning retrieval, budgets and processing |
 | | [guides/ocr-engines.md](guides/ocr-engines.md) | switching OCR engines / running Unlimited-OCR on a GPU |

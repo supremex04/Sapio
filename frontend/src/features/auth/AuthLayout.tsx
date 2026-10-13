@@ -19,7 +19,7 @@ export function AuthLayout({ title, subtitle, mood, greeting, children }: Props)
   return (
     <main className="auth-screen">
       <header className="auth-top">
-        <Link to="/login" aria-label="Ved home" className="auth-brand">
+        <Link to="/login" aria-label="Sapio home" className="auth-brand">
           <Wordmark />
         </Link>
       </header>
@@ -36,7 +36,7 @@ export function AuthLayout({ title, subtitle, mood, greeting, children }: Props)
             </div>
             {children}
           </div>
-          <p className="auth-foot xs muted center">Ved, from Sanskrit veda: "knowledge".</p>
+          <p className="auth-foot xs muted center">Sapio, from Sanskrit veda: "knowledge".</p>
         </div>
       </PageTransition>
     </main>

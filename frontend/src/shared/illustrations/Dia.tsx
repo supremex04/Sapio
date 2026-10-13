@@ -2,7 +2,7 @@ import { cx } from "../ui/cx";
 import "./dia.css";
 
 /**
- * Dia: Ved's mascot, a little clay diya (the lamp of knowledge) whose flame is its mood.
+ * Dia: Sapio's mascot, a little clay diya (the lamp of knowledge) whose flame is its mood.
  * Hand-made SVG (ours). Colours come from tokens (--clay-*, --amber-*), so it follows the theme.
  * Use at most once per screen, at moments that matter. See docs/specs/design-system.md.
  */
