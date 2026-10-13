@@ -16,6 +16,7 @@ frontend routes, inference endpoints) as of 2026-10-10. Details live in the link
 | Test mode: assessments, grading, report | Available |
 | Recall (spaced review) | Available |
 | Study notes & ask-your-document (Read mode) | Available notes (Expand / Revision in the document Preview) · API only ask-your-document, search |
+| Personalize: academic level, occupation, field, depth, preferences, goal; lessons, notes, tests and tutor written for it | Available |
 | Gamification & analytics | Available |
 | Design system (light/dark, Diya v2, `/styleguide`) | Available |
 | AI vendor-neutrality (providers, per-task routes, fallbacks) | Available (config) |

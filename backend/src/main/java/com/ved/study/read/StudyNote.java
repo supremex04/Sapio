@@ -48,12 +48,16 @@ public class StudyNote {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "profile_signature")
+    private String profileSignature;
+
     protected StudyNote() {
         // for JPA
     }
 
     StudyNote(UUID nodeId, NoteStyle style, String markdown, List<UUID> figureIds, List<UUID> sourceNodeIds,
-              String model, Instant now) {
+              String model, String profileSignature, Instant now) {
+        this.profileSignature = profileSignature;
         this.nodeId = nodeId;
         this.style = style;
         this.markdown = markdown;
@@ -61,6 +65,22 @@ public class StudyNote {
         this.sourceNodeIds = List.copyOf(sourceNodeIds);
         this.model = model;
         this.createdAt = now;
+    }
+
+    /** Replaces the notes with a version written for the learner's current profile. */
+    void rewrite(String markdown, List<UUID> figureIds, List<UUID> sourceNodeIds, String model, String profileSignature,
+                 Instant now) {
+        this.markdown = markdown;
+        this.figureIds = List.copyOf(figureIds);
+        this.sourceNodeIds = List.copyOf(sourceNodeIds);
+        this.model = model;
+        this.profileSignature = profileSignature;
+        this.createdAt = now;
+    }
+
+    /** The learner profile these notes were written for (Personalization signature). */
+    public String getProfileSignature() {
+        return profileSignature;
     }
 
     public NoteStyle getStyle() {

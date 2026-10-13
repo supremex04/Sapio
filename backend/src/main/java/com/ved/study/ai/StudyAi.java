@@ -8,6 +8,7 @@ import com.ved.study.material.MaterialKind;
 import com.ved.study.material.TopicDifficulty;
 import com.ved.study.question.QuestionType;
 import com.ved.study.question.Verdict;
+import com.ved.user.personalization.LearnerProfile;
 
 /**
  * Port to the AI that writes study content. Implemented by {@link InferenceStudyAi} (Python service + LLM).
@@ -33,6 +34,15 @@ public interface StudyAi {
     NotesDraft notes(NotesSpec spec);
 
     // ---- shared
+
+    /**
+     * Who the content is written for ("Personalize"): shapes depth, vocabulary, examples and emphasis, never facts or
+     * grading. {@code null} on a spec means a general audience. {@code field} is the learner's own words.
+     */
+    record Learner(LearnerProfile.AcademicLevel academicLevel, LearnerProfile.Occupation occupation, String field,
+                   LearnerProfile.Depth depth, List<LearnerProfile.Preference> preferences,
+                   LearnerProfile.Goal goal) {
+    }
 
     /** A retrieved section as the AI sees it; {@code id} is the citation id it must use ("§2.3"). */
     record Source(String id, String path, String pages, String summary, List<String> passages) {
@@ -75,7 +85,7 @@ public interface StudyAi {
 
     record LessonSpec(String materialTitle, String language, MaterialKind kind, TopicBrief topic,
                       List<String> previousTopics, List<String> nextTopics, List<Source> sections,
-                      List<SourceFigure> figures) {
+                      List<SourceFigure> figures, Learner learner) {
     }
 
     record SectionDraft(String kind, String heading, String body) {
@@ -96,7 +106,7 @@ public interface StudyAi {
     }
 
     record QuestionSpec(String materialTitle, String language, MaterialKind kind, int count, String difficulty,
-                        List<QuestionTopic> topics, List<String> avoidPrompts) {
+                        List<QuestionTopic> topics, List<String> avoidPrompts, Learner learner) {
     }
 
     record QuestionDraft(String topicKey, QuestionType type, String prompt, List<String> options,
@@ -127,7 +137,7 @@ public interface StudyAi {
     }
 
     record FeedbackSpec(String materialTitle, String language, double score, List<TopicResult> topics,
-                        List<MissedQuestion> missed) {
+                        List<MissedQuestion> missed, Learner learner) {
     }
 
     record WeakArea(String topicTitle, String advice) {
@@ -148,7 +158,8 @@ public interface StudyAi {
      * @param focus what the learner is looking at (a lesson section, or a check question and their answer); "" if none
      */
     record AnswerSpec(String materialTitle, String language, String question, List<ChatTurn> history,
-                      List<Source> sections, List<SourceFigure> figures, String style, String focus) {
+                      List<Source> sections, List<SourceFigure> figures, String style, String focus,
+                      Learner learner) {
     }
 
     record AnswerDraft(String answer, boolean grounded, List<String> citedSectionIds, List<String> figureIds,
@@ -158,7 +169,7 @@ public interface StudyAi {
     /** @param scope "section" (full notes) or "overview" (chapter notes from its subsections) */
     /** @param style "expand" (in-depth explanation) or "revision" (condensed revision notes) */
     record NotesSpec(String materialTitle, String language, MaterialKind kind, String title, String path, String scope,
-                     String style, List<Source> sections, List<SourceFigure> figures) {
+                     String style, List<Source> sections, List<SourceFigure> figures, Learner learner) {
     }
 
     record NotesDraft(String markdown, List<String> figureIds, List<String> citedSectionIds, String model) {

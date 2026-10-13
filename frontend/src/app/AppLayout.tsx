@@ -85,6 +85,7 @@ const NAV: { to: string; label: string; emoji: IconName; end: boolean }[] = [
   { to: "/library", label: "Library", emoji: "library", end: false },
   { to: "/explore", label: "Explore", emoji: "globe-showing-asia-australia", end: false },
   { to: "/recall", label: "Recall", emoji: "recall", end: false },
+  { to: "/personalize", label: "Personalize", emoji: "personalize", end: false },
 ];
 
 /**

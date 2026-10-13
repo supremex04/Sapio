@@ -19,6 +19,7 @@ import com.ved.knowledge.retrieval.ContextAssembler.Section;
 import com.ved.knowledge.store.KnowledgeStore;
 import com.ved.knowledge.store.KnowledgeStore.NodeRow;
 import com.ved.study.LearningActivityEvent;
+import com.ved.study.ai.Personalization;
 import com.ved.study.ai.StudyAi;
 import com.ved.study.material.MaterialAccess;
 import com.ved.study.material.StudyMaterial;
@@ -51,9 +52,12 @@ public class ReadService {
     private final ApplicationEventPublisher events;
     private final TransactionTemplate tx;
     private final Clock clock;
+    private final Personalization personalization;
 
     ReadService(MaterialAccess access, KnowledgeStore store, ContextAssembler context, FigureViews figures, StudyAi ai,
-                StudyNoteRepository notes, ApplicationEventPublisher events, TransactionTemplate tx, Clock clock) {
+                StudyNoteRepository notes, ApplicationEventPublisher events, TransactionTemplate tx, Clock clock,
+                Personalization personalization) {
+        this.personalization = personalization;
         this.access = access;
         this.store = store;
         this.context = context;
@@ -73,8 +77,11 @@ public class ReadService {
             throw ApplicationException.notFound("Section");
         }
         boolean overview = isLarge(documentId, node, nodes);
+        Personalization.ForLearner learner = personalization.forLearner(material.getOwnerId());
+        // Cached per section and style; notes written for an earlier profile are rewritten for the current one.
         StudyNote note = notes.findByNodeIdAndStyle(nodeId, style)
-                .orElseGet(() -> generate(material, node, nodes, overview, style));
+                .filter(n -> learner.signature().equals(n.getProfileSignature()))
+                .orElseGet(() -> generate(material, node, nodes, overview, style, learner));
         return new NotesResponse(nodeId, style, overview ? "overview" : "section", note.getMarkdown(),
                 figures.byIds(note.getFigureIds()), refs(note.getSourceNodeIds(), nodes), note.getCreatedAt());
     }
@@ -95,7 +102,7 @@ public class ReadService {
                 : request.history().stream().map(t -> new StudyAi.ChatTurn(t.role(), t.text())).toList();
         StudyAi.AnswerDraft draft = ai.answer(new StudyAi.AnswerSpec(material.getTitle(), material.getLanguage(),
                 request.question(), history, StudyAi.sources(sources.sections()), StudyAi.figures(sources.figures()),
-                "answer", ""));
+                "answer", "", personalization.forLearner(material.getOwnerId()).learner()));
 
         Map<String, UUID> bySection = sources.sections().stream()
                 .collect(Collectors.toMap(Section::id, Section::nodeId, (a, b) -> a));
@@ -110,7 +117,7 @@ public class ReadService {
     // ------------------------------------------------------------------------------- notes generation
 
     private StudyNote generate(StudyMaterial material, NodeRow node, Map<UUID, NodeRow> nodes, boolean overview,
-                               NoteStyle style) {
+                               NoteStyle style, Personalization.ForLearner learner) {
         UUID documentId = material.getDocumentId();
         Context sources;
         if (overview) {
@@ -132,15 +139,23 @@ public class ReadService {
         StudyAi.NotesDraft draft = ai.notes(new StudyAi.NotesSpec(material.getTitle(), material.getLanguage(),
                 material.getKind(), node.title(), ContextAssembler.breadcrumb(nodes, node), overview ? "overview" : "section",
                 style.name().toLowerCase(Locale.ROOT), StudyAi.sources(sources.sections()),
-                StudyAi.figures(sources.figures())));
+                StudyAi.figures(sources.figures()), learner.learner()));
         Map<String, UUID> bySection = sources.sections().stream()
                 .collect(Collectors.toMap(Section::id, Section::nodeId, (a, b) -> a));
         List<UUID> cited = draft.citedSectionIds() == null ? List.of()
                 : draft.citedSectionIds().stream().map(bySection::get).filter(Objects::nonNull).distinct().toList();
-        StudyNote note = new StudyNote(node.id(), style, draft.markdown(), uuids(draft.figureIds()), cited, draft.model(),
-                clock.instant());
         try {
-            return tx.execute(status -> notes.saveAndFlush(note));
+            return tx.execute(status -> {
+                // Rewrite in place when notes for an earlier profile exist; otherwise create them.
+                StudyNote note = notes.findByNodeIdAndStyle(node.id(), style).orElse(null);
+                if (note != null) {
+                    note.rewrite(draft.markdown(), uuids(draft.figureIds()), cited, draft.model(), learner.signature(),
+                            clock.instant());
+                    return notes.saveAndFlush(note);
+                }
+                return notes.saveAndFlush(new StudyNote(node.id(), style, draft.markdown(), uuids(draft.figureIds()),
+                        cited, draft.model(), learner.signature(), clock.instant()));
+            });
         } catch (DataIntegrityViolationException e) {
             return notes.findByNodeIdAndStyle(node.id(), style).orElseThrow(() -> e); // generated concurrently
         }

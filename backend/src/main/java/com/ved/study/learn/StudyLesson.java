@@ -44,12 +44,17 @@ public class StudyLesson {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    /** The learner profile the lesson was written for (Personalization signature). */
+    @Column(name = "profile_signature")
+    private String profileSignature;
+
     protected StudyLesson() {
         // for JPA
     }
 
     StudyLesson(UUID topicId, String sectionsJson, List<String> keyTakeaways, List<UUID> figureIds, String model,
-                Instant createdAt) {
+                String profileSignature, Instant createdAt) {
+        this.profileSignature = profileSignature;
         this.topicId = topicId;
         this.sectionsJson = sectionsJson;
         this.keyTakeaways = List.copyOf(keyTakeaways);

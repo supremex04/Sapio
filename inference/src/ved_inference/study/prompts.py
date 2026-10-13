@@ -2,6 +2,7 @@ from collections.abc import Iterable
 
 """Prompt builders. Pedagogy is grounded in docs/architecture/learning-science.md."""
 
+from ved_inference.study.learner import LearnerIn, learner_block
 
 LANGUAGE_NAMES = {
     "en": "English",
@@ -34,8 +35,8 @@ def language_name(code: str) -> str:
     return LANGUAGE_NAMES.get(code.lower(), code)
 
 
-def system(language: str) -> str:
-    return TUTOR_SYSTEM.format(language=language_name(language))
+def system(language: str, learner: "LearnerIn | None" = None) -> str:
+    return TUTOR_SYSTEM.format(language=language_name(language)) + learner_block(learner)
 
 
 def format_sources(sources: Iterable[tuple[int, str, str]]) -> str:

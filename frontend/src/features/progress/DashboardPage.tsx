@@ -3,6 +3,8 @@ import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { ProgressPanel } from "../../app/ProgressPanel";
+import { PersonalizeNudge } from "../personalization/PersonalizeNudge";
+import "../personalization/personalization.css";
 import { Emoji } from "../../shared/illustrations/Emoji";
 import type { IconName } from "../../shared/illustrations/Emoji";
 import { firstName, formatRelative, greeting } from "../../shared/lib/format";
@@ -74,6 +76,8 @@ export function DashboardPage() {
         </header>
 
         <NextStepCard step={nextStep} />
+
+        <PersonalizeNudge />
 
         <ProgressPanel className="progress-panel-inline" />
 

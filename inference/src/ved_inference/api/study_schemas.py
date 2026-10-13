@@ -9,6 +9,7 @@ from typing import Literal
 from pydantic import Field
 
 from ved_inference.api.schemas import ApiModel
+from ved_inference.study.learner import LearnerIn
 from ved_inference.study.models import Difficulty, MaterialKind, QuestionType, SectionKind, Verdict
 
 AssessmentDifficulty = Literal["EASY", "MIXED", "HARD"]
@@ -89,6 +90,8 @@ class LessonRequest(ApiModel):
     next_topics: list[str] = Field(default_factory=list)
     sections: list[SectionIn] = Field(min_length=1)
     figures: list[FigureRef] = Field(default_factory=list)
+    #: Who the content is for (depth, vocabulary, examples); None = a general audience
+    learner: LearnerIn | None = None
 
 
 class SectionOut(ApiModel):
@@ -131,6 +134,8 @@ class QuestionsRequest(ApiModel):
     difficulty: AssessmentDifficulty = "MIXED"
     topics: list[QuestionTopicIn] = Field(min_length=1)
     avoid_prompts: list[str] = Field(default_factory=list)
+    #: Who the content is for (depth, vocabulary, examples); None = a general audience
+    learner: LearnerIn | None = None
 
 
 class QuestionOut(ApiModel):
@@ -191,6 +196,8 @@ class FeedbackRequest(ApiModel):
     score: float
     topics: list[TopicResult]
     missed: list[MissedQuestion] = Field(default_factory=list)
+    #: Who the content is for (depth, vocabulary, examples); None = a general audience
+    learner: LearnerIn | None = None
 
 
 class WeakAreaOut(ApiModel):
@@ -225,6 +232,8 @@ class AnswerRequest(ApiModel):
     # What the learner is looking at (a lesson section, or a check question with their answer), so short
     # follow-ups like "why?" are understood. Empty when unknown.
     focus: str = Field(default="", max_length=8000)
+    #: Who the content is for (depth, vocabulary, examples); None = a general audience
+    learner: LearnerIn | None = None
 
 
 class AnswerResponse(ApiModel):
@@ -246,6 +255,8 @@ class NotesRequest(ApiModel):
     style: Literal["expand", "revision"] = "expand"
     sections: list[SectionIn] = Field(min_length=1)
     figures: list[FigureRef] = Field(default_factory=list)
+    #: Who the content is for (depth, vocabulary, examples); None = a general audience
+    learner: LearnerIn | None = None
 
 
 class NotesResponse(ApiModel):

@@ -25,6 +25,7 @@ plus spaced review, XP/levels/streaks, daily goals and learning analytics.
 | | [specs/knowledge.md](specs/knowledge.md) | working on the document tree, figures, search, notes, ask |
 | | [specs/study.md](specs/study.md) | working on Learn / Test / review / study material |
 | | [specs/sharing.md](specs/sharing.md) | working on sharing, Explore and imports |
+| | [specs/personalization.md](specs/personalization.md) | working on Personalize (learner profile, tailored content) |
 | | [specs/progress.md](specs/progress.md) | working on XP, streaks, goals, analytics |
 | | [specs/design-system.md](specs/design-system.md) | building UI: tokens, components, motion, theming |
 | | [specs/api-conventions.md](specs/api-conventions.md) | adding or consuming any public REST endpoint |

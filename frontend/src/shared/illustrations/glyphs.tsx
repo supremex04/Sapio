@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 
 /** The rounded tile with its chunky bottom edge, in one of the design system's colours. */
-function Tile({ tone }: { tone: "teal" | "blue" | "amber" | "green" }) {
+function Tile({ tone }: { tone: "teal" | "blue" | "amber" | "green" | "purple" }) {
   return (
     <>
       <rect x="3" y="6" width="42" height="39" rx="12" fill={`var(--${tone}-edge)`} />
@@ -67,6 +67,22 @@ const GLYPHS = {
         <rect x="11" y="24" width="6.5" height="10" rx="2.2" />
         <rect x="20.75" y="18" width="6.5" height="16" rx="2.2" />
         <rect x="30.5" y="11" width="6.5" height="23" rx="2.2" />
+      </g>
+    </>
+  ),
+  /** Personalize: sliders set to the learner. */
+  personalize: () => (
+    <>
+      <Tile tone="purple" />
+      <g stroke="#fff" strokeWidth="3.6" strokeLinecap="round">
+        <path d="M12 14h24" />
+        <path d="M12 22h24" />
+        <path d="M12 30h24" />
+      </g>
+      <g fill="var(--purple-main)" stroke="#fff" strokeWidth="3.2">
+        <circle cx="29" cy="14" r="3.6" />
+        <circle cx="18" cy="22" r="3.6" />
+        <circle cx="25" cy="30" r="3.6" />
       </g>
     </>
   ),

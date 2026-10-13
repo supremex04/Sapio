@@ -7,6 +7,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
+import com.ved.study.ai.Personalization;
 import com.ved.study.ai.StudyAi;
 import com.ved.study.ai.StudyAiException;
 import com.ved.study.assess.AssessmentReport.Calibration;
@@ -33,9 +34,11 @@ class ReportBuilder {
     private static final Logger log = LoggerFactory.getLogger(ReportBuilder.class);
 
     private final StudyAi ai;
+    private final Personalization personalization;
 
-    ReportBuilder(StudyAi ai) {
+    ReportBuilder(StudyAi ai, Personalization personalization) {
         this.ai = ai;
+        this.personalization = personalization;
     }
 
     /** One assessment item with its (possibly missing) attempt. */
@@ -100,7 +103,7 @@ class ReportBuilder {
                     material.getLanguage(), score,
                     topics.stream().map(t -> new StudyAi.TopicResult(t.title(), t.questionCount(), t.score()))
                             .toList(),
-                    missed));
+                    missed, personalization.forLearner(material.getOwnerId()).learner()));
             Map<String, UUID> ids = new LinkedHashMap<>();
             topics.forEach(t -> ids.put(t.title().toLowerCase(Locale.ROOT), t.topicId()));
             List<WeakArea> weak = n.weakAreas().stream().map(w -> new WeakArea(

@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 import com.ved.common.error.ApplicationException;
 import com.ved.common.error.ErrorCode;
 import com.ved.study.LearningActivityEvent;
+import com.ved.study.ai.Personalization;
 import com.ved.study.ai.StudyAi;
 import com.ved.study.material.MaterialAccess;
 import com.ved.study.material.StudyMaterial;
@@ -65,12 +66,14 @@ public class AssessmentService {
     private final TransactionTemplate tx;
     private final JsonMapper json;
     private final Clock clock;
+    private final Personalization personalization;
 
     AssessmentService(MaterialAccess access, StudyAi ai, AssessmentRepository assessments,
                       AssessmentItemRepository items, StudyTopicRepository topics, StudyQuestionRepository questions,
                       QuestionAttemptRepository attempts, ReviewCardRepository cards, AnswerGrader grader,
                       AnswerRecorder recorder, ReportBuilder reports, ApplicationEventPublisher events,
-                      TransactionTemplate tx, JsonMapper json, Clock clock) {
+                      TransactionTemplate tx, JsonMapper json, Clock clock, Personalization personalization) {
+        this.personalization = personalization;
         this.access = access;
         this.ai = ai;
         this.assessments = assessments;
@@ -106,7 +109,8 @@ public class AssessmentService {
         }).toList();
         StudyAi.QuestionsDraft draft = ai.generateQuestions(new StudyAi.QuestionSpec(material.getTitle(),
                 material.getLanguage(), material.getKind(), request.questionCount(), request.difficulty().name(),
-                topicSpecs, avoid.subList(Math.max(0, avoid.size() - MAX_AVOID_PROMPTS), avoid.size())));
+                topicSpecs, avoid.subList(Math.max(0, avoid.size() - MAX_AVOID_PROMPTS), avoid.size()),
+                personalization.forLearner(material.getOwnerId()).learner()));
 
         Map<String, StudyTopic> byKey = selected.stream()
                 .collect(Collectors.toMap(t -> t.getId().toString(), Function.identity()));

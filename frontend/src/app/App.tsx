@@ -19,6 +19,7 @@ const LessonPage = lazy(() => import("../features/study/learn/LessonPage").then(
 const StyleguidePage = lazy(() => import("./styleguide/StyleguidePage").then((m) => ({ default: m.StyleguidePage })));
 const ExplorePage = lazy(() => import("../features/sharing/ExplorePage").then((m) => ({ default: m.ExplorePage })));
 const SharedItemPage = lazy(() => import("../features/sharing/SharedItemPage").then((m) => ({ default: m.SharedItemPage })));
+const PersonalizePage = lazy(() => import("../features/personalization/PersonalizePage").then((m) => ({ default: m.PersonalizePage })));
 const RecallPage = lazy(() => import("../features/study/recall/RecallPage").then((m) => ({ default: m.RecallPage })));
 
 /** Route table. New features add their routes inside the authenticated layout. */
@@ -39,6 +40,7 @@ export function App() {
                   <Route path="explore" element={<ExplorePage />} />
                   <Route path="explore/:shareId" element={<SharedItemPage />} />
                   <Route path="recall" element={<RecallPage />} />
+                  <Route path="personalize" element={<PersonalizePage />} />
                   <Route path="review" element={<RedirectToRecall />} />
                   <Route path="documents/:id" element={<StudyHubPage />} />
                   <Route path="documents/:id/learn" element={<Navigate to=".." relative="path" replace />} />

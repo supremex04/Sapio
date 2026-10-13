@@ -29,6 +29,16 @@
             "title": "Language",
             "type": "string"
           },
+          "learner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LearnerIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "materialTitle": {
             "title": "Materialtitle",
             "type": "string"
@@ -489,6 +499,16 @@
             "title": "Language",
             "type": "string"
           },
+          "learner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LearnerIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "materialTitle": {
             "title": "Materialtitle",
             "type": "string"
@@ -807,7 +827,7 @@
       "HealthResponse": {
         "properties": {
           "contractVersion": {
-            "default": "1.1",
+            "default": "1.2",
             "title": "Contractversion",
             "type": "string"
           },
@@ -845,6 +865,110 @@
           "speechModel"
         ],
         "title": "HealthResponse",
+        "type": "object"
+      },
+      "LearnerIn": {
+        "description": "The learner's profile (all optional: unknown fields are simply not used).",
+        "properties": {
+          "academicLevel": {
+            "anyOf": [
+              {
+                "enum": [
+                  "SCHOOL",
+                  "HIGHER_SECONDARY",
+                  "UNDERGRADUATE",
+                  "POSTGRADUATE",
+                  "DOCTORAL",
+                  "NONE"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Academiclevel"
+          },
+          "depth": {
+            "anyOf": [
+              {
+                "enum": [
+                  "CONCISE",
+                  "BALANCED",
+                  "IN_DEPTH"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Depth"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Field of study or work, as they wrote it",
+            "title": "Field"
+          },
+          "goal": {
+            "anyOf": [
+              {
+                "enum": [
+                  "EXAM",
+                  "UNDERSTANDING",
+                  "WORK",
+                  "CURIOSITY"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Goal"
+          },
+          "occupation": {
+            "anyOf": [
+              {
+                "enum": [
+                  "STUDENT",
+                  "PROFESSIONAL",
+                  "EDUCATOR",
+                  "SELF_LEARNER"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occupation"
+          },
+          "preferences": {
+            "items": {
+              "enum": [
+                "EXAMPLES",
+                "ANALOGIES",
+                "APPLICATIONS",
+                "FORMAL",
+                "CODE",
+                "STEP_BY_STEP"
+              ],
+              "type": "string"
+            },
+            "title": "Preferences",
+            "type": "array"
+          }
+        },
+        "title": "LearnerIn",
         "type": "object"
       },
       "LectureNotesRequest": {
@@ -891,6 +1015,16 @@
             "default": "en",
             "title": "Language",
             "type": "string"
+          },
+          "learner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LearnerIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "materialTitle": {
             "title": "Materialtitle",
@@ -1190,6 +1324,16 @@
             "default": "en",
             "title": "Language",
             "type": "string"
+          },
+          "learner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LearnerIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "materialTitle": {
             "title": "Materialtitle",
@@ -1505,6 +1649,16 @@
             "default": "en",
             "title": "Language",
             "type": "string"
+          },
+          "learner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LearnerIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "materialTitle": {
             "title": "Materialtitle",

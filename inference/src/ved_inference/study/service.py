@@ -84,7 +84,7 @@ class StudyService:
 
     def lesson(self, request: api.LessonRequest) -> api.LessonResponse:
         lesson = self._llm.generate(
-            system=prompts.system(request.language),
+            system=prompts.system(request.language, request.learner),
             prompt=prompts.lesson_prompt(
                 material_title=request.material_title,
                 kind=request.kind,
@@ -153,7 +153,7 @@ class StudyService:
             for t in request.topics
         )
         result = self._llm.generate(
-            system=prompts.system(request.language),
+            system=prompts.system(request.language, request.learner),
             prompt=prompts.questions_prompt(
                 material_title=request.material_title,
                 kind=request.kind,
@@ -253,7 +253,7 @@ class StudyService:
             for m in request.missed[:20]
         )
         fb = self._llm.generate(
-            system=prompts.system(request.language),
+            system=prompts.system(request.language, request.learner),
             prompt=prompts.feedback_prompt(
                 material_title=request.material_title,
                 score=request.score,
@@ -281,7 +281,7 @@ class StudyService:
             f"{'Learner' if t.role == 'user' else 'Tutor'}: {t.text}" for t in request.history[-10:]
         )
         result = self._llm.generate(
-            system=prompts.system(request.language),
+            system=prompts.system(request.language, request.learner),
             prompt=prompts.answer_prompt(
                 material_title=request.material_title,
                 question=request.question,
@@ -307,7 +307,7 @@ class StudyService:
 
     def notes(self, request: api.NotesRequest) -> api.NotesResponse:
         result = self._llm.generate(
-            system=prompts.system(request.language),
+            system=prompts.system(request.language, request.learner),
             prompt=prompts.notes_prompt(
                 material_title=request.material_title,
                 kind=request.kind,

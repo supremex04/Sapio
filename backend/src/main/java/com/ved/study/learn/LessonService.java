@@ -13,6 +13,7 @@ import com.ved.knowledge.figure.FigureViews;
 import com.ved.knowledge.retrieval.ContextAssembler;
 import com.ved.study.LearningActivityEvent;
 import com.ved.study.StudyProperties;
+import com.ved.study.ai.Personalization;
 import com.ved.study.ai.StudyAi;
 import com.ved.study.material.MaterialAccess;
 import com.ved.study.material.MaterialAccess.TopicContext;
@@ -65,12 +66,14 @@ public class LessonService {
     private final Clock clock;
     private final ContextAssembler context;
     private final FigureViews figures;
+    private final Personalization personalization;
 
     LessonService(MaterialAccess access, StudyAi ai, StudyLessonRepository lessons, StudyTopicRepository topics,
                   StudyQuestionRepository questions, QuestionAttemptRepository attempts, ReviewCardRepository cards,
                   TopicProgressRepository progress, AnswerGrader grader, AnswerRecorder recorder,
                   ApplicationEventPublisher events, TransactionTemplate tx, JsonMapper json, Clock clock,
-                  ContextAssembler context, FigureViews figures) {
+                  ContextAssembler context, FigureViews figures, Personalization personalization) {
+        this.personalization = personalization;
         this.context = context;
         this.figures = figures;
         this.access = access;
@@ -151,7 +154,8 @@ public class LessonService {
         }
         StudyAi.AnswerDraft reply = ai.answer(new StudyAi.AnswerSpec(ctx.material().getTitle(),
                 ctx.material().getLanguage(), request.question(), history, StudyAi.sources(sources.sections()),
-                StudyAi.figures(sources.figures()), "tutor", focus.text()));
+                StudyAi.figures(sources.figures()), "tutor", focus.text(),
+                personalization.forLearner(ctx.material().getOwnerId()).learner()));
         tx.executeWithoutResult(status -> publish(userId, LearningActivityEvent.Type.TUTOR_QUESTION, ctx.material(),
                 ctx.topic(), b -> b));
         return new AskResponse(reply.answer(), reply.grounded(), figures.byIds(uuids(reply.figureIds())));
@@ -226,25 +230,26 @@ public class LessonService {
                 .orElseThrow());
         StudyTopic topic = ctx.topic();
         ContextAssembler.Context sources = access.sources(ctx.material(), topic, access.budgets().lesson());
+        Personalization.ForLearner learner = personalization.forLearner(ctx.material().getOwnerId());
         StudyAi.LessonDraft draft = ai.generateLesson(new StudyAi.LessonSpec(ctx.material().getTitle(),
                 ctx.material().getLanguage(), ctx.material().getKind(),
                 new StudyAi.TopicBrief(topic.getTitle(), topic.getSummary(), topic.getKeyConcepts(),
                         topic.getDifficulty()),
                 path.subList(0, index).stream().map(StudyTopic::getTitle).toList(),
                 path.subList(index + 1, path.size()).stream().map(StudyTopic::getTitle).toList(),
-                StudyAi.sources(sources.sections()), StudyAi.figures(sources.figures())));
+                StudyAi.sources(sources.sections()), StudyAi.figures(sources.figures()), learner.learner()));
         if (draft.sections() == null || draft.sections().isEmpty()) {
             throw new ApplicationException(ErrorCode.AI_UNAVAILABLE, "The lesson came back empty, please retry");
         }
         try {
-            return tx.execute(status -> persist(ctx, draft));
+            return tx.execute(status -> persist(ctx, draft, learner.signature()));
         } catch (DataIntegrityViolationException e) {
             // Another request generated this lesson concurrently; use theirs.
             return lessons.findByTopicId(topic.getId()).orElseThrow(() -> e);
         }
     }
 
-    private StudyLesson persist(TopicContext ctx, StudyAi.LessonDraft draft) {
+    private StudyLesson persist(TopicContext ctx, StudyAi.LessonDraft draft, String profileSignature) {
         Instant now = clock.instant();
         List<LessonSection> sections = new ArrayList<>();
         for (int i = 0; i < draft.sections().size(); i++) {
@@ -253,7 +258,7 @@ public class LessonService {
         }
         StudyLesson lesson = lessons.saveAndFlush(new StudyLesson(ctx.topic().getId(), json.writeValueAsString(sections),
                 draft.keyTakeaways() == null ? List.of() : draft.keyTakeaways(), uuids(draft.figureIds()), draft.model(),
-                now));
+                profileSignature, now));
         int position = 0;
         for (StudyAi.CheckDraft c : draft.checks()) {
             questions.save(new StudyQuestion(ctx.material().getId(), ctx.topic().getId(), lesson.getId(),
