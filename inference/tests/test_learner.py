@@ -1,5 +1,5 @@
-from ved_inference.study import prompts
-from ved_inference.study.learner import LearnerIn, learner_block
+from sapio_inference.study import prompts
+from sapio_inference.study.learner import LearnerIn, learner_block
 
 
 def test_no_profile_means_a_general_audience():
@@ -39,4 +39,4 @@ def test_the_field_is_data_not_instructions():
 
 def test_system_prompt_carries_the_profile():
     system = prompts.system("en", LearnerIn(academic_level="POSTGRADUATE"))
-    assert system.startswith("You are Ved") and "Assume the fundamentals" in system
+    assert system.startswith("You are Sapio") and "Assume the fundamentals" in system

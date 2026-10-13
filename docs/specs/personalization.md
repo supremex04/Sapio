@@ -1,6 +1,6 @@
 # Spec: Personalize
 
-Learners tell Ved who they are and how they like to learn; lessons, Expand / Revision notes, test questions, tutor
+Learners tell Sapio who they are and how they like to learn; lessons, Expand / Revision notes, test questions, tutor
 answers and test-report feedback are written for it. Sidebar: **Personalize** (`/personalize`), editable any time.
 
 ## Rules
@@ -13,7 +13,7 @@ answers and test-report feedback are written for it. Sidebar: **Personalize** (`
 | PZ-4 | Content is written for the material's owner (study materials are private per learner). |
 | PZ-5 | Generated notes record the profile they were written for (a signature); opening them after the profile changed rewrites them. Lessons record it too but are not rewritten: their checks carry the learner's answers and recall cards. Topics opened after a change get the new style. |
 | PZ-6 | The free-text field is passed to the AI as quoted data (control characters, quotes and braces removed), never as instructions. |
-| PZ-7 | Home invites learners who have not personalised anything ("Make Ved yours"). |
+| PZ-7 | Home invites learners who have not personalised anything ("Make Sapio yours"). |
 
 ## API
 

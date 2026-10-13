@@ -53,12 +53,12 @@ export function RegisterPage() {
       title="Create your account"
       subtitle="Two minutes from now you'll be learning from your own material."
       mood="cheer"
-      greeting="Hi! I'm Dia. Let's turn your notes into a course."
+      greeting="Hi! I'm Sapi. Let's turn your notes into a course."
     >
       <form onSubmit={onSubmit} className="stack" noValidate>
         {error && <Alert>{error}</Alert>}
         <fieldset className="role-picker">
-          <legend>How will you use Ved?</legend>
+          <legend>How will you use Sapio?</legend>
           <div className="role-options">
             {ROLES.map(({ value, label, hint, emoji }) => (
               <label key={value} className={cx("role-option", role === value && "is-selected")}>

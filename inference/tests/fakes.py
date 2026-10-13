@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
-from ved_inference.engines.base import EngineOutput, OcrEngine, OcrSegment
-from ved_inference.llm.base import Embedder, LlmClient
+from sapio_inference.engines.base import EngineOutput, OcrEngine, OcrSegment
+from sapio_inference.llm.base import Embedder, LlmClient
 
 
 class FakeOcrEngine(OcrEngine):
@@ -63,7 +63,7 @@ class FakeSpeech:
     name = "fake-stt"
 
     def __init__(self, segments=None) -> None:
-        from ved_inference.speech.base import TranscriptSegment
+        from sapio_inference.speech.base import TranscriptSegment
 
         self.segments = segments or [
             TranscriptSegment(0.0, 6.0, "Today we talk about database indexes."),
@@ -72,7 +72,7 @@ class FakeSpeech:
         self.windows: list[float] = []
 
     def transcribe(self, windows, duration):
-        from ved_inference.speech.base import Transcript
+        from sapio_inference.speech.base import Transcript
 
         self.windows = [w.offset for w in windows]
         return Transcript(language="en", duration=duration, engine=self.name, segments=self.segments)

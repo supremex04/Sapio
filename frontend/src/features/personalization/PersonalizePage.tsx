@@ -64,7 +64,7 @@ export function PersonalizePage() {
           <Emoji name="personalize" size={56} />
           <div className="lib-header-text">
             <h1>Personalize</h1>
-            <p className="muted">Tell Ved who you are and how you like to learn. Lessons, notes, tests and the tutor adapt to it. Change it any time.</p>
+            <p className="muted">Tell Sapio who you are and how you like to learn. Lessons, notes, tests and the tutor adapt to it. Change it any time.</p>
           </div>
         </header>
 
@@ -129,7 +129,7 @@ export function PersonalizePage() {
                         className={cx("pz-option", on && "is-selected")}
                         onClick={() => set("preferences", on ? draft.preferences.filter((p) => p !== o.value) : [...draft.preferences, o.value])}
                       >
-                        <Emoji name={o.emoji} size={26} />
+                        <Emoji name={o.icon} size={26} />
                         <span className="pz-option-text">
                           <strong>{o.label}</strong>
                           <span className="xs muted">{o.hint}</span>
@@ -147,7 +147,7 @@ export function PersonalizePage() {
 
             <Card className="pz-card pz-summary" tone="purple">
               <h2 className="pz-title">
-                <Emoji name="sparkles" size={24} /> Ved will
+                <Emoji name="sparkle" size={24} /> Sapio will
               </h2>
               {summary.length ? (
                 <ul>
@@ -189,12 +189,12 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
-function Tiles<T extends string>({ options, value, onPick }: { options: { value: T; label: string; hint: string; emoji: Parameters<typeof Emoji>[0]["name"] }[]; value: T | null; onPick: (v: T) => void }) {
+function Tiles<T extends string>({ options, value, onPick }: { options: { value: T; label: string; hint: string; icon: Parameters<typeof Emoji>[0]["name"] }[]; value: T | null; onPick: (v: T) => void }) {
   return (
     <div className="pz-tiles" role="radiogroup">
       {options.map((o) => (
         <button key={o.value} type="button" role="radio" aria-checked={value === o.value} className={cx("pz-option", value === o.value && "is-selected")} onClick={() => onPick(o.value)}>
-          <Emoji name={o.emoji} size={26} />
+          <Emoji name={o.icon} size={26} />
           <span className="pz-option-text">
             <strong>{o.label}</strong>
             <span className="xs muted">{o.hint}</span>

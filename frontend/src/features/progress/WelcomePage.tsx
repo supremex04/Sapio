@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { errorMessage } from "../../shared/api/errors";
 import { firstName } from "../../shared/lib/format";
-import { Dia } from "../../shared/illustrations/Dia";
+import { Sage } from "../../shared/illustrations/Sage";
 import { Alert } from "../../shared/ui/Alert";
 import { Button } from "../../shared/ui/Button";
 import { PageTransition } from "../../shared/ui/PageTransition";
@@ -51,7 +51,7 @@ export function WelcomePage() {
     <PageTransition>
       <div className="welcome">
         <div className="welcome-hello">
-          <Dia mood="happy" size={104} />
+          <Sage mood="happy" size={104} />
           <SpeechBubble>
             {user ? `Hi ${firstName(user.fullName)}! ` : ""}How much time can you give each day?
           </SpeechBubble>

@@ -13,7 +13,7 @@ locally. We still want the whole product to work end-to-end on any machine.
 ## Decision
 
 The inference service defines `OcrEngine.extract(pages) -> Markdown` and picks an implementation
-from `VED_INFERENCE_ENGINE`:
+from `SAPIO_INFERENCE_ENGINE`:
 
 | Engine | Use |
 |---|---|
@@ -31,6 +31,6 @@ Document decoding (PDF → images at 200 DPI) is shared, so engines only deal wi
 - `unlimited-local` is written to the model card's API but has not been run on suitable hardware yet.
 
 > **Note (2026-10-10):** the engine is now selected with `ocr.engine` in `inference/settings.yaml`
-> (env override `VED_INFERENCE_OCR__ENGINE`); the `VED_INFERENCE_ENGINE`, `VED_INFERENCE_REMOTE_*`,
-> `VED_INFERENCE_LOCAL_*` and `PDF_RENDER_DPI` settings became `ocr.*` and `parsing.dpi`. See
+> (env override `SAPIO_INFERENCE_OCR__ENGINE`); the `SAPIO_INFERENCE_ENGINE`, `SAPIO_INFERENCE_REMOTE_*`,
+> `SAPIO_INFERENCE_LOCAL_*` and `PDF_RENDER_DPI` settings became `ocr.*` and `parsing.dpi`. See
 > [ADR-0010](0010-vendor-neutral-model-configuration.md) and [configuration.md](../guides/configuration.md).

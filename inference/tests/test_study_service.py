@@ -2,10 +2,10 @@ import random
 
 import pytest
 
+from sapio_inference.api import study_schemas as s
+from sapio_inference.errors import EngineError
+from sapio_inference.study.service import StudyService, clean_markdown
 from tests.fakes import FakeLlm
-from ved_inference.api import study_schemas as s
-from ved_inference.errors import EngineError
-from ved_inference.study.service import StudyService, clean_markdown
 
 SECTION = s.SectionIn(
     id="§1.1",

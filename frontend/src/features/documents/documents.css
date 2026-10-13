@@ -71,7 +71,7 @@
     align-self: stretch;
     font-size: var(--text-body);
   }
-  /* the bubble's tail points up at Dia when stacked */
+  /* the bubble's tail points up at Sapi when stacked */
   .dropzone-text .bubble::before,
   .dropzone-text .bubble::after {
     left: 50%;
@@ -259,7 +259,7 @@ a.doc-title:hover {
   color: var(--text-2);
 }
 
-/* ---- Workbench: Dia visibly working on a processing document ------------------------------------ */
+/* ---- Workbench: Sapi visibly working on a processing document ------------------------------------ */
 .workbench {
   display: flex;
   align-items: center;

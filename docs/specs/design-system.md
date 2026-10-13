@@ -1,4 +1,4 @@
-# Ved design system ("Diya")
+# Sapio design system ("Diya")
 
 Status: **v2** (replaces the v1 gradient/glass look). Living reference: **`/styleguide`** in the running
 app shows every token and component in both themes.
@@ -13,7 +13,7 @@ clear above all. People should *want* to come back (see [learning-science.md](..
 | Flat, bold, saturated colour with tactile depth | Gradients, glassmorphism, glows, neon |
 | Chunky, pressable buttons and cards | Hairline borders, floating shadows |
 | One rounded typeface (Nunito), heavy weights for hierarchy | Serif display + mixed fonts |
-| A character (Dia) that reacts to what you do | Faceless spinners and generic empty states |
+| A character (Sapi) that reacts to what you do | Faceless spinners and generic empty states |
 | Colour that *means* something (each hue has one job) | Decorative colour |
 
 ## Foundations
@@ -39,7 +39,7 @@ on `soft` surfaces uses that hue's `ink`. Contrast ≥ 4.5:1 for body text in bo
 
 ### Depth: the "edge"
 
-Ved's signature. Interactive things sit on a solid lip (`--edge: 4px`) in a darker shade of their own
+Sapio's signature. Interactive things sit on a solid lip (`--edge: 4px`) in a darker shade of their own
 colour: `box-shadow: 0 var(--edge) 0 <edge colour>`. Pressing moves the element down by the edge
 (`translateY(var(--edge))`) and removes the lip: a physical "click". Cards use a 2px border with a 4px
 bottom lip. **No blurred drop shadows** except for floating layers (toasts, popovers, footer sheet).
@@ -69,7 +69,7 @@ Nunito Variable (OFL), one family only. Hierarchy via weight and size:
 ### Iconography
 
 - **Lucide** (stroke 2.5) for **actions and controls**: close, back, upload, settings, chevrons.
-- **Ved glyphs** (`shared/illustrations/glyphs.tsx`) for the **core concepts**: `library`, `document`,
+- **Sapio glyphs** (`shared/illustrations/glyphs.tsx`) for the **core concepts**: `library`, `document`,
   `recall`, `activity`. Drawn in the design system's own style: a rounded tile in one hue with the chunky
   bottom edge (`--<hue>-main` / `--<hue>-edge`, so they follow the theme), a soft top sheen and a bold white
   symbol. Rendered through `<Emoji name="recall">` like the emoji set. Add one here (48 × 48 viewBox, use
@@ -80,10 +80,13 @@ Nunito Variable (OFL), one family only. Hierarchy via weight and size:
 
 ### Characters
 
-- **Dia**, the mascot: a little clay diya (lamp of knowledge) whose flame flickers. Moods: `happy`,
-  `cheer`, `thinking`, `encourage`, `oops`, `sleepy`. Dia appears at moments that matter: onboarding,
+- **Sapi**, the mascot: an original character, the face of a kindly sage (white topknot with a clay band, bushy
+  brows, round beard and moustache). Face only, so expressions read at every size; flat colour with solid
+  darker edges for depth, no outlines. Brows, eyes and mouth (plus sparkles, thought dots, a drop or z) show
+  the mood. The logo mark is the same face on a clay tile. Moods: `happy`,
+  `cheer`, `thinking`, `encourage`, `oops`, `sleepy`. Sapi appears at moments that matter: onboarding,
   empty states, answer feedback, celebrations, loading. Never more than once per screen.
-  Code: `shared/illustrations/Dia.tsx` (hand-made SVG, ours).
+  Code: `shared/illustrations/Sage.tsx` (hand-made SVG, ours).
 - **Avatars**: DiceBear *notionists* (CC0), seeded by user id: friendly, consistent, no uploads needed.
 
 ## Theming
@@ -108,14 +111,14 @@ Nunito Variable (OFL), one family only. Hierarchy via weight and size:
 | `ProgressBar` | thick rounded bar with a highlight stripe; colour by hue |
 | `ProgressRing` | for goals and mastery |
 | `OptionTile` | answer choice: key badge, selected/correct/incorrect states |
-| `FeedbackSheet` | the bottom bar of question flows: neutral while answering (Check, Submit, Next or "Tap an answer"), then verdict colour, Dia mood, explanation, Continue |
-| `SpeechBubble` | Dia's voice |
+| `FeedbackSheet` | the bottom bar of question flows: neutral while answering (Check, Submit, Next or "Tap an answer"), then verdict colour, Sapi mood, explanation, Continue |
+| `SpeechBubble` | Sapi's voice |
 | `Tabs`, `Segmented`, `Toast`, `Skeleton`, `Spinner`, `EmptyState`, `ConfirmButton`, `Alert`, `FormField`, `Markdown` | as named |
 | `Emoji` | `<Emoji name="fire" size={28} />` |
 | `Avatar` | DiceBear notionists by seed |
 
 **Interface scale.** On desktop (≥ 1024 px) the whole interface renders at 80% (`zoom: var(--ui-zoom)` on
-`<html>`, `--ui-zoom: 0.8`), the density Ved is designed for at the browser's default 100%; phones stay at 100%
+`<html>`, `--ui-zoom: 0.8`), the density Sapio is designed for at the browser's default 100%; phones stay at 100%
 for legible text. Lengths tied to the screen size use `--vh` / `--vw` / `--dvh` (they cancel the zoom; a zoomed
 `100vh` would cover only 80% of the screen), and scripts measure layout sizes rather than `getBoundingClientRect`,
 which is already scaled. Breakpoints stay in real screen pixels.
@@ -126,7 +129,7 @@ on wide screens (≥ 1200 px), top stat bar + bottom tab bar on mobile.
 The sidebar collapses to an 84 px icon strip (`--sidebar-collapsed-width`): labels become tooltips (still read by
 screen readers), the Recall count a corner badge, the theme switch a single toggle and the profile an avatar
 menu. Toggle with the button at its foot or `[`. The choice is remembered in this browser (`localStorage`
-`ved.sidebar`); without one it starts collapsed below 1440 px and expanded above. The column width animates
+`sapio.sidebar`); without one it starts collapsed below 1440 px and expanded above. The column width animates
 (off with reduced motion).
 
 ## Signature patterns
@@ -138,24 +141,24 @@ menu. Toggle with the button at its foot or `[`. The choice is remembered in thi
   visible where the student already is (goal-gradient), without a page of decoration.
 - **Question flow** (lesson checks, tests, reviews): one question at a time, big option tiles,
   confidence picker, sticky bottom bar with **Check**, which becomes the **FeedbackSheet**.
-- **Celebration screens**: Dia cheering + three stat cards (XP, accuracy, time) + one primary button.
+- **Celebration screens**: Sapi cheering + three stat cards (XP, accuracy, time) + one primary button.
 
 ## Screens (learn, test, review)
 
 | Screen | Pattern details |
 |---|---|
-| Learning path | Unit banner in blue with an amber progress bar and "Test yourself". Nodes wind on a sine (`pathWave`, amplitude 78 px, 54 px on phones). States: done = amber + check mark (crown at mastery ≥ 0.8), recommended = blue + glowing star + bobbing "START / CONTINUE / STRENGTHEN" bubble + Dia beside it, in progress = blue-soft, not started = grey + open book. Purple ring = mastery. Ends in a purple trophy node. |
-| Lesson | Focus mode. One step at a time; the action is always in the bottom sheet (Continue / Check / Complete topic). Section kinds: CONCEPT blue (light-bulb illustration), EXAMPLE green (test-tube), ANALOGY pink (puzzle-piece), SUMMARY purple (memo) (tinted header + kind label). Warm-up shows Dia + bubble until answered. Enter continues. "Ask" chip in the header opens the tutor slide-over (portalled; chat rows with Dia as the tutor's avatar). |
+| Learning path | Unit banner in blue with an amber progress bar and "Test yourself". Nodes wind on a sine (`pathWave`, amplitude 78 px, 54 px on phones). States: done = amber + check mark (crown at mastery ≥ 0.8), recommended = blue + glowing star + bobbing "START / CONTINUE / STRENGTHEN" bubble + Sapi beside it, in progress = blue-soft, not started = grey + open book. Purple ring = mastery. Ends in a purple trophy node. |
+| Lesson | Focus mode. One step at a time; the action is always in the bottom sheet (Continue / Check / Complete topic). Section kinds: CONCEPT blue (light-bulb illustration), EXAMPLE green (test-tube), ANALOGY pink (puzzle-piece), SUMMARY purple (memo) (tinted header + kind label). Warm-up shows Sapi + bubble until answered. Enter continues. "Ask" chip in the header opens the tutor slide-over (portalled; chat rows with Sapi as the tutor's avatar). |
 | Results | `ResultStat` cards (coloured header label, emoji + big number) on lesson complete (XP, accuracy, time), recall complete (recalled, back soon, cards) and the test report (correct, partly, to recall). |
-| Test | Purple is Test's hue: setup tiles, Start button, runner badges. Runner: focus mode, counter + Finish in the header, answered dots below (purple, pulsing while saving; no verdict colours until the report); no feedback sheet, just Next / Finish test. Report: Dia mood by score (≥ 80% cheer, ≥ 50% happy, else encourage). |
-| Review | Teal throughout; sleepy Dia when nothing is due. |
-| Generating | Dia thinking (floating), estimated progress bar easing to 92%, rotating learning-science tips in a speech bubble. |
+| Test | Purple is Test's hue: setup tiles, Start button, runner badges. Runner: focus mode, counter + Finish in the header, answered dots below (purple, pulsing while saving; no verdict colours until the report); no feedback sheet, just Next / Finish test. Report: Sapi mood by score (≥ 80% cheer, ≥ 50% happy, else encourage). |
+| Review | Teal throughout; sleepy Sapi when nothing is due. |
+| Generating | Sapi thinking (floating), estimated progress bar easing to 92%, rotating learning-science tips in a speech bubble. |
 
 ## Copy
 
 Short, warm, second person. Praise strategy, not ability. Never shame. Errors say what to do next.
 
-## Why Ved works: UI pattern → principle
+## Why Sapio works: UI pattern → principle
 
 | UI pattern | Principle ([learning-science.md](../architecture/learning-science.md)) |
 |---|---|
@@ -182,8 +185,8 @@ Short, warm, second person. Praise strategy, not ability. Never shame. Errors sa
 
 ## Screens: home, library, hub, auth
 
-- **Auth**: centered column (wordmark, Dia + speech bubble, one form card). Role picker = two selectable 3D tiles with emoji.
-- **Welcome (goal)**: Dia asks "How much time can you give each day?"; five 3D goal tiles (emoji · minutes · label); live implementation-intention line; ghost "Maybe later".
+- **Auth**: centered column (wordmark, Sapi + speech bubble, one form card). Role picker = two selectable 3D tiles with emoji.
+- **Welcome (goal)**: Sapi asks "How much time can you give each day?"; five 3D goal tiles (emoji · minutes · label); live implementation-intention line; ghost "Maybe later".
 - **Home**: time-of-day emoji greeting → the ONE next-step card (white, 3D edge in the step's hue: recall teal, learn blue, test purple, upload amber) → inline progress panel (< 1200 px) → continue-learning cards (topics bar + mastery/recall chips) → 14-day active-minutes chart (dataviz rules; lighter step for past days, full hue today, green goal line; dark uses the validated `edge` steps) → recent activity (emoji per event, XP chips).
-- **Library**: header with Upload; dashed dropzone with Dia; card grid; chunky 4-dot pipeline (checked → reading → building → ready, active dot pulses); failed cards are red-tinted with Retry.
+- **Library**: header with Upload; dashed dropzone with Sapi; card grid; chunky 4-dot pipeline (checked → reading → building → ready, active dot pulses); failed cards are red-tinted with Retry.
 - **Study hub**: header (emoji tile, title, summary, chips) → two big mode cards (Learn blue, Test purple) → teal recall strip → tabs Topics / Preview / Tests (3D rows, mastery chips, score badges). Preview: segmented Reading view / Original / Raw text; reading-view sections switch Original / Expand / Revision; prose uses the full column width; a floating zoom control in the bottom-right corner of the screen (magnifier minus / +0% to +100% / magnifier plus, default +25%, remembered in this browser; Reading view and Raw text only) scales the reading content's type tokens, not the controls (`--main-width` 1200 px, filling the space between sidebar and rail on wide screens; `--reading-width` 860 px).

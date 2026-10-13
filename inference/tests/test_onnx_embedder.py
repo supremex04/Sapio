@@ -3,10 +3,10 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from ved_inference.config import ProviderConfig
-from ved_inference.errors import ConfigurationError
-from ved_inference.llm.base import EmbedItem
-from ved_inference.llm.providers.onnx_embedder import OnnxEmbeddingOptions, OnnxEmbeddingProvider
+from sapio_inference.config import ProviderConfig
+from sapio_inference.errors import ConfigurationError
+from sapio_inference.llm.base import EmbedItem
+from sapio_inference.llm.providers.onnx_embedder import OnnxEmbeddingOptions, OnnxEmbeddingProvider
 
 
 class FakeTokenizer:

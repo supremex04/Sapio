@@ -2,7 +2,7 @@ import { ArrowRight, Check, Upload, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { ThemeSwitch } from "../../features/theme/ThemeToggle";
 import { Avatar } from "../../shared/illustrations/Avatar";
-import { Dia, type DiaMood } from "../../shared/illustrations/Dia";
+import { Sage, type SageMood } from "../../shared/illustrations/Sage";
 import { Emoji } from "../../shared/illustrations/Emoji";
 import { EMOJI_NAMES } from "../../shared/illustrations/emojiNames";
 import { Alert } from "../../shared/ui/Alert";
@@ -33,7 +33,7 @@ const HUES = [
 ] as const;
 const STEPS = ["soft", "main", "edge", "ink"] as const;
 const NEUTRALS = ["bg", "surface", "surface-2", "surface-3", "border", "border-strong", "text", "text-2", "text-muted"];
-const MOODS: DiaMood[] = ["happy", "cheer", "thinking", "encourage", "oops", "sleepy"];
+const MOODS: SageMood[] = ["happy", "cheer", "thinking", "encourage", "oops", "sleepy"];
 
 /** Living reference of the "Diya" design system: everything here is the real component. */
 export function StyleguidePage() {
@@ -44,11 +44,11 @@ export function StyleguidePage() {
     <div className="sg">
       <header className="sg-head">
         <div className="row" style={{ gap: "var(--space-4)" }}>
-          <Dia mood="cheer" size={84} />
+          <Sage mood="cheer" size={84} />
           <div>
             <p className="eyebrow">Design system v2</p>
             <h1>Diya</h1>
-            <p className="muted">Flat colour, tactile depth, one rounded typeface, and a friend called Dia.</p>
+            <p className="muted">Flat colour, tactile depth, one rounded typeface, and a friend called Sapi.</p>
           </div>
         </div>
         <ThemeSwitch />
@@ -222,17 +222,17 @@ export function StyleguidePage() {
         </div>
       </Section>
 
-      <Section title="Dia" note="Our mascot: a diya, the lamp of knowledge. The flame is the mood. Once per screen, at moments that matter.">
+      <Section title="Sapi" note="Our mascot: the face of a kindly sage. Brows, eyes and mouth show the mood. Once per screen, at moments that matter.">
         <div className="sg-row" style={{ alignItems: "flex-end" }}>
           {MOODS.map((m) => (
             <div key={m} className="sg-mood">
-              <Dia mood={m} size={88} />
+              <Sage mood={m} size={88} />
               <code className="xs">{m}</code>
             </div>
           ))}
         </div>
         <div className="row" style={{ gap: "var(--space-3)" }}>
-          <Dia mood="happy" size={64} />
+          <Sage mood="happy" size={64} />
           <SpeechBubble>Guessing first helps you remember, even if you're wrong!</SpeechBubble>
         </div>
       </Section>

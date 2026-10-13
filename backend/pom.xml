@@ -11,11 +11,11 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.ved</groupId>
-    <artifactId>ved-backend</artifactId>
+    <groupId>com.sapio</groupId>
+    <artifactId>sapio-backend</artifactId>
     <version>0.1.0-SNAPSHOT</version>
-    <name>ved-backend</name>
-    <description>Ved learning platform - core backend</description>
+    <name>sapio-backend</name>
+    <description>Sapio learning platform - core backend</description>
 
     <properties>
         <java.version>21</java.version>

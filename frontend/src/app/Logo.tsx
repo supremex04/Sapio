@@ -1,11 +1,15 @@
-/** Ved mark: a flat diya with its flame (the lamp of knowledge; Dia is its character form). */
+/** Sapio mark: Sapi, the sage mascot (topknot, face, round beard) on a clay tile. */
 export function Logo({ size = 32 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden className="logo-mark">
-      <path d="M16 2.5c4.2 4.6 6 8.3 4 11.4-1.4 2.1-6.6 2.1-8 0-2-3.1-.2-6.8 4-11.4z" fill="var(--amber-main)" />
-      <path d="M16 8.5c1.9 2.3 2.5 4.3 1.6 5.8-.6 1-2.6 1-3.2 0-.9-1.5-.3-3.5 1.6-5.8z" fill="#ffe066" />
-      <path d="M3 16.5h26c0 7-5.8 12-13 12S3 23.5 3 16.5z" fill="var(--clay-main)" />
-      <path d="M5.2 21.5c2.4 4 6.3 6 10.8 6s8.4-2 10.8-6c-2.9 2.4-6.6 3.5-10.8 3.5S8.1 23.9 5.2 21.5z" fill="var(--clay-edge)" />
+      <rect x="1" y="2.5" width="30" height="28.5" rx="8" fill="var(--clay-edge)" />
+      <rect x="1" y="1" width="30" height="28" rx="8" fill="var(--clay-main)" />
+      <circle cx="16" cy="5.6" r="2.6" fill="#fff" />
+      <ellipse cx="16" cy="15" rx="8.6" ry="8" fill="var(--skin-main)" />
+      <path d="M7.4 14C7 9.6 10.8 7.6 16 7.6s9 2 8.6 6.4c-1.9-2.8-4.8-3.9-8.6-3.9S9.3 11.2 7.4 14z" fill="#fff" />
+      <path d="M7.7 16.6c1.4 2.9 4.5 3.8 8.3 3.8s6.9-.9 8.3-3.8c.9 6.7-3.1 10.9-8.3 11.4-5.2-.5-9.2-4.7-8.3-11.4z" fill="#fff" />
+      <circle cx="13" cy="14.6" r="1.2" fill="#2a1a10" />
+      <circle cx="19" cy="14.6" r="1.2" fill="#2a1a10" />
     </svg>
   );
 }
@@ -14,7 +18,7 @@ export function Wordmark() {
   return (
     <span className="brand">
       <Logo />
-      <span className="brand-name">ved</span>
+      <span className="brand-name">sapio</span>
     </span>
   );
 }

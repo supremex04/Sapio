@@ -8,7 +8,7 @@ const URLS: Record<string, string> = Object.fromEntries(
   Object.entries(files).map(([path, url]) => [path.slice("./emoji/".length, -".svg".length), url]),
 );
 
-/** A Fluent emoji, or one of Ved's own glyphs (see glyphs.tsx). */
+/** A Fluent emoji, or one of Sapio's own glyphs (see glyphs.tsx). */
 export type IconName = EmojiName | GlyphName;
 
 interface Props {
@@ -20,7 +20,7 @@ interface Props {
   style?: CSSProperties;
 }
 
-/** Fluent Emoji (Microsoft, MIT) for places, rewards and feelings; Ved's own glyphs for core concepts. */
+/** Fluent Emoji (Microsoft, MIT) for places, rewards and feelings; Sapio's own glyphs for core concepts. */
 export function Emoji({ name, size = 24, label, className, style }: Props) {
   if (isGlyph(name)) {
     return (

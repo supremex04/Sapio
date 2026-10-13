@@ -48,7 +48,7 @@ Each stage is idempotent and resumable: extraction is skipped when the document 
 (stored in the same transaction as the tree); indexing only processes items that are still missing
 descriptions / summaries / embeddings and commits per batch. Transient failures (everything except rejected input:
 AI provider busy, out of quota or misconfigured) are retried automatically after
-`ved.documents.processing.auto-retry-delays`, but not before the AI's quota-reset hint; the user can also retry.
+`sapio.documents.processing.auto-retry-delays`, but not before the AI's quota-reset hint; the user can also retry.
 Details: [knowledge-storage.md](../architecture/knowledge-storage.md#pipeline-states-and-retries).
 
 ### 1. Extraction & structural parsing (inference, `POST /v1/extract`)
@@ -116,7 +116,7 @@ query ─┬─ keyword: ts_rank_cd(tsv, websearch_to_tsquery)    ─┐
        └─ vector:  embedding <=> embed(query, RETRIEVAL_QUERY) ─┴─ weighted RRF (keyword 1, vector 2, k=10) → top leaves
             → small-to-big: + neighbouring chunks (±1, same node) + the hit's node summary + breadcrumb
             → figures: anchored to retrieved chunks, plus figure search (keyword + vector, cosine ≥
-              ved.knowledge.retrieval.figure-min-similarity = 0.48): always on the search endpoint (up to 4),
+              sapio.knowledge.retrieval.figure-min-similarity = 0.48): always on the search endpoint (up to 4),
               for questions only when they look visual (up to 3)
             → structured context (YAML-like) → LLM
 ```

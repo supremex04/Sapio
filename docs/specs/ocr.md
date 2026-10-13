@@ -18,7 +18,7 @@ homework, importing worksheets into assignments, grading support.
 | OCR-4 | The user can see status: `PENDING → EXTRACTING → INDEXING → ANALYZING → READY / FAILED`, with a readable reason on failure. |
 | OCR-5 | The result can be viewed (rendered and raw), copied, and downloaded as `<original-name>.md`. |
 | OCR-6 | Users only ever see and delete their own documents. |
-| OCR-7 | Documents interrupted by a backend restart or crash are resumed automatically (after a crash within `ved.documents.processing.lease`, default 2 min), also when several backend instances run. |
+| OCR-7 | Documents interrupted by a backend restart or crash are resumed automatically (after a crash within `sapio.documents.processing.lease`, default 2 min), also when several backend instances run. |
 | OCR-8 | PDFs up to **200 pages** (inference `parsing.max_pages`). |
 | OCR-9 | The OCR engine can be changed by configuration, without changing the backend or UI. |
 | OCR-10 | (M2) PDF pages with a text layer are read natively; only scanned pages/images are OCR'd. |
@@ -73,13 +73,13 @@ from `ANALYZING` on.
 
 ## Processing & limits
 
-- Backend worker pool: 2–4 threads, queue 200 per instance (`ved.documents.processing.*`). When the queue is
+- Backend worker pool: 2–4 threads, queue 200 per instance (`sapio.documents.processing.*`). When the queue is
   full a document stays `PENDING` and is picked up once its lease expires (any instance).
-- Backend → inference read timeout: 20 min (`ved.inference.read-timeout`).
+- Backend → inference read timeout: 20 min (`sapio.inference.read-timeout`).
 - Inference runs `parsing.max_concurrency` (default 1) conversions at a time; pages render at
   `parsing.dpi` (default 200), and a PDF page is read natively when it has ≥ `parsing.native_min_chars`
   (default 50) letters/digits. Keys and env overrides: [configuration.md](../guides/configuration.md).
-- Files are stored at `ved.documents.storage-dir/yyyy/MM/dd/<uuid>.<ext>`; results in
+- Files are stored at `sapio.documents.storage-dir/yyyy/MM/dd/<uuid>.<ext>`; results in
   `documents.result_markdown`.
 
 ## Not yet implemented (see roadmap)

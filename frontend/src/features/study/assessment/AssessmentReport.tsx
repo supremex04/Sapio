@@ -1,7 +1,7 @@
 import { Check, ChevronDown, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState, type CSSProperties } from "react";
-import { Dia, type DiaMood } from "../../../shared/illustrations/Dia";
+import { Sage, type SageMood } from "../../../shared/illustrations/Sage";
 import { Emoji } from "../../../shared/illustrations/Emoji";
 import type { IconName } from "../../../shared/illustrations/Emoji";
 import { formatPercent } from "../../../shared/lib/format";
@@ -26,8 +26,8 @@ const LEVEL_META: Record<TopicLevel, { label: string; tone: Tone; color: string 
   WEAK: { label: "Focus here", tone: "warning", color: "var(--amber-main)" },
 };
 
-/** Growth-mindset headline + Dia's mood for a score. */
-export function reportHeadline(score: number): { title: string; sub: string; mood: DiaMood } {
+/** Growth-mindset headline + Sapi's mood for a score. */
+export function reportHeadline(score: number): { title: string; sub: string; mood: SageMood } {
   if (score >= 0.8) return { title: "Excellent work!", sub: "You clearly know this material. Spaced recall will keep it fresh.", mood: "cheer" };
   if (score >= 0.5) return { title: "Solid progress", sub: "You've got the foundations. A little focused practice will take you further.", mood: "happy" };
   return { title: "A great starting point", sub: "Every question you missed is now a recall card. This is exactly how learning works.", mood: "encourage" };
@@ -49,7 +49,7 @@ export function AssessmentReportView({ assessment, fresh }: { assessment: Assess
       <FocusHeader exitTo={`/documents/${docId}`} exitLabel="Back to course" progress={1} progressLabel="Test complete" />
       <div className="rp">
         <motion.section className="rp-hero" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: "spring", stiffness: 300, damping: 24 }}>
-          <Dia mood={mood} size={128} />
+          <Sage mood={mood} size={128} />
           <div className="rp-hero-text">
             {fresh && <p className="eyebrow">Test complete · {assessment.documentTitle}</p>}
             <h1>{title}</h1>

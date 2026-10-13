@@ -2,7 +2,7 @@ import { Check, RotateCcw, X } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { errorMessage } from "../../../shared/api/errors";
-import { Dia, type DiaMood } from "../../../shared/illustrations/Dia";
+import { Sage, type SageMood } from "../../../shared/illustrations/Sage";
 import { Emoji } from "../../../shared/illustrations/Emoji";
 import { formatRelative } from "../../../shared/lib/format";
 import { Alert } from "../../../shared/ui/Alert";
@@ -47,7 +47,7 @@ interface Props {
 const SHEET_TONE: Record<Verdict, SheetTone> = { CORRECT: "correct", PARTIAL: "partial", INCORRECT: "incorrect" };
 const CONTINUE_VARIANT = { CORRECT: "success", PARTIAL: "accent", INCORRECT: "danger" } as const;
 
-function moodFor(result: AnswerResult, context: "warmup" | "normal"): DiaMood {
+function moodFor(result: AnswerResult, context: "warmup" | "normal"): SageMood {
   if (result.verdict === "CORRECT") return context === "warmup" ? "happy" : "cheer";
   if (isConfidentMiss(result)) return "thinking";
   return "encourage";
@@ -262,7 +262,7 @@ export function QuestionCard({
       ) : result ? (
         <div className={cx("feedback-inline", `feedback-inline-${SHEET_TONE[result.verdict]}`)}>
           <div className="row">
-            <Dia mood={moodFor(result, context)} size={36} still />
+            <Sage mood={moodFor(result, context)} size={36} still />
             <strong>{verdictCopy(result.verdict, context).title}</strong>
           </div>
           <FeedbackBody result={result} />

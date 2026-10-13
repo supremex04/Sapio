@@ -129,7 +129,7 @@ For each node id: all chunks of its subtree in order (`chunksInSubtree`, `path <
 (the first chunk always fits), plus every figure in the subtree. A node with no own text (e.g. a chapter heading)
 still yields a section with its summary.
 
-### Budgets (`ved.study.context.*`)
+### Budgets (`sapio.study.context.*`)
 
 Characters of source text and maximum figures per use (`StudyProperties.Budget`, `application.yml`):
 
@@ -183,7 +183,7 @@ helpful figure on its own line as `![short caption](figure:ID)`, never inventing
 
 `ReadService` maps `citedSectionIds` to node ids → `SourceRef(citation, nodeId, label, title, pages)`, and
 `FigureViews.byIds(figureIds)` returns a `figures` map (`id → {url, caption, description, …}`) with **HMAC-signed,
-expiring URLs** (`FigureUrlSigner`, `/api/figures/{id}/image?exp=&sig=`, TTL `ved.knowledge.figure-url-ttl`, expiry
+expiring URLs** (`FigureUrlSigner`, `/api/figures/{id}/image?exp=&sig=`, TTL `sapio.knowledge.figure-url-ttl`, expiry
 aligned to the hour so URLs are cacheable). The markdown keeps `figure:<id>`; the shared frontend `Markdown` renderer resolves it from the `figures` map as an
 inline figure (caption, click to enlarge; unknown ids are dropped) and shows `[§x]` citations as small source chips
 (`shared/ui/markdown/citations.ts`: each section once per paragraph, at its last mention).
@@ -238,12 +238,12 @@ the saved note).
 
 | Key | Default | Effect |
 |---|---|---|
-| `ved.knowledge.retrieval.candidates` | 30 | Items per ranker before fusion. Higher = better recall, more rows scanned. |
-| `ved.knowledge.retrieval.rrf-k` | 10 | RRF constant; higher flattens the advantage of top ranks. |
-| `ved.knowledge.retrieval.keyword-weight` / `vector-weight` | 1.0 / 2.0 | How much each ranker counts in the fusion. Tuned on our documents (section 5). |
-| `ved.knowledge.retrieval.figure-min-similarity` | 0.48 | Cosine floor for semantic figure matches; model-specific. |
-| `ved.knowledge.figure-url-ttl` | 6h | Signed figure URL validity (on top of hour alignment). |
-| `ved.study.context.<use>.chars` / `.figures` | see Budgets | Grounding vs latency/cost per use. |
+| `sapio.knowledge.retrieval.candidates` | 30 | Items per ranker before fusion. Higher = better recall, more rows scanned. |
+| `sapio.knowledge.retrieval.rrf-k` | 10 | RRF constant; higher flattens the advantage of top ranks. |
+| `sapio.knowledge.retrieval.keyword-weight` / `vector-weight` | 1.0 / 2.0 | How much each ranker counts in the fusion. Tuned on our documents (section 5). |
+| `sapio.knowledge.retrieval.figure-min-similarity` | 0.48 | Cosine floor for semantic figure matches; model-specific. |
+| `sapio.knowledge.figure-url-ttl` | 6h | Signed figure URL validity (on top of hour alignment). |
+| `sapio.study.context.<use>.chars` / `.figures` | see Budgets | Grounding vs latency/cost per use. |
 
 Hard-coded today: 10 chunks per question, neighbour radius 1, 3 figures for visual questions, 4 figures on search,
 search `limit` clamped to 1-30 (default 12), outline fallback 2,000 chars, overview own-text 3,000 / child-notes

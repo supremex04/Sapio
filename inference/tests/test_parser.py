@@ -1,10 +1,10 @@
 import pytest
 
+from sapio_inference.config import ParsingConfig
+from sapio_inference.errors import DocumentError
+from sapio_inference.parsing.parser import DocumentParser
 from tests.conftest import make_text_image, scanned, textbook_pdf
 from tests.fakes import FakeOcrEngine
-from ved_inference.config import ParsingConfig
-from ved_inference.errors import DocumentError
-from ved_inference.parsing.parser import DocumentParser
 
 
 def parser(engine=None, max_pages=20) -> DocumentParser:

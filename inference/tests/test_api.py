@@ -1,9 +1,9 @@
 from fastapi.testclient import TestClient
 
+from sapio_inference.errors import ConfigurationError, EngineError
+from sapio_inference.main import create_app
 from tests.conftest import textbook_pdf
 from tests.fakes import FakeEmbedder, FakeLlm, FakeSpeech
-from ved_inference.errors import ConfigurationError, EngineError
-from ved_inference.main import create_app
 
 KEY = {"X-Internal-Api-Key": "test-key"}
 

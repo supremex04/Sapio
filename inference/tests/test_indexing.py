@@ -2,11 +2,11 @@ import base64
 
 import pytest
 
+from sapio_inference.api import index_schemas as s
+from sapio_inference.errors import EngineError
+from sapio_inference.indexing.service import IndexingService
 from tests.conftest import png_bytes
 from tests.fakes import FakeEmbedder, FakeLlm
-from ved_inference.api import index_schemas as s
-from ved_inference.errors import EngineError
-from ved_inference.indexing.service import IndexingService
 
 IMG = base64.b64encode(png_bytes()).decode()
 

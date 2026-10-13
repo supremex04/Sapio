@@ -1,9 +1,9 @@
-# Ved
+# Sapio
 
 An interactive learning platform. Students learn and practise; teachers track progress and
 assign personalised tasks, homework and exams, powered by analytics and AI.
 
-**Status:** M3. Upload any educational document and Ved turns it into a guided course:
+**Status:** M3. Upload any educational document and Sapio turns it into a guided course:
 **Learn** with an AI tutor, **Test my knowledge** with grounded questions and a report, spaced review,
 XP, streaks and learning analytics. Every design decision is grounded in learning science
 ([docs/architecture/learning-science.md](docs/architecture/learning-science.md)).
@@ -26,7 +26,7 @@ XP, streaks and learning analytics. Every design decision is grounded in learnin
 ```
 
 The first run installs all dependencies and creates `inference/.env`: put your Gemini key in it
-(`VED_INFERENCE_GEMINI_API_KEY`) and run again. Later runs only start the services, and reinstall a
+(`SAPIO_INFERENCE_GEMINI_API_KEY`) and run again. Later runs only start the services, and reinstall a
 service's dependencies only when its manifest changed. `./dev.sh help` lists the other commands
 (`-d`, `stop`, `status`, `logs`, `setup`, `test`).
 

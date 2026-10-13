@@ -1,6 +1,6 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
-import { Dia } from "../../shared/illustrations/Dia";
+import { Sage } from "../../shared/illustrations/Sage";
 import { Emoji } from "../../shared/illustrations/Emoji";
 import { cx } from "../../shared/ui/cx";
 import { stageProgress, workStage } from "./pipeline";
@@ -9,7 +9,7 @@ import type { DocumentDto } from "./types";
 type Doc = Pick<DocumentDto, "status" | "textPages" | "retryAt">;
 
 /**
- * Dia at work on a document that is still processing: a stage-specific prop orbits Dia, a line describing
+ * Sapi at work on a document that is still processing: a stage-specific prop orbits Sapi, a line describing
  * the concrete work rotates, and a bar creeps through the current stage. Showing the work (rather than a bare
  * spinner) makes the wait feel shorter and the result more valuable; reduced-motion users get a still scene.
  */
@@ -39,7 +39,7 @@ export function DocumentWorkbench({ doc, compact }: { doc: Doc; compact?: boolea
   return (
     <div className={cx("workbench", compact && "workbench-compact", paused && "is-paused")} role="status" aria-live="polite">
       <div className="workbench-scene" aria-hidden>
-        <Dia mood={stage.mood} size={compact ? 48 : 84} still={!!reduceMotion} />
+        <Sage mood={stage.mood} size={compact ? 48 : 84} still={!!reduceMotion} />
         <span className="workbench-prop" key={stage.emoji}>
           <Emoji name={stage.emoji} size={compact ? 22 : 34} />
         </span>

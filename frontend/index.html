@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#5b4bdb" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <title>Ved · Learn anything you can upload</title>
+    <title>Sapio · Learn anything you can upload</title>
     <script>
       // Apply the saved theme before first paint (no flash). Mirrors src/features/theme/theme.ts.
       (function () {
         var pref = "system";
-        try { pref = localStorage.getItem("ved-theme") || "system"; } catch (e) {}
+        try { pref = localStorage.getItem("sapio-theme") || "system"; } catch (e) {}
         var dark = pref === "dark" || (pref !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
         document.documentElement.dataset.theme = dark ? "dark" : "light";
       })();

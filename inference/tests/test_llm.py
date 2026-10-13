@@ -4,14 +4,14 @@ import httpx
 import pytest
 from pydantic import BaseModel
 
-from ved_inference.config import EmbeddingConfig, LlmConfig, ModelRef, ProviderConfig, Route
-from ved_inference.errors import ConfigurationError, EngineError
-from ved_inference.llm.base import EmbedItem, ImagePart
-from ved_inference.llm.json_schema import response_schema
-from ved_inference.llm.providers.gemini import GeminiProvider
-from ved_inference.llm.providers.openai_compatible import OpenAICompatibleProvider
-from ved_inference.llm.router import RoutedEmbedder, RoutedLlm
-from ved_inference.study.models import Outline
+from sapio_inference.config import EmbeddingConfig, LlmConfig, ModelRef, ProviderConfig, Route
+from sapio_inference.errors import ConfigurationError, EngineError
+from sapio_inference.llm.base import EmbedItem, ImagePart
+from sapio_inference.llm.json_schema import response_schema
+from sapio_inference.llm.providers.gemini import GeminiProvider
+from sapio_inference.llm.providers.openai_compatible import OpenAICompatibleProvider
+from sapio_inference.llm.router import RoutedEmbedder, RoutedLlm
+from sapio_inference.study.models import Outline
 
 
 class Answer(BaseModel):
@@ -22,7 +22,7 @@ class Answer(BaseModel):
 @pytest.fixture(autouse=True)
 def _no_sleep(monkeypatch):
     sleeps: list[float] = []
-    monkeypatch.setattr("ved_inference.llm.retry.time.sleep", sleeps.append)
+    monkeypatch.setattr("sapio_inference.llm.retry.time.sleep", sleeps.append)
     return sleeps
 
 
@@ -186,7 +186,7 @@ class _Flaky(GeminiProvider):
         self.supports_image_embeddings = False
 
     def generate(self, model, **_kw):
-        from ved_inference.llm.retry import ModelUnavailable
+        from sapio_inference.llm.retry import ModelUnavailable
 
         if model.model in self.down:
             raise ModelUnavailable("quota", retry_after=self.retry_after)
@@ -275,7 +275,7 @@ def test_embedder_drops_images_for_text_only_models_and_checks_dimensions():
 
 
 def test_a_daily_quota_hint_gives_up_at_once_and_keeps_the_reset_time():
-    from ved_inference.llm.retry import ModelUnavailable, Retryable, with_retries
+    from sapio_inference.llm.retry import ModelUnavailable, Retryable, with_retries
 
     def call():
         raise Retryable("HTTP 429", delay=45_000.0)

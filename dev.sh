@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Ved local development runner: one command to install (when needed) and run everything.
+# Sapio local development runner: one command to install (when needed) and run everything.
 #
 #   ./dev.sh              install what changed, start db + inference + backend + frontend, stream logs
 #                         (Ctrl+C stops everything)
@@ -134,8 +134,8 @@ ensure_env() {
     chmod 600 "$env"
     warn "created inference/.env from .env.example"
   fi
-  if ! grep -qE '^VED_INFERENCE_GEMINI_API_KEY=.+' "$env"; then
-    die "set VED_INFERENCE_GEMINI_API_KEY in inference/.env (study features need an LLM key)"
+  if ! grep -qE '^SAPIO_INFERENCE_GEMINI_API_KEY=.+' "$env"; then
+    die "set SAPIO_INFERENCE_GEMINI_API_KEY in inference/.env (study features need an LLM key)"
   fi
 }
 
@@ -167,7 +167,7 @@ start_service() {
     die "port ${PORT[$name]} ($name) is used by another process. Stop it or run ./dev.sh stop"
   fi
   case $name in
-    inference) dir="$ROOT/inference"; cmd=".venv/bin/uvicorn ved_inference.main:app --port 8000 --reload --reload-dir src" ;;
+    inference) dir="$ROOT/inference"; cmd=".venv/bin/uvicorn sapio_inference.main:app --port 8000 --reload --reload-dir src" ;;
     backend)   dir="$ROOT/backend";   cmd="mvn -q -B spring-boot:run" ;;
     frontend)  dir="$ROOT/frontend";  cmd="npx vite --port 5173 --strictPort" ;;
   esac
@@ -175,7 +175,7 @@ start_service() {
   (
     cd "$dir"
     if [[ $name == inference && $LOCAL_EMBEDDING == 1 ]]; then
-      export VED_INFERENCE_CONFIG="settings.yaml,settings.local-embedding.yaml"
+      export SAPIO_INFERENCE_CONFIG="settings.yaml,settings.local-embedding.yaml"
     fi
     exec nohup $cmd >> "$LOG_DIR/$name.log" 2>&1
   ) &

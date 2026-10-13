@@ -1,4 +1,4 @@
-import type { IconName } from "../../shared/illustrations/Emoji";
+import type { GlyphName } from "../../shared/illustrations/glyphs";
 
 export type AcademicLevel = "SCHOOL" | "HIGHER_SECONDARY" | "UNDERGRADUATE" | "POSTGRADUATE" | "DOCTORAL" | "NONE";
 export type Occupation = "STUDENT" | "PROFESSIONAL" | "EDUCATOR" | "SELF_LEARNER";
@@ -27,23 +27,24 @@ interface Option<T> {
   value: T;
   label: string;
   hint: string;
-  emoji: IconName;
+  /** One of Sapio's own glyphs, not an emoji. */
+  icon: GlyphName;
 }
 
 export const OCCUPATIONS: Option<Occupation>[] = [
-  { value: "STUDENT", label: "Student", hint: "School, college or university", emoji: "graduation-cap" },
-  { value: "PROFESSIONAL", label: "Working professional", hint: "Learning for your job", emoji: "chart-increasing" },
-  { value: "EDUCATOR", label: "Teacher", hint: "Also how to explain it", emoji: "writing-hand" },
-  { value: "SELF_LEARNER", label: "Self-learner", hint: "Learning on your own", emoji: "seedling" },
+  { value: "STUDENT", label: "Student", hint: "School, college or university", icon: "graduate" },
+  { value: "PROFESSIONAL", label: "Working professional", hint: "Learning for your job", icon: "briefcase" },
+  { value: "EDUCATOR", label: "Teacher", hint: "Also how to explain it", icon: "teacher" },
+  { value: "SELF_LEARNER", label: "Self-learner", hint: "Learning on your own", icon: "compass" },
 ];
 
 export const LEVELS: Option<AcademicLevel>[] = [
-  { value: "SCHOOL", label: "School", hint: "Plain words, small steps", emoji: "open-book" },
-  { value: "HIGHER_SECONDARY", label: "+2 / A-level", hint: "Standard terms, explained", emoji: "memo" },
-  { value: "UNDERGRADUATE", label: "Undergraduate", hint: "Technical, mechanisms and why", emoji: "graduation-cap" },
-  { value: "POSTGRADUATE", label: "Postgraduate", hint: "Assumes basics, goes deeper", emoji: "brain" },
-  { value: "DOCTORAL", label: "Doctorate / research", hint: "Rigorous, nuances, limits", emoji: "test-tube" },
-  { value: "NONE", label: "No formal background", hint: "Everyday words and examples", emoji: "light-bulb" },
+  { value: "SCHOOL", label: "School", hint: "Plain words, small steps", icon: "pencil" },
+  { value: "HIGHER_SECONDARY", label: "+2 / A-level", hint: "Standard terms, explained", icon: "books" },
+  { value: "UNDERGRADUATE", label: "Undergraduate", hint: "Technical, mechanisms and why", icon: "university" },
+  { value: "POSTGRADUATE", label: "Postgraduate", hint: "Assumes basics, goes deeper", icon: "diploma" },
+  { value: "DOCTORAL", label: "Doctorate / research", hint: "Rigorous, nuances, limits", icon: "flask" },
+  { value: "NONE", label: "No formal background", hint: "Everyday words and examples", icon: "sprout" },
 ];
 
 export const DEPTHS: { value: Depth; label: string; hint: string }[] = [
@@ -53,19 +54,19 @@ export const DEPTHS: { value: Depth; label: string; hint: string }[] = [
 ];
 
 export const PREFERENCES: Option<Preference>[] = [
-  { value: "EXAMPLES", label: "Worked examples", hint: "Concrete numbers and cases", emoji: "bullseye" },
-  { value: "ANALOGIES", label: "Analogies", hint: "Links to familiar ideas", emoji: "puzzle-piece" },
-  { value: "APPLICATIONS", label: "Real-world uses", hint: "Where it's used and why", emoji: "globe-showing-asia-australia" },
-  { value: "FORMAL", label: "Formal maths", hint: "Definitions, notation, proofs", emoji: "scroll" },
-  { value: "CODE", label: "Code", hint: "Short snippets when it fits", emoji: "high-voltage" },
-  { value: "STEP_BY_STEP", label: "Step by step", hint: "Procedures and checklists", emoji: "check-mark" },
+  { value: "EXAMPLES", label: "Worked examples", hint: "Concrete numbers and cases", icon: "target" },
+  { value: "ANALOGIES", label: "Analogies", hint: "Links to familiar ideas", icon: "venn" },
+  { value: "APPLICATIONS", label: "Real-world uses", hint: "Where it's used and why", icon: "gear" },
+  { value: "FORMAL", label: "Formal maths", hint: "Definitions, notation, proofs", icon: "sigma" },
+  { value: "CODE", label: "Code", hint: "Short snippets when it fits", icon: "code" },
+  { value: "STEP_BY_STEP", label: "Step by step", hint: "Procedures and checklists", icon: "stairs" },
 ];
 
 export const GOALS: Option<Goal>[] = [
-  { value: "EXAM", label: "Exam prep", hint: "What's examined, common mistakes", emoji: "1st-place-medal" },
-  { value: "UNDERSTANDING", label: "Deep understanding", hint: "The why and the connections", emoji: "brain" },
-  { value: "WORK", label: "Use it at work", hint: "Practical use and pitfalls", emoji: "chart-increasing" },
-  { value: "CURIOSITY", label: "Curiosity", hint: "The bigger picture", emoji: "sparkles" },
+  { value: "EXAM", label: "Exam prep", hint: "What's examined, common mistakes", icon: "trophy" },
+  { value: "UNDERSTANDING", label: "Deep understanding", hint: "The why and the connections", icon: "bulb" },
+  { value: "WORK", label: "Use it at work", hint: "Practical use and pitfalls", icon: "wrench" },
+  { value: "CURIOSITY", label: "Curiosity", hint: "The bigger picture", icon: "sparkle" },
 ];
 
 const label = <T,>(options: { value: T; label: string }[], value: T | null) => options.find((o) => o.value === value)?.label;
@@ -79,7 +80,7 @@ const LEARNER: Record<AcademicLevel, string> = {
   NONE: "someone new to the subject",
 };
 
-/** A plain-language summary of what Ved will do with the profile (shown live while editing). */
+/** A plain-language summary of what Sapio will do with the profile (shown live while editing). */
 export function describe(p: Personalization): string[] {
   const lines: string[] = [];
   const field = p.fieldOfStudy?.trim();

@@ -23,8 +23,8 @@ Covered: share / unshare with a category and note, Explore (browse, filter, sear
 | SH-9 | Copies are fully independent: deleting either document never affects the other (separate files, rows and ids). |
 | SH-10 | One vote per learner and share: up (`1`), down (`-1`) or none (`0` takes it back). Sharers cannot vote on their own share (`409`). |
 | SH-11 | **Top rated** orders by the lower bound of the Wilson score interval (95%) of upvotes, so 45 up / 5 down ranks above 1 up / 0 down and early votes don't dominate. Stored as a generated, indexed column (`document_shares.quality`). |
-| SH-12 | Anyone signed in may comment (1 to `ved.sharing.comments.max-length` characters, default 2000), newest first. The author or the sharer may delete a comment; the sharer's comments are marked. |
-| SH-13 | Flood guard: at most `ved.sharing.comments.per-minute` (default 5) comments per learner per minute, across shares (`429 RATE_LIMITED`). |
+| SH-12 | Anyone signed in may comment (1 to `sapio.sharing.comments.max-length` characters, default 2000), newest first. The author or the sharer may delete a comment; the sharer's comments are marked. |
+| SH-13 | Flood guard: at most `sapio.sharing.comments.per-minute` (default 5) comments per learner per minute, across shares (`429 RATE_LIMITED`). |
 | SH-14 | Vote and comment counters live on the share and change in the same transaction as the vote or comment, after the share row is locked, so concurrent votes never lose an update. |
 
 ## API

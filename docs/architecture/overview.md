@@ -1,6 +1,6 @@
 # Architecture overview
 
-Ved turns any educational document into a guided course: Learn mode (AI tutor), Test mode
+Sapio turns any educational document into a guided course: Learn mode (AI tutor), Test mode
 (grounded assessments), spaced review, progress and analytics. Product and UI decisions follow
 [learning-science.md](learning-science.md).
 
@@ -37,10 +37,10 @@ Ground rules:
 
 ## Backend internals
 
-Package-by-feature (`com.ved.<feature>`), with a thin layered structure inside each feature:
+Package-by-feature (`com.sapio.<feature>`), with a thin layered structure inside each feature:
 
 ```
-com.ved
+com.sapio
 ├── common/          error model, request ids, time, pagination, AI port base exception, inference HTTP client
 ├── security/        JWT issuing/validation, CORS, @CurrentUserId
 ├── user/            User aggregate (time zone, daily goal), /api/users
@@ -83,7 +83,7 @@ sequenceDiagram
     B->>API: POST /api/auth/login {email, password}
     API->>DB: find user, verify bcrypt hash
     API->>DB: insert user_sessions (sha256(refreshToken))
-    API-->>B: 200 {accessToken (JWT, 15 min), user}<br/>Set-Cookie: ved_refresh (HttpOnly, 14 d, Path=/api/auth)
+    API-->>B: 200 {accessToken (JWT, 15 min), user}<br/>Set-Cookie: sapio_refresh (HttpOnly, 14 d, Path=/api/auth)
     B->>API: GET /api/... Authorization: Bearer <JWT>
     Note over B,API: access token expires → 401
     B->>API: POST /api/auth/refresh (cookie)
@@ -226,8 +226,8 @@ Conventions:
 ## Inference service internals
 
 ```
-ved_inference/
-├── config.py     Settings: settings.yaml + VED_INFERENCE_* env overrides (providers, routes, tunings)
+sapio_inference/
+├── config.py     Settings: settings.yaml + SAPIO_INFERENCE_* env overrides (providers, routes, tunings)
 ├── api/          FastAPI routes + wire schemas (camelCase), API-key check, error envelope (errors.py):
 │                 extract, /v1/index/*, /v1/study/*
 ├── errors.py     error taxonomy: DocumentError, EngineError, ConfigurationError
@@ -242,5 +242,5 @@ ved_inference/
 ```
 
 Configuration (OCR engine, providers, model routes per task, embeddings, tunings): `inference/settings.yaml`
-with `VED_INFERENCE_*` overrides, e.g. `VED_INFERENCE_OCR__ENGINE` ([guides/configuration.md](../guides/configuration.md),
+with `SAPIO_INFERENCE_*` overrides, e.g. `SAPIO_INFERENCE_OCR__ENGINE` ([guides/configuration.md](../guides/configuration.md),
 [guides/ocr-engines.md](../guides/ocr-engines.md), [ADR-0010](../adr/0010-vendor-neutral-model-configuration.md)).

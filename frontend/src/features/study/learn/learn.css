@@ -71,7 +71,7 @@
   font-size: var(--text-h2);
 }
 
-/* Warm-up intro: Dia + speech bubble */
+/* Warm-up intro: Sapi + speech bubble */
 .ls-warmup-intro {
   display: flex;
   align-items: center;

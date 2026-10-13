@@ -1,7 +1,7 @@
 export type ThemePreference = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
 
-export const THEME_STORAGE_KEY = "ved-theme";
+export const THEME_STORAGE_KEY = "sapio-theme";
 
 export function readPreference(): ThemePreference {
   try {

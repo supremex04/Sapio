@@ -1,4 +1,4 @@
-from ved_inference.engines.markdown import join_pages, remove_detection_markup
+from sapio_inference.engines.markdown import join_pages, remove_detection_markup
 
 
 def test_strips_detection_markers_and_groups_blocks():

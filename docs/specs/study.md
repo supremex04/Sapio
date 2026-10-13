@@ -5,7 +5,7 @@ Status: **implemented (M2)** · Code: `backend/.../study`, `inference/.../study`
 ## Product concept
 
 A user uploads educational material (syllabus, textbook PDF, lecture notes, handout, scan).
-Ved extracts the text (native PDF text when the page has a text layer, OCR otherwise) and turns
+Sapio extracts the text (native PDF text when the page has a text layer, OCR otherwise) and turns
 it into a **study material**: the document split into source *chunks*, organised into an ordered
 list of *topics*. Once the material is ready, the user picks a mode:
 
@@ -309,7 +309,7 @@ Content (`study_*`) is separate from per-learner state (`topic_progress`, `quest
   dropped); at most `study.max_topics` (12).
 - Context: lessons, questions and grading receive **structured sections** (`§id`, breadcrumb, pages,
   summary, passages) and figures assembled from the topic's subtrees in document order, up to the
-  per-use budget in `ved.study.context.*` (lesson 24k characters / 6 figures, questions 12k, grade 6k,
+  per-use budget in `sapio.study.context.*` (lesson 24k characters / 6 figures, questions 12k, grade 6k,
   tutor 10k / 2 figures; see [configuration.md](../guides/configuration.md)).
 - Lesson: 3–6 sections mixing CONCEPT / EXAMPLE / ANALOGY, ending with
   SUMMARY; one warm-up question (`afterSection: -1`), 2–3 multiple-choice/true-false checks after

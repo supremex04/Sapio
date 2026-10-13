@@ -1,0 +1,144 @@
+/* Sapi, the sage mascot. Colours are tokens so Sapi adapts to light/dark. */
+.sage {
+  display: block;
+  overflow: visible;
+  flex-shrink: 0;
+}
+.sage-shadow {
+  fill: var(--text);
+  opacity: 0.08;
+}
+.sage-band {
+  fill: var(--clay-main);
+}
+.sage-skin {
+  fill: var(--skin-main);
+}
+.sage-skin-edge {
+  fill: var(--skin-edge);
+}
+.sage-glint {
+  fill: #fff;
+  opacity: 0.45;
+}
+.sage-hair {
+  fill: var(--hair-main);
+}
+.sage-hair-edge {
+  fill: var(--hair-edge);
+}
+.sage-brow {
+  fill: none;
+  stroke: var(--hair-main);
+  stroke-width: 6.5;
+  stroke-linecap: round;
+}
+.sage-brow--edge {
+  stroke: var(--hair-edge);
+}
+.sage-ink {
+  fill: #2a1a10;
+}
+.sage-shine {
+  fill: #fff;
+}
+.sage-line {
+  fill: none;
+  stroke: #2a1a10;
+  stroke-width: 3.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sage-cheek {
+  fill: #ff8f8f;
+  opacity: 0.45;
+}
+.sage-spark {
+  fill: var(--amber-main);
+}
+.sage-thought {
+  fill: var(--text-muted);
+  opacity: 0.5;
+}
+.sage-drop {
+  fill: var(--blue-main);
+  opacity: 0.85;
+}
+.sage-tongue {
+  fill: #ff7b86;
+}
+.sage-z {
+  font: 900 16px var(--font-sans);
+  fill: var(--text-muted);
+}
+.sage-z--small {
+  font-size: 11px;
+}
+
+/* ---- Motion: blink, a slow tilt, cheer bounce ---- */
+.sage-eyes {
+  transform-box: view-box;
+  transform-origin: 60px 56px;
+}
+.sage {
+  transform-origin: 50% 90%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sage:not(.sage--still) .sage-eyes {
+    animation: sage-blink 5s infinite;
+  }
+  .sage--happy:not(.sage--still),
+  .sage--thinking:not(.sage--still) {
+    animation: sage-sway 4s ease-in-out infinite alternate;
+  }
+  .sage--cheer:not(.sage--still) {
+    animation: sage-bounce 0.9s var(--ease-bounce) 2;
+  }
+  .sage--oops:not(.sage--still) {
+    animation: sage-wobble 0.6s ease-in-out 1;
+  }
+}
+
+@keyframes sage-blink {
+  0%,
+  94%,
+  100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.1);
+  }
+}
+@keyframes sage-sway {
+  from {
+    transform: rotate(-1.5deg);
+  }
+  to {
+    transform: rotate(1.5deg);
+  }
+}
+@keyframes sage-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-12%);
+  }
+  70% {
+    transform: translateY(2%);
+  }
+}
+@keyframes sage-wobble {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25% {
+    transform: rotate(-4deg);
+  }
+  75% {
+    transform: rotate(4deg);
+  }
+}

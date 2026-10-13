@@ -1,5 +1,5 @@
-ved:
+sapio:
   documents:
-    storage-dir: ${java.io.tmpdir}/ved-test-storage
+    storage-dir: ${java.io.tmpdir}/sapio-test-storage
     processing:
       retry-poll: 200ms

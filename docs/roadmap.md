@@ -21,7 +21,7 @@
 - [x] Vendor-neutral AI: providers (Gemini, OpenAI-compatible), per-task model routes, cross-vendor fallbacks, quota-aware switching ([ADR-0010](adr/0010-vendor-neutral-model-configuration.md))
 - [x] Backend tunings in validated `@ConfigurationProperties` (retrieval, context budgets, indexing batches, auto-retry delays) ([configuration.md](guides/configuration.md))
 - [x] Embedding model tracked per vector; background re-embed on the next search after a model switch; startup dimension check
-- [x] Figure similarity threshold for semantic figure matches (`ved.knowledge.retrieval.figure-min-similarity`)
+- [x] Figure similarity threshold for semantic figure matches (`sapio.knowledge.retrieval.figure-min-similarity`)
 - [x] Automatic retries of transiently failed documents (AI busy / out of quota)
 - [x] Architecture docs: document parsing, knowledge storage, retrieval, backend ↔ inference integration; [capabilities.md](capabilities.md)
 - [x] Contract-first service boundary: typed error envelope, committed OpenAPI contract tested from both sides, `X-Request-Id` correlation ([ADR-0011](adr/0011-contract-first-service-boundary.md))

@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import type { ReactNode } from "react";
-import { Dia, type DiaMood } from "../illustrations/Dia";
+import { Sage, type SageMood } from "../illustrations/Sage";
 import { cx } from "./cx";
 
 export type SheetTone = "neutral" | "correct" | "partial" | "incorrect";
@@ -8,7 +8,7 @@ export type SheetTone = "neutral" | "correct" | "partial" | "incorrect";
 interface Props {
   tone: SheetTone;
   title?: ReactNode;
-  mood?: DiaMood;
+  mood?: SageMood;
   children?: ReactNode;
   /** Right-aligned primary action(s), e.g. Check / Continue. */
   actions: ReactNode;
@@ -20,7 +20,7 @@ interface Props {
 
 /**
  * The sticky bottom bar of every question flow. Neutral while answering (holds "Check", "Submit" or "Next"), then
- * slides up in the verdict colour with Dia's reaction and the explanation (immediate, elaborative
+ * slides up in the verdict colour with Sapi's reaction and the explanation (immediate, elaborative
  * feedback). One pattern for lessons, tests and reviews.
  */
 export function FeedbackSheet({ tone, title, mood, children, actions, aside, inline }: Props) {
@@ -38,7 +38,7 @@ export function FeedbackSheet({ tone, title, mood, children, actions, aside, inl
       <div className="sheet-inner">
         {verdict && (
           <div className="sheet-head">
-            {mood && <Dia mood={mood} size={56} />}
+            {mood && <Sage mood={mood} size={56} />}
             <div className="sheet-title">{title}</div>
           </div>
         )}

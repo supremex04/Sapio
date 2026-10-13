@@ -4,7 +4,7 @@ Extraction is **hybrid**: PDF pages with a text layer are read natively (PyMuPDF
 with headings and tables kept as Markdown) and never OCR'd. The OCR engine below only handles scanned
 pages and images.
 
-Pick the engine with `ocr.engine` in `inference/settings.yaml`, or override it with `VED_INFERENCE_OCR__ENGINE`
+Pick the engine with `ocr.engine` in `inference/settings.yaml`, or override it with `SAPIO_INFERENCE_OCR__ENGINE`
 (in `inference/.env` or the environment). Restart the service after changing it. All OCR keys:
 [configuration.md](configuration.md#ocr-engine).
 
@@ -47,8 +47,8 @@ ocr:
 or, as overrides in `inference/.env`:
 
 ```env
-VED_INFERENCE_OCR__ENGINE=unlimited-remote
-VED_INFERENCE_OCR__REMOTE__BASE_URL=http://<gpu-host>:10000/v1
+SAPIO_INFERENCE_OCR__ENGINE=unlimited-remote
+SAPIO_INFERENCE_OCR__REMOTE__BASE_URL=http://<gpu-host>:10000/v1
 ```
 
 ## Unlimited-OCR via vLLM
@@ -56,7 +56,7 @@ VED_INFERENCE_OCR__REMOTE__BASE_URL=http://<gpu-host>:10000/v1
 Use the `vllm/vllm-openai:unlimited-ocr` image and the recipe at https://recipes.vllm.ai/baidu/Unlimited-OCR.
 Set `ocr.remote.flavor: vllm` (drops SGLang-only request fields). Pass any
 server-specific request fields with `ocr.remote.extra_body: {key: value}`
-(env: `VED_INFERENCE_OCR__REMOTE__EXTRA_BODY='{"key": "value"}'`). A key-protected server: name the
+(env: `SAPIO_INFERENCE_OCR__REMOTE__EXTRA_BODY='{"key": "value"}'`). A key-protected server: name the
 variable holding the key in `ocr.remote.api_key_env`.
 
 ## How the remote engine calls the model
@@ -73,7 +73,7 @@ variable holding the key in `ocr.remote.api_key_env`.
 
 ## Adding a new engine
 
-1. Create `inference/src/ved_inference/engines/<name>.py` with a subclass of `OcrEngine`
+1. Create `inference/src/sapio_inference/engines/<name>.py` with a subclass of `OcrEngine`
    (`name`, `extract(pages) -> EngineOutput`, optional `close()`). Import heavy dependencies inside the module.
 2. Register a factory in `engines/registry.py`, add the name to `EngineName` in `config.py`, and any
    engine settings as a sub-model of `OcrConfig` (so they get `settings.yaml` + env overrides for free).

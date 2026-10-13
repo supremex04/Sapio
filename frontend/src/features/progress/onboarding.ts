@@ -1,4 +1,4 @@
-const key = (userId: string) => `ved-onboarded-${userId}`;
+const key = (userId: string) => `sapio-onboarded-${userId}`;
 
 /** Whether the one-time "daily goal" onboarding was shown to this user on this device. */
 export function isOnboarded(userId: string): boolean {

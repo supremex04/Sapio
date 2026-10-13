@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
-import { Dia } from "../../../shared/illustrations/Dia";
+import { Sage } from "../../../shared/illustrations/Sage";
 import { Emoji } from "../../../shared/illustrations/Emoji";
 import { ProgressBar } from "../../../shared/ui/Progress";
 import { SpeechBubble } from "../../../shared/ui/SpeechBubble";
@@ -20,7 +20,7 @@ export function estimatedProgress(seconds: number): number {
   return 0.92 * (1 - Math.exp(-seconds / 14));
 }
 
-/** Friendly wait while the AI builds a lesson, test or report (10–40 s): Dia thinks, tips rotate. */
+/** Friendly wait while the AI builds a lesson, test or report (10–40 s): Sapi thinks, tips rotate. */
 export function GeneratingState({ title, subtitle }: { title: string; subtitle: string }) {
   const [tip, setTip] = useState(() => Math.floor(Math.random() * TIPS.length));
   const [seconds, setSeconds] = useState(0);
@@ -36,7 +36,7 @@ export function GeneratingState({ title, subtitle }: { title: string; subtitle: 
   return (
     <div className="generating" role="status" aria-live="polite">
       <div className="generating-dia">
-        <Dia mood="thinking" size={120} />
+        <Sage mood="thinking" size={120} />
       </div>
       <h2>{title}</h2>
       <p className="muted">{subtitle}</p>

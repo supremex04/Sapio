@@ -1,5 +1,5 @@
 import { useRef, useState, type DragEvent, type RefObject } from "react";
-import { Dia } from "../../shared/illustrations/Dia";
+import { Sage } from "../../shared/illustrations/Sage";
 import { formatBytes } from "../../shared/lib/format";
 import { cx } from "../../shared/ui/cx";
 import { SpeechBubble } from "../../shared/ui/SpeechBubble";
@@ -13,7 +13,7 @@ interface Props {
   inputRef?: RefObject<HTMLInputElement | null>;
 }
 
-/** Chunky dashed drop target with Dia asking for material. */
+/** Chunky dashed drop target with Sapi asking for material. */
 export function UploadDropzone({ onFiles, disabled, busy, inputRef }: Props) {
   const ownInput = useRef<HTMLInputElement>(null);
   const input = inputRef ?? ownInput;
@@ -52,7 +52,7 @@ export function UploadDropzone({ onFiles, disabled, busy, inputRef }: Props) {
           e.target.value = "";
         }}
       />
-      <Dia mood={busy ? "thinking" : dragging ? "cheer" : "happy"} size={80} />
+      <Sage mood={busy ? "thinking" : dragging ? "cheer" : "happy"} size={80} />
       <div className="dropzone-text">
         <SpeechBubble>{busy ? "Uploading… I'll read it in a moment!" : dragging ? "Yes! Drop it here!" : "Feed me a PDF, a scan or your notes!"}</SpeechBubble>
         <p className="small muted">

@@ -10,54 +10,54 @@ Why it is built this way: [ADR-0010](../adr/0010-vendor-neutral-model-configurat
 
 | Service | File | Overrides | Secrets |
 |---|---|---|---|
-| inference | [`inference/settings.yaml`](../../inference/settings.yaml) (providers, routes, tunings) | env `VED_INFERENCE_*`, `inference/.env` | `inference/.env` (gitignored), referenced by name |
-| backend | [`backend/src/main/resources/application.yml`](../../backend/src/main/resources/application.yml) | env vars (placeholders + Spring relaxed binding) | env vars (`VED_JWT_SECRET`, …) |
+| inference | [`inference/settings.yaml`](../../inference/settings.yaml) (providers, routes, tunings) | env `SAPIO_INFERENCE_*`, `inference/.env` | `inference/.env` (gitignored), referenced by name |
+| backend | [`backend/src/main/resources/application.yml`](../../backend/src/main/resources/application.yml) | env vars (placeholders + Spring relaxed binding) | env vars (`SAPIO_JWT_SECRET`, …) |
 
 Restart the service after a change; nothing is hot-reloaded.
 
 ### Inference precedence (highest first)
 
 1. Constructor arguments (tests only)
-2. Environment variables: prefix `VED_INFERENCE_`, nested keys joined with `__`
+2. Environment variables: prefix `SAPIO_INFERENCE_`, nested keys joined with `__`
 3. `inference/.env` (same names)
-4. `settings.yaml` in the working directory, or the file(s) named by `VED_INFERENCE_CONFIG` (a base file followed
+4. `settings.yaml` in the working directory, or the file(s) named by `SAPIO_INFERENCE_CONFIG` (a base file followed
    by overlays, see below)
-5. Defaults in [`config.py`](../../inference/src/ved_inference/config.py)
+5. Defaults in [`config.py`](../../inference/src/sapio_inference/config.py)
 
 Sources are **deep-merged**, so an override replaces one leaf and keeps the rest:
 
 ```bash
-VED_INFERENCE_OCR__ENGINE=unlimited-remote
-VED_INFERENCE_OCR__REMOTE__BASE_URL=http://gpu-host:10000/v1
-VED_INFERENCE_LLM__DEFAULT__PRIMARY__MODEL=gemini-3.8-flash
-VED_INFERENCE_PARSING__MAX_PAGES=300
-VED_INFERENCE_CONFIG=settings.prod.yaml          # pick another file per environment
-VED_INFERENCE_CONFIG=settings.yaml,settings.local-embedding.yaml   # base + overlay
+SAPIO_INFERENCE_OCR__ENGINE=unlimited-remote
+SAPIO_INFERENCE_OCR__REMOTE__BASE_URL=http://gpu-host:10000/v1
+SAPIO_INFERENCE_LLM__DEFAULT__PRIMARY__MODEL=gemini-3.8-flash
+SAPIO_INFERENCE_PARSING__MAX_PAGES=300
+SAPIO_INFERENCE_CONFIG=settings.prod.yaml          # pick another file per environment
+SAPIO_INFERENCE_CONFIG=settings.yaml,settings.local-embedding.yaml   # base + overlay
 ```
 
-- Lists and objects are given as JSON: `VED_INFERENCE_LLM__DEFAULT__FALLBACKS='[{"provider":"gemini","model":"gemini-3.5-flash-lite"}]'`.
+- Lists and objects are given as JSON: `SAPIO_INFERENCE_LLM__DEFAULT__FALLBACKS='[{"provider":"gemini","model":"gemini-3.5-flash-lite"}]'`.
   A list replaces the whole list.
-- An override can only change a route that exists: `VED_INFERENCE_LLM__TASKS__NOTES__PRIMARY__MODEL`
+- An override can only change a route that exists: `SAPIO_INFERENCE_LLM__TASKS__NOTES__PRIMARY__MODEL`
   fails validation unless `llm.tasks.notes` (with its `provider`) is defined somewhere.
-- For anything bigger than one or two values, use a separate settings file and `VED_INFERENCE_CONFIG`.
-- **Overlays:** `VED_INFERENCE_CONFIG` accepts a comma-separated list, base file first, then overlays. The files
+- For anything bigger than one or two values, use a separate settings file and `SAPIO_INFERENCE_CONFIG`.
+- **Overlays:** `SAPIO_INFERENCE_CONFIG` accepts a comma-separated list, base file first, then overlays. The files
   are deep-merged in order (later wins; nested maps merge key by key, so an overlay can add one provider or change
   one section and keep the rest). A missing overlay is a startup error. Shipped overlay:
   [`settings.local-embedding.yaml`](../../inference/settings.local-embedding.yaml) (in-house embeddings, see
   [below](#in-house-embeddings-provider-type-onnx)).
-- `VED_INFERENCE_API_KEY` (the shared backend ↔ inference secret) is a top-level setting; it must equal the backend's.
+- `SAPIO_INFERENCE_API_KEY` (the shared backend ↔ inference secret) is a top-level setting; it must equal the backend's.
 
 ### Backend precedence
 
 Standard Spring Boot: environment variables and system properties override `application.yml`.
 
-- Explicit placeholders (`${VED_DB_URL:…}`) exist for deployment values: `VED_DB_URL`, `VED_DB_USERNAME`,
-  `VED_DB_PASSWORD`, `VED_PORT`, `VED_JWT_SECRET`, `VED_COOKIE_SECURE`, `VED_CORS_ORIGINS`,
-  `VED_STORAGE_DIR`, `VED_FIGURE_URL_SECRET`, `VED_INFERENCE_URL`, `VED_INFERENCE_API_KEY`.
+- Explicit placeholders (`${SAPIO_DB_URL:…}`) exist for deployment values: `SAPIO_DB_URL`, `SAPIO_DB_USERNAME`,
+  `SAPIO_DB_PASSWORD`, `SAPIO_PORT`, `SAPIO_JWT_SECRET`, `SAPIO_COOKIE_SECURE`, `SAPIO_CORS_ORIGINS`,
+  `SAPIO_STORAGE_DIR`, `SAPIO_FIGURE_URL_SECRET`, `SAPIO_INFERENCE_URL`, `SAPIO_INFERENCE_API_KEY`.
 - Every other key can be overridden through **relaxed binding**: uppercase, `.` → `_`, dashes removed:
-  `ved.knowledge.retrieval.rrf-k` → `VED_KNOWLEDGE_RETRIEVAL_RRFK` (Spring also accepts the legacy
-  form with dashes as underscores, `VED_KNOWLEDGE_RETRIEVAL_RRF_K`). Lists are comma-separated:
-  `VED_DOCUMENTS_PROCESSING_AUTORETRYDELAYS=2m,10m`.
+  `sapio.knowledge.retrieval.rrf-k` → `SAPIO_KNOWLEDGE_RETRIEVAL_RRFK` (Spring also accepts the legacy
+  form with dashes as underscores, `SAPIO_KNOWLEDGE_RETRIEVAL_RRF_K`). Lists are comma-separated:
+  `SAPIO_DOCUMENTS_PROCESSING_AUTORETRYDELAYS=2m,10m`.
 
 ## Secrets rule
 
@@ -78,7 +78,7 @@ OPENAI_API_KEY=sk-...
 ```
 
 `ocr.remote.api_key_env` works the same way for a protected OCR server. Production must also override
-`VED_JWT_SECRET`, `VED_FIGURE_URL_SECRET` and `VED_INFERENCE_API_KEY` on both services.
+`SAPIO_JWT_SECRET`, `SAPIO_FIGURE_URL_SECRET` and `SAPIO_INFERENCE_API_KEY` on both services.
 
 ## Providers
 
@@ -101,7 +101,7 @@ OpenAI-compatible endpoints:
 | Vendor | `base_url` | Notes |
 |---|---|---|
 | OpenAI | (default) | `json_mode: schema` |
-| OpenRouter | `https://openrouter.ai/api/v1` | models as `vendor/model`; optional `headers: {HTTP-Referer: …, X-Title: Ved}` |
+| OpenRouter | `https://openrouter.ai/api/v1` | models as `vendor/model`; optional `headers: {HTTP-Referer: …, X-Title: Sapio}` |
 | Groq | `https://api.groq.com/openai/v1` | check the model supports JSON schema, else `json_mode: object` |
 | vLLM | `http://<host>:8000/v1` | no key unless the server sets one |
 | LM Studio | `http://localhost:1234/v1` | |
@@ -180,7 +180,7 @@ Embeddings have no fallback chain: one model must embed everything, or vectors w
    (on the document worker pool); if the AI is busy it resumes on the next search.
 4. At startup the backend reads `/health` (`contractVersion`, `embeddingModel`, `embeddingDimensions`) and logs
    the model, or an **error** if the dimensions are not 768 (or the contract major version differs).
-5. Re-tune `ved.knowledge.retrieval.figure-min-similarity`: similarity scales differ per model.
+5. Re-tune `sapio.knowledge.retrieval.figure-min-similarity`: similarity scales differ per model.
 
 ### In-house embeddings (provider type `onnx`)
 
@@ -212,7 +212,7 @@ The configuration above ships as an overlay, so the default stays Gemini and in-
 
 ```bash
 ./dev.sh --local-embedding                      # or: ./dev.sh -d --local-embedding
-VED_INFERENCE_CONFIG=settings.yaml,settings.local-embedding.yaml   # manual runs (from inference/)
+SAPIO_INFERENCE_CONFIG=settings.yaml,settings.local-embedding.yaml   # manual runs (from inference/)
 ```
 
 Switching either way re-embeds each document in the background the first time it is searched with the other
@@ -267,7 +267,7 @@ keyword : vector:
 
 Trade-off: a passage found only by keyword search, even at #1, now ranks below meaning search's top results.
 Safeguard: each ranker's #1 always survives the cut to `limit` results (it replaces the last slot), so exact-term
-matches (commands, error codes) are never dropped. Hence `ved.knowledge.retrieval.keyword-weight: 1.0`, `vector-weight: 2.0`, `rrf-k: 10`.
+matches (commands, error codes) are never dropped. Hence `sapio.knowledge.retrieval.keyword-weight: 1.0`, `vector-weight: 2.0`, `rrf-k: 10`.
 
 ## OCR engine
 
@@ -306,7 +306,7 @@ Setup details: [ocr-engines.md](ocr-engines.md).
 
 ## Recipes
 
-Put these in `settings.yaml` (or a copy selected with `VED_INFERENCE_CONFIG`). A section you write
+Put these in `settings.yaml` (or a copy selected with `SAPIO_INFERENCE_CONFIG`). A section you write
 replaces that section's defaults, so give complete `providers`, `llm` and `embeddings` blocks.
 Model names are examples; use what your account offers.
 
@@ -389,12 +389,12 @@ llm:
 providers:
   gemini:
     type: gemini
-    api_key_env: VED_INFERENCE_GEMINI_API_KEY
+    api_key_env: SAPIO_INFERENCE_GEMINI_API_KEY
   openrouter:
     type: openai
     base_url: https://openrouter.ai/api/v1
     api_key_env: OPENROUTER_API_KEY
-    headers: {X-Title: Ved}
+    headers: {X-Title: Sapio}
 llm:
   default:
     primary: {provider: gemini, model: gemini-3.5-flash, options: {thinking_level: low}}
@@ -424,8 +424,8 @@ CTranslate2: any CPU (Linux, macOS Intel / Apple Silicon, Windows), an NVIDIA GP
 | `max_concurrency` | `1` | transcriptions at once per process (~1.5 GB each with `small`) |
 
 `lecture_notes.window_seconds` (900) sets how much transcript goes into one notes request; the LLM route is task
-`lecture_notes` (the default route unless overridden under `llm.tasks`). Backend side: `ved.documents.max-media-bytes`
-(1 GiB), `ved.documents.media-url-secret` / `media-url-ttl` (signed playback URLs), `ved.inference.media-read-timeout`
+`lecture_notes` (the default route unless overridden under `llm.tasks`). Backend side: `sapio.documents.max-media-bytes`
+(1 GiB), `sapio.documents.media-url-secret` / `media-url-ttl` (signed playback URLs), `sapio.inference.media-read-timeout`
 (3 h, for transcribing long recordings).
 
 ## Inference tuning knobs
@@ -473,18 +473,18 @@ CTranslate2: any CPU (Linux, macOS Intel / Apple Silicon, Windows), an NVIDIA GP
 
 All are `@ConfigurationProperties` records with `@Validated` constraints in `application.yml`.
 
-### `ved.knowledge.*` ([`KnowledgeProperties`](../../backend/src/main/java/com/ved/knowledge/KnowledgeProperties.java))
+### `sapio.knowledge.*` ([`KnowledgeProperties`](../../backend/src/main/java/com/sapio/knowledge/KnowledgeProperties.java))
 
 | Key | Default | Effect |
 |---|---|---|
-| `figure-url-secret` | dev value (`VED_FIGURE_URL_SECRET`) | HMAC key for figure image URLs; **override in production** |
+| `figure-url-secret` | dev value (`SAPIO_FIGURE_URL_SECRET`) | HMAC key for figure image URLs; **override in production** |
 | `figure-url-ttl` | `6h` | validity of a signed figure URL |
 | `retrieval.candidates` | `30` | results per ranker (keyword, vector) before fusion |
 | `retrieval.rrf-k` | `10` | Reciprocal Rank Fusion constant; higher flattens the weight of top ranks |
 | `retrieval.keyword-weight` | `1.0` | how much the keyword (full-text) ranking counts in the fusion: score = Σ weight / (k + rank) |
 | `retrieval.vector-weight` | `2.0` | how much the meaning (embedding) ranking counts. Weights and `rrf-k` were tuned with `eval_embeddings.py --tune` ([results](#choosing-an-embedding-model-measure-on-your-own-documents)) |
 | `reading.unit-min-chars` | `300` | smallest study unit of the Preview (sections that get Expand / Revision): less text than this gets no rewrite of its own |
-| `reading.unit-max-chars` | `6000` | largest study unit (~2-4 textbook pages, a 5-10 minute read); bigger sections split into their subsections. Keep below `ved.study.context.notes.chars` |
+| `reading.unit-max-chars` | `6000` | largest study unit (~2-4 textbook pages, a 5-10 minute read); bigger sections split into their subsections. Keep below `sapio.study.context.notes.chars` |
 | `retrieval.figure-min-similarity` | `0.48` | cosine similarity a figure needs to count as a semantic match (caption keyword matches always count). Calibrated on `gemini-embedding-2`: on-topic ~0.52–0.56, loosely related ~0.42–0.46, unrelated ~0.36–0.38. **Re-tune when switching embedding models** |
 | `indexing.figure-batch` | `12` | figures per `/v1/index/figures` call (max 60) |
 | `indexing.summary-batch` | `36` | nodes per `/v1/index/summaries` call (max 120) |
@@ -494,7 +494,7 @@ All are `@ConfigurationProperties` records with `@Validated` constraints in `app
 
 Each indexing batch commits on its own, so a failure resumes from the last batch.
 
-### `ved.study.context.*` ([`StudyProperties`](../../backend/src/main/java/com/ved/study/StudyProperties.java))
+### `sapio.study.context.*` ([`StudyProperties`](../../backend/src/main/java/com/sapio/study/StudyProperties.java))
 
 Characters of retrieved source text (`chars`) and maximum figures (`figures`) sent to the model per use.
 Larger = better grounding but slower, costlier calls.
@@ -508,13 +508,13 @@ Larger = better grounding but slower, costlier calls.
 | `ask` | `14000` | `5` | ask-your-document |
 | `notes` | `18000` | `5` | study notes |
 
-Env example: `VED_STUDY_CONTEXT_LESSON_CHARS=30000`.
+Env example: `SAPIO_STUDY_CONTEXT_LESSON_CHARS=30000`.
 
-### `ved.documents.*` ([`DocumentProperties`](../../backend/src/main/java/com/ved/document/DocumentProperties.java))
+### `sapio.documents.*` ([`DocumentProperties`](../../backend/src/main/java/com/sapio/document/DocumentProperties.java))
 
 | Key | Default | Effect |
 |---|---|---|
-| `storage-dir` | `./var/storage` (`VED_STORAGE_DIR`) | uploaded files and figure images |
+| `storage-dir` | `./var/storage` (`SAPIO_STORAGE_DIR`) | uploaded files and figure images |
 | `max-size-bytes` | `26214400` | upload limit; keep `spring.servlet.multipart.max-file-size` (25MB) and `max-request-size` (26MB) in sync |
 | `processing.core-pool-size` | `2` | document worker threads (also bounds concurrent inference calls from processing) |
 | `processing.max-pool-size` | `4` | worker threads under load |
@@ -524,19 +524,19 @@ Env example: `VED_STUDY_CONTEXT_LESSON_CHARS=30000`.
 | `processing.lease` | `2m` | an in-flight document whose heartbeat is older than this is considered abandoned (crash, scale-down) and requeued by any instance; a crash resumes within one lease |
 | `processing.heartbeat-interval` | `30s` (code default, not in `application.yml` or `DocumentProperties`) | how often an instance refreshes the heartbeat of the documents it is working on; keep well below `lease` |
 
-### `ved.inference.*` and `ved.security.*`
+### `sapio.inference.*` and `sapio.security.*`
 
 | Key | Default | Effect |
 |---|---|---|
-| `ved.inference.base-url` | `http://localhost:8000` (`VED_INFERENCE_URL`) | inference service |
-| `ved.inference.api-key` | `dev-internal-key` (`VED_INFERENCE_API_KEY`) | must equal the inference service's `VED_INFERENCE_API_KEY` |
-| `ved.inference.connect-timeout` | `5s` | |
-| `ved.inference.read-timeout` | `20m` | long parses and generations |
-| `ved.security.jwt.secret` | dev value (`VED_JWT_SECRET`) | ≥ 32 bytes; **override in production** |
-| `ved.security.jwt.access-token-ttl` | `15m` | |
-| `ved.security.refresh-token.ttl` | `14d` | sliding session lifetime |
-| `ved.security.refresh-token.cookie-secure` | `false` (`VED_COOKIE_SECURE`) | `true` behind HTTPS |
-| `ved.security.cors.allowed-origins` | `http://localhost:5173` (`VED_CORS_ORIGINS`) | |
+| `sapio.inference.base-url` | `http://localhost:8000` (`SAPIO_INFERENCE_URL`) | inference service |
+| `sapio.inference.api-key` | `dev-internal-key` (`SAPIO_INFERENCE_API_KEY`) | must equal the inference service's `SAPIO_INFERENCE_API_KEY` |
+| `sapio.inference.connect-timeout` | `5s` | |
+| `sapio.inference.read-timeout` | `20m` | long parses and generations |
+| `sapio.security.jwt.secret` | dev value (`SAPIO_JWT_SECRET`) | ≥ 32 bytes; **override in production** |
+| `sapio.security.jwt.access-token-ttl` | `15m` | |
+| `sapio.security.refresh-token.ttl` | `14d` | sliding session lifetime |
+| `sapio.security.refresh-token.cookie-secure` | `false` (`SAPIO_COOKIE_SECURE`) | `true` behind HTTPS |
+| `sapio.security.cors.allowed-origins` | `http://localhost:5173` (`SAPIO_CORS_ORIGINS`) | |
 
 ## Validation: mistakes fail fast
 

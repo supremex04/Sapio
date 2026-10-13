@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { errorMessage } from "../../shared/api/errors";
 import { API_BASE } from "../../shared/api/http";
-import { Dia } from "../../shared/illustrations/Dia";
+import { Sage } from "../../shared/illustrations/Sage";
 import { Emoji } from "../../shared/illustrations/Emoji";
 import { Alert } from "../../shared/ui/Alert";
 import { Button } from "../../shared/ui/Button";
@@ -21,7 +21,7 @@ import "./preview.css";
 type Mode = "reading" | "original" | "raw";
 
 /**
- * Preview of the uploaded document. "Reading" is Ved's structured version (sections in order, figures in place,
+ * Preview of the uploaded document. "Reading" is Sapio's structured version (sections in order, figures in place,
  * readable in any theme and on phones) with per-section AI rewrites; "Original" is the file exactly as uploaded;
  * "Raw text" is the extracted Markdown.
  */
@@ -83,7 +83,7 @@ function ReadingView({ doc, ready }: { doc: DocumentDto; ready: boolean }) {
     );
   }
   if (content.sections.length === 0) {
-    return <p className="muted">Ved is still organising this document. The preview appears once its chapters are ready.</p>;
+    return <p className="muted">Sapio is still organising this document. The preview appears once its chapters are ready.</p>;
   }
 
   return (
@@ -158,8 +158,8 @@ function Contents({ sections }: { sections: ContentSection[] }) {
 type View = "source" | NoteStyle;
 
 const REWRITE_COPY: Record<NoteStyle, { working: string; badge: string }> = {
-  EXPAND: { working: "Dia is explaining this section step by step…", badge: "Expanded by AI" },
-  REVISION: { working: "Dia is boiling this section down to what matters…", badge: "Revision notes by AI" },
+  EXPAND: { working: "Sapi is explaining this section step by step…", badge: "Expanded by AI" },
+  REVISION: { working: "Sapi is boiling this section down to what matters…", badge: "Revision notes by AI" },
 };
 
 /** One section: its text and figures, with Original / Expand / Revision views. */
@@ -234,7 +234,7 @@ function PreviewSection({
             markdown && <Markdown figures={figures}>{markdown}</Markdown>
           ) : loading === view ? (
             <div className="preview-working" role="status">
-              <Dia mood="thinking" size={48} />
+              <Sage mood="thinking" size={48} />
               <span>{REWRITE_COPY[view].working}</span>
             </div>
           ) : error ? (

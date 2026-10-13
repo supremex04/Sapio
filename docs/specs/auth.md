@@ -21,11 +21,11 @@ Status: **implemented (M1)** · Code: `backend/.../auth`, `backend/.../security`
 
 | | Access token | Refresh token |
 |---|---|---|
-| Format | JWT, HS256, signed with `VED_JWT_SECRET` | 256-bit random, base64url, opaque |
-| Lifetime | 15 min (`ved.security.jwt.access-token-ttl`) | 14 days, sliding: renewed on each refresh (`ved.security.refresh-token.ttl`) |
-| Where the client keeps it | Memory only (JS variable) | `ved_refresh` cookie: `HttpOnly`, `SameSite=Strict`, `Path=/api/auth`, `Secure` in prod |
+| Format | JWT, HS256, signed with `SAPIO_JWT_SECRET` | 256-bit random, base64url, opaque |
+| Lifetime | 15 min (`sapio.security.jwt.access-token-ttl`) | 14 days, sliding: renewed on each refresh (`sapio.security.refresh-token.ttl`) |
+| Where the client keeps it | Memory only (JS variable) | `sapio_refresh` cookie: `HttpOnly`, `SameSite=Strict`, `Path=/api/auth`, `Secure` in prod |
 | Server storage | none (stateless) | `user_sessions.refresh_token_hash` = SHA-256 hex |
-| Claims | `iss=ved`, `sub=<userId>`, `name`, `roles=[ROLE]`, `iat`, `exp` | — |
+| Claims | `iss=sapio`, `sub=<userId>`, `name`, `roles=[ROLE]`, `iat`, `exp` | — |
 
 ## Endpoints
 
@@ -77,7 +77,7 @@ stateDiagram-v2
   so cross-site requests can't use it. CSRF tokens are therefore disabled.
 - **XSS:** the access token is never stored in `localStorage`; the refresh token is unreadable by JS.
 - **Timing:** login always runs a bcrypt comparison, even for unknown emails.
-- **Production must set:** `VED_JWT_SECRET` (≥ 32 random bytes), `VED_COOKIE_SECURE=true`, HTTPS.
+- **Production must set:** `SAPIO_JWT_SECRET` (≥ 32 random bytes), `SAPIO_COOKIE_SECURE=true`, HTTPS.
 
 ## Not yet implemented (see roadmap)
 

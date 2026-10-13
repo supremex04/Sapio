@@ -3,9 +3,9 @@
 How the backend stores the parsed document tree, indexes it (figure descriptions, summaries, term index, embeddings)
 and keeps it consistent, resumable and access-controlled.
 
-Code: `backend/src/main/java/com/ved/knowledge/` (`KnowledgeIndexer`, `KnowledgeProperties`, `StaleEmbeddingsDetected`,
+Code: `backend/src/main/java/com/sapio/knowledge/` (`KnowledgeIndexer`, `KnowledgeProperties`, `StaleEmbeddingsDetected`,
 `store/KnowledgeStore`, `store/SearchConfig`, `figure/*`, `ai/*`, `web/KnowledgeAccess`),
-`backend/src/main/java/com/ved/document/processing/` (`DocumentProcessor`, `DocumentProcessingTriggers`),
+`backend/src/main/java/com/sapio/document/processing/` (`DocumentProcessor`, `DocumentProcessingTriggers`),
 `backend/src/main/resources/db/migration/V4__knowledge_store.sql`, `V5__document_auto_retry.sql`, `V6__embedding_model.sql`, `V7__note_styles.sql`
 
 Requirements and public endpoints: [knowledge spec](../specs/knowledge.md). Decision record:
@@ -149,8 +149,8 @@ stateDiagram-v2
 - **Transient failures** (any `PipelineException` with `isTransient()`: AI busy, rate-limited, out of quota or
   misconfigured; everything except rejected input) set `FAILED` with
   `retry_at = now + max(delay[auto_retries], retry hint capped at 24 h)` and increment `auto_retries`, while retries
-  remain in `ved.documents.processing.auto-retry-delays`. The message tells the user progress is saved.
-- `DocumentProcessingTriggers.resumeDueRetries` polls every `ved.documents.processing.retry-poll` (default 30s), moves
+  remain in `sapio.documents.processing.auto-retry-delays`. The message tells the user progress is saved.
+- `DocumentProcessingTriggers.resumeDueRetries` polls every `sapio.documents.processing.retry-poll` (default 30s), moves
   due documents back to `PENDING` and resubmits them. A user retry resets `auto_retries`.
 - **Several backend instances** share the work through the database (V8 adds `documents.heartbeat_at`):
   - *Claim*: `DocumentProcessor` locks the row (`DocumentRepository.lockById`, `PESSIMISTIC_WRITE`) and only proceeds
@@ -241,28 +241,28 @@ See [guides/configuration.md](../guides/configuration.md) for env-var overrides.
 
 | Key | Default | Effect |
 |---|---|---|
-| `ved.knowledge.figure-url-secret` | `${VED_FIGURE_URL_SECRET:dev-only-...}` | HMAC key; **must** be overridden outside dev; changing it invalidates issued URLs |
-| `ved.knowledge.figure-url-ttl` | `6h` | validity after hour alignment |
-| `ved.knowledge.indexing.figure-batch` | 12 | figures per description call / commit |
-| `ved.knowledge.indexing.summary-batch` | 36 | nodes per summary call / commit |
-| `ved.knowledge.indexing.chunk-embed-batch` | 96 | chunks per embedding call / commit |
-| `ved.knowledge.indexing.figure-embed-batch` | 16 | figures per embedding call / commit |
-| `ved.knowledge.indexing.summary-text-chars` | 6000 | own text per node sent for summarising |
-| `ved.knowledge.retrieval.*` | `candidates: 30`, `rrf-k: 10`, `keyword-weight: 1.0`, `vector-weight: 2.0`, `figure-min-similarity: 0.48` | search tuning, see [retrieval.md](retrieval.md) |
-| `ved.documents.processing.auto-retry-delays` | `1m, 4m, 15m` | one automatic retry per entry; empty disables |
-| `ved.documents.processing.retry-poll` | `30s` | how often due retries and abandoned documents are checked |
-| `ved.documents.processing.lease` | `2m` | heartbeat age after which an in-flight document is requeued by any instance |
-| `ved.documents.processing.heartbeat-interval` | `30s` (code default, not in yml) | how often an instance refreshes its documents' heartbeats |
-| `ved.documents.processing.core-pool-size` / `max-pool-size` / `queue-capacity` | 2 / 4 / 200 | worker pool shared by processing and re-embedding |
+| `sapio.knowledge.figure-url-secret` | `${SAPIO_FIGURE_URL_SECRET:dev-only-...}` | HMAC key; **must** be overridden outside dev; changing it invalidates issued URLs |
+| `sapio.knowledge.figure-url-ttl` | `6h` | validity after hour alignment |
+| `sapio.knowledge.indexing.figure-batch` | 12 | figures per description call / commit |
+| `sapio.knowledge.indexing.summary-batch` | 36 | nodes per summary call / commit |
+| `sapio.knowledge.indexing.chunk-embed-batch` | 96 | chunks per embedding call / commit |
+| `sapio.knowledge.indexing.figure-embed-batch` | 16 | figures per embedding call / commit |
+| `sapio.knowledge.indexing.summary-text-chars` | 6000 | own text per node sent for summarising |
+| `sapio.knowledge.retrieval.*` | `candidates: 30`, `rrf-k: 10`, `keyword-weight: 1.0`, `vector-weight: 2.0`, `figure-min-similarity: 0.48` | search tuning, see [retrieval.md](retrieval.md) |
+| `sapio.documents.processing.auto-retry-delays` | `1m, 4m, 15m` | one automatic retry per entry; empty disables |
+| `sapio.documents.processing.retry-poll` | `30s` | how often due retries and abandoned documents are checked |
+| `sapio.documents.processing.lease` | `2m` | heartbeat age after which an in-flight document is requeued by any instance |
+| `sapio.documents.processing.heartbeat-interval` | `30s` (code default, not in yml) | how often an instance refreshes its documents' heartbeats |
+| `sapio.documents.processing.core-pool-size` / `max-pool-size` / `queue-capacity` | 2 / 4 / 200 | worker pool shared by processing and re-embedding |
 
 ## Tests
 
 | Test | Shows |
 |---|---|
-| `backend/src/test/java/com/ved/knowledge/KnowledgeFlowIT.java` | tree hierarchy and labels, signed figures in node views, hybrid search with scope, background re-embedding after a model switch, term index, notes caching, access control |
-| `backend/src/test/java/com/ved/knowledge/FigureUrlSignerTest.java` | signing, verification, expiry |
-| `backend/src/test/java/com/ved/knowledge/retrieval/HybridRetrieverTest.java` | RRF fusion rewards agreement, keeps keyword highlights |
-| `backend/src/test/java/com/ved/document/DocumentFlowIT.java` | the document pipeline end to end |
+| `backend/src/test/java/com/sapio/knowledge/KnowledgeFlowIT.java` | tree hierarchy and labels, signed figures in node views, hybrid search with scope, background re-embedding after a model switch, term index, notes caching, access control |
+| `backend/src/test/java/com/sapio/knowledge/FigureUrlSignerTest.java` | signing, verification, expiry |
+| `backend/src/test/java/com/sapio/knowledge/retrieval/HybridRetrieverTest.java` | RRF fusion rewards agreement, keeps keyword highlights |
+| `backend/src/test/java/com/sapio/document/DocumentFlowIT.java` | the document pipeline end to end |
 
 ## Known limitations
 

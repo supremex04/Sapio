@@ -9,7 +9,7 @@ import json
 import sys
 from pathlib import Path
 
-from ved_inference.main import create_app
+from sapio_inference.main import create_app
 
 CONTRACT = Path(__file__).resolve().parents[2] / "contracts" / "inference-openapi.json"
 
