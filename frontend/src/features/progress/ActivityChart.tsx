@@ -153,7 +153,7 @@ export function ActivityChart({ days, goalMinutes }: { days: DailyActivity[]; go
       <div ref={ref} className={side ? "activity-body activity-body--side" : "activity-body"}>
         {width > 0 && (
           <>
-            <div className="activity-chart" style={{ width: chartW }}>
+            <div className="activity-chart" style={{ width: chartW, height: CHART_H }}>
               {view === "dots" ? (
                 <Dots days={shown} goalMinutes={goalMinutes} width={chartW} />
               ) : (
@@ -212,6 +212,10 @@ function Tooltip({ x, y, width, day }: { x: number; y: number; width: number; da
 
 const LABEL_W = 30;
 const MONTH_H = 18;
+/** Legend row under the dots: 8px gap plus a 16px line (see .dots-legend). */
+const LEGEND_H = 24;
+/** One height for the chart area whatever the view or range: the tallest dots grid, legend included. */
+const CHART_H = MONTH_H + 7 * MAX_STEP + LEGEND_H;
 
 function Dots({ days, goalMinutes, width }: { days: DailyActivity[]; goalMinutes: number | null; width: number }) {
   const [active, setActive] = useState<number | null>(null);
@@ -311,7 +315,7 @@ function Dots({ days, goalMinutes, width }: { days: DailyActivity[]; goalMinutes
 // ---------------------------------------------------------------------------------------------------
 // Bars: minutes per day, quiet
 
-const BAR_H = 170;
+const BAR_H = CHART_H;
 const PAD = { top: 22, bottom: 24 };
 
 function Bars({ days, goalMinutes, width }: { days: DailyActivity[]; goalMinutes: number | null; width: number }) {
