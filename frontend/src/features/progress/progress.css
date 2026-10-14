@@ -242,11 +242,6 @@
 .activity-body:not(.activity-body--side) .activity-chart {
   margin-right: 0;
 }
-/* Short ranges are narrower than their area: centre the grid so the card stays balanced. */
-.activity-body--side .dots {
-  width: fit-content;
-  margin-inline: auto;
-}
 .activity-stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
