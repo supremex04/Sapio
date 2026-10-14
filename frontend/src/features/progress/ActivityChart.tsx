@@ -101,9 +101,12 @@ function useWidth<T extends HTMLElement>() {
   return [ref, width] as const;
 }
 
-/** Dots never grow past this (px per week column); short ranges get the numbers beside them instead. */
+/** Dots never grow past this (px per week column); long ranges shrink to fit instead. */
 const MAX_STEP = 28;
-const STATS_MIN_W = 380;
+/** The numbers keep a fixed column on the right, so switching range never moves them. */
+const STATS_W = 300;
+const SIDE_GAP = 32;
+const MIN_CHART_W = 360;
 
 /**
  * Activity on Home: the last 30 days by default (60 days, 6 months or a year on request), as dots
@@ -117,11 +120,10 @@ export function ActivityChart({ days, goalMinutes }: { days: DailyActivity[]; go
   const shown = useMemo(() => days.slice(-range), [days, range]);
   const stats = summarize(shown, goalMinutes);
 
-  // Short ranges of dots are compact, so the numbers sit beside them; long ranges, bars and phones stack.
-  const weeks = Math.ceil(((shown[0] ? weekdayIndex(shown[0].date) : 0) + shown.length) / 7);
-  const naturalDots = LABEL_W + weeks * MAX_STEP;
-  const side = view === "dots" && width >= naturalDots + STATS_MIN_W;
-  const chartW = side ? naturalDots : width;
+  // Wide cards: chart on the left, numbers in a fixed column on the right (same place for every range
+  // and view). Narrow cards (phones): numbers above, chart below at full width.
+  const side = width >= STATS_W + SIDE_GAP + MIN_CHART_W;
+  const chartW = side ? width - STATS_W - SIDE_GAP : width;
 
   return (
     <div className="activity">
@@ -158,7 +160,7 @@ export function ActivityChart({ days, goalMinutes }: { days: DailyActivity[]; go
                 <Bars days={shown} goalMinutes={goalMinutes} width={chartW} />
               )}
             </div>
-            <dl className={side ? "activity-stats" : "activity-stats activity-stats--row"}>
+            <dl className={side ? "activity-stats" : "activity-stats activity-stats--row"} style={side ? { width: STATS_W } : undefined}>
               <Stat label="Active days" value={`${stats.activeDays}`} sub={`of ${shown.length}`} />
               <Stat label="Time studied" value={stats.totalSeconds ? formatDuration(stats.totalSeconds) : "0 min"} />
               {stats.goalDays != null && <Stat label="Goal met" value={`${stats.goalDays}`} sub={`${stats.goalDays === 1 ? "day" : "days"} at ${goalMinutes}+ min`} />}
@@ -269,7 +271,7 @@ function Dots({ days, goalMinutes, width }: { days: DailyActivity[]; goalMinutes
         {days.map((d, i) => {
           const { x, y } = center(i);
           const isToday = i === days.length - 1;
-          return (
+          const dot = (
             <circle
               key={d.date}
               cx={x}
@@ -278,6 +280,15 @@ function Dots({ days, goalMinutes, width }: { days: DailyActivity[]; goalMinutes
               className={`dot dot-${level(d.activeSeconds, goalMinutes)}${isToday ? " dot-today" : ""}${active === i ? " dot-active" : ""}`}
               onMouseEnter={() => setActive(i)}
             />
+          );
+          if (!isToday) return dot;
+          // Today: two rings ripple outward from the dot, so "you are here" is found at a glance.
+          return (
+            <g key={d.date}>
+              <circle cx={x} cy={y} r={r} className="dot-ripple" />
+              <circle cx={x} cy={y} r={r} className="dot-ripple dot-ripple--late" />
+              {dot}
+            </g>
           );
         })}
       </svg>
