@@ -164,57 +164,185 @@
   overflow-wrap: anywhere;
 }
 
-/* ---------- Activity chart (dataviz skill: single series, 24px max columns, 4px data-end) ---------- */
+/* ---------- Activity: dots (default) or quiet bars, with the range's numbers alongside ---------- */
+.activity-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.activity-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+/* A quiet text switch: no chunky 3D, it is a filter, not an action. */
+.activity-switch {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+.activity-switch button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--text-label);
+  font-weight: var(--weight-strong);
+  cursor: pointer;
+  transition: background var(--duration-fast), color var(--duration-fast);
+}
+.activity-switch--icons button {
+  padding: 4px 8px;
+}
+.activity-switch button:hover {
+  color: var(--text);
+}
+.activity-switch button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
+}
+.activity-switch button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+.activity .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.activity-body {
+  display: flex;
+  flex-direction: column-reverse; /* stacked: numbers first, then the chart */
+  gap: var(--space-4);
+}
+.activity-body--side {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-8, 2rem);
+}
 .activity-chart {
-  --bar: var(--chart-bar);
-  --goal: var(--chart-bar-goal);
-}
-.chart-wrap {
   position: relative;
-  width: 100%;
+  min-width: 0;
+  flex-shrink: 0;
 }
-.chart-wrap svg {
+.activity-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5) var(--space-6);
+  margin: 0;
+  flex: 1;
+  padding-left: var(--space-8, 2rem);
+  border-left: 1px solid var(--border);
+}
+.activity-stats--row {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  padding-left: 0;
+  border-left: 0;
+}
+.activity-stat dt {
+  font-size: var(--text-label);
+  font-weight: var(--weight-strong);
+  color: var(--text-muted);
+}
+.activity-stat dd {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-small);
+}
+.activity-stat strong {
+  color: var(--text);
+  font-size: 1.5rem;
+  line-height: 1.2;
+  font-weight: var(--weight-heading);
+  font-variant-numeric: tabular-nums;
+}
+
+.dots,
+.bars {
+  position: relative;
+}
+.dots svg,
+.bars svg {
   display: block;
   overflow: visible;
 }
-.chart-bar {
-  /* Past days are a lighter step of the same hue; today carries the full colour. */
-  fill: color-mix(in srgb, var(--bar) 55%, var(--surface));
+.dots > svg {
+  outline: none;
+  border-radius: var(--radius-sm);
 }
-.chart-bar-today,
-.chart-col:hover .chart-bar,
-.chart-col:focus-visible .chart-bar {
-  fill: var(--bar);
+.dots > svg:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
 }
-.chart-goal {
-  stroke: var(--goal);
-}
-.chart-tick {
-  font-size: 12px;
+.dots-label {
+  font-size: 11px;
   font-weight: var(--weight-strong);
   fill: var(--text-muted);
-  font-variant-numeric: tabular-nums;
 }
-.chart-today {
+.dots-today {
   fill: var(--text);
-  font-weight: var(--weight-black);
 }
-.chart-goal-label {
-  fill: var(--text-2);
-  font-weight: var(--weight-heading);
+/* Intensity scale: one hue, 0 = empty, 3 = daily goal met (full colour), 4 = well past it. */
+.dot {
+  transition: fill var(--duration-fast);
 }
-.chart-goal-pill {
-  fill: var(--surface);
+.dot-0 {
+  fill: color-mix(in srgb, var(--text) 9%, transparent);
 }
-.chart-goal-group {
-  pointer-events: none; /* hover and tooltips belong to the columns underneath */
+.dot-1 {
+  fill: color-mix(in srgb, var(--green-main) 32%, var(--surface));
 }
-.chart-col {
-  outline: none;
-  cursor: default;
+.dot-2 {
+  fill: color-mix(in srgb, var(--green-main) 62%, var(--surface));
 }
-.chart-hover-band {
-  fill: var(--surface-2);
+.dot-3 {
+  fill: var(--green-main);
+}
+.dot-4 {
+  fill: var(--green-edge);
+}
+.dot-today {
+  stroke: var(--text-muted);
+  stroke-width: 1.5;
+}
+.dot-active {
+  stroke: var(--text);
+  stroke-width: 2;
+}
+.dots-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: var(--space-2);
+  padding-left: 30px;
+  font-size: 11px;
+  font-weight: var(--weight-strong);
+  color: var(--text-muted);
+}
+.bars-base {
+  stroke: var(--border);
+}
+.bars-goal line {
+  stroke: var(--text-muted);
+  stroke-dasharray: 3 4;
+  opacity: 0.6;
+}
+.bars-goal {
+  pointer-events: none;
 }
 .chart-tooltip {
   position: absolute;
@@ -238,27 +366,6 @@
   color: var(--text);
   font-weight: var(--weight-black);
 }
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--text-small);
-}
-.data-table th {
-  text-align: left;
-  font-size: var(--text-label);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  font-weight: var(--weight-heading);
-  padding: var(--space-2) var(--space-3);
-  border-bottom: var(--border-width) solid var(--border);
-}
-.data-table td {
-  padding: var(--space-2) var(--space-3);
-  border-bottom: var(--border-width) solid var(--border);
-  font-weight: var(--weight-strong);
-}
-
 /* ---------- Welcome / daily goal ---------- */
 .welcome {
   width: min(36rem, 100%);

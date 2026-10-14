@@ -192,7 +192,7 @@ src/
     ├── theme/        ThemeProvider (light/dark/system), toggle
     ├── auth/         AuthProvider (session), login/register, route guards
     ├── progress/     ProgressProvider (summary + XP/level/goal toasts), heartbeat hook,
-    │                 dashboard (next best step, goal ring, activity chart, feed), goal onboarding
+    │                 dashboard (next best step, goal ring, activity dots, feed), goal onboarding
     ├── documents/    library (upload, pipeline stepper, retry), extracted-text view
     └── study/        hub (Learn / Test), learn path, lesson (progressive steps, checks, tutor),
                       test setup, assessment runner + report, spaced review; shared QuestionCard

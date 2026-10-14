@@ -20,7 +20,7 @@ import { displayTitle, type DocumentDto } from "../documents/types";
 import { studyApi } from "../study/api";
 import { nextStepCta, nextStepHref } from "../study/nextStep";
 import type { Material, NextStep, NextStepKind } from "../study/types";
-import { ActivityChart } from "./ActivityChart";
+import { ACTIVITY_DAYS, ActivityChart } from "./ActivityChart";
 import { progressApi } from "./api";
 import { streakMessage } from "./levels";
 import { useProgress } from "./ProgressContext";
@@ -49,7 +49,7 @@ export function DashboardPage() {
 
   useEffect(() => {
     studyApi.nextStep().then(setNextStep, () => setNextStep(null));
-    progressApi.daily(14).then((r) => setDays(r.days), () => setDays([]));
+    progressApi.daily(ACTIVITY_DAYS).then((r) => setDays(r.days), () => setDays([]));
     progressApi.activity(8).then((r) => setActivity(r.items), () => setActivity([]));
     documentsApi
       .list(0, 12)
@@ -94,7 +94,7 @@ export function DashboardPage() {
           </section>
         )}
 
-        <Card>{days ? <ActivityChart days={days} goalMinutes={summary?.goal.dailyMinutes ?? null} /> : <Skeleton height={260} />}</Card>
+        <Card>{days ? <ActivityChart days={days} goalMinutes={summary?.goal.dailyMinutes ?? null} /> : <Skeleton height={240} />}</Card>
 
         <Card>
           <CardHeader icon={<Emoji name="activity" size={24} />} title="Recent activity" />

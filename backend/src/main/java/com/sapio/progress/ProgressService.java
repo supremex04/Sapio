@@ -68,7 +68,7 @@ class ProgressService {
 
     @Transactional(readOnly = true)
     public DailySeries daily(UUID userId, int days) {
-        int span = Math.clamp(days, 1, 90);
+        int span = Math.clamp(days, 1, 366); // up to a year, for the activity view
         LocalDate today = LocalDate.now(clock.withZone(users.getById(userId).zoneId()));
         LocalDate from = today.minusDays(span - 1L);
         Map<LocalDate, DailyActivity> rows = daily.findByIdUserIdAndIdDayBetweenOrderByIdDay(userId, from, today)

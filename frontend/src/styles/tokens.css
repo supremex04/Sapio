@@ -195,10 +195,6 @@
   --disabled: #26323f;
   --disabled-text: #66768a;
 
-  /* Charts: the edge steps sit in the validated lightness band on dark surfaces (dataviz skill). */
-  --chart-bar: var(--blue-edge);
-  --chart-bar-goal: var(--green-edge);
-
   --shadow-float: 0 10px 30px rgb(0 0 0 / 0.45), 0 2px 6px rgb(0 0 0 / 0.3);
   --focus-ring: 0 0 0 3px var(--bg), 0 0 0 6px rgb(74 160 255 / 0.6);
   --overlay: rgb(0 0 0 / 0.6);
@@ -246,9 +242,6 @@
   --kind-summary: var(--purple-main);
   --kind-summary-soft: var(--purple-soft);
 
-  --chart-bar: var(--blue-main);
-  --chart-bar-goal: var(--green-main);
-  --chart-grid: var(--border);
 }
 
 @media (min-width: 1024px) {

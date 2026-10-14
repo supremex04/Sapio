@@ -58,7 +58,7 @@ heartbeat of a session credits nothing. This caps abuse and needs no client-side
 
 `PUT /api/progress/goal` `{ "dailyMinutes": 15 }` → **200** `{ "dailyMinutes": 15 }` (allowed: 5, 10, 15, 20, 30)
 
-`GET /api/progress/daily?days=14` (1–90) → **200** `{ "days": [DailyActivity…] }`, oldest first, one
+`GET /api/progress/daily?days=14` (1–366) → **200** `{ "days": [DailyActivity…] }`, oldest first, one
 entry per day including zero days. `DailyActivity` has the same fields as `today`.
 
 `GET /api/progress/activity?limit=20` → **200** `{ "items": [ { "type", "documentId", "documentTitle", "topicTitle", "xp", "occurredAt" } ] }`.
