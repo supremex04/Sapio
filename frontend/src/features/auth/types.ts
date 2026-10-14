@@ -4,6 +4,7 @@ export interface User {
   id: string;
   email: string;
   fullName: string;
+  age: number | null;
   role: Role;
   timeZone: string | null;
   createdAt: string;
@@ -23,6 +24,7 @@ export interface LoginInput {
 
 export interface RegisterInput extends LoginInput {
   fullName: string;
+  age: number;
   role: Exclude<Role, "ADMIN">;
   timeZone?: string;
 }

@@ -36,7 +36,7 @@ export function AuthLayout({ title, subtitle, mood, greeting, children }: Props)
             </div>
             {children}
           </div>
-          <p className="auth-foot xs muted center">Sapio, from Sanskrit veda: "knowledge".</p>
+          <p className="auth-foot xs muted center">Sapio, from Latin sapere: "to know".</p>
         </div>
       </PageTransition>
     </main>

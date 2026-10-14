@@ -37,6 +37,7 @@ export function RegisterPage() {
         fullName: String(form.get("fullName")),
         email: String(form.get("email")),
         password: String(form.get("password")),
+        age: Number(form.get("age")),
         role,
         timeZone: browserTimeZone(),
       });
@@ -71,6 +72,16 @@ export function RegisterPage() {
           </div>
         </fieldset>
         <FormField label="Full name" name="fullName" autoComplete="name" required error={fieldErrors.fullName} />
+        <FormField
+          label="Age"
+          name="age"
+          type="number"
+          min={1}
+          max={120}
+          step={1}
+          required
+          error={fieldErrors.age}
+        />
         <FormField label="Email" name="email" type="email" autoComplete="email" required error={fieldErrors.email} />
         <FormField
           label="Password"

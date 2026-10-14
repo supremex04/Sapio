@@ -39,6 +39,9 @@ public class User {
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
+    @Column (name = "age")
+    private Short age;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
@@ -65,10 +68,11 @@ public class User {
         // for JPA
     }
 
-    public User(String email, String passwordHash, String fullName, Role role) {
+    public User(String email, String passwordHash, String fullName,Short age, Role role) {
         this.email = normalizeEmail(email);
         this.passwordHash = passwordHash;
         this.fullName = fullName.strip();
+        this.age = age;
         this.role = role;
     }
 
@@ -114,6 +118,9 @@ public class User {
 
     public String getFullName() {
         return fullName;
+    }
+    public Short getAge() {
+        return age;
     }
 
     public Role getRole() {

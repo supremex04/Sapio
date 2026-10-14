@@ -58,7 +58,7 @@ public class AuthService {
         if (users.existsByEmail(email)) {
             throw new ApplicationException(ErrorCode.EMAIL_ALREADY_REGISTERED, "Email is already registered");
         }
-        User user = new User(email, passwordEncoder.encode(request.password()), request.fullName(), request.role());
+        User user = new User(email, passwordEncoder.encode(request.password()), request.fullName(),request.age(), request.role());
         user.updateTimeZone(request.timeZone());
         user = users.save(user);
         events.publishEvent(new UserLoggedInEvent(user.getId(), clock.instant()));

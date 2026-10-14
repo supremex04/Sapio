@@ -1,0 +1,5 @@
+ALTER TABLE users
+    ADD COLUMN age SMALLINT;
+
+ALTER TABLE users
+    ADD CONSTRAINT users_age_check CHECK (age BETWEEN 1 AND 120);

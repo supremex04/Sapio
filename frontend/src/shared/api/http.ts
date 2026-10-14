@@ -50,7 +50,7 @@ export async function apiRequest(path: string, options: RequestOptions = {}): Pr
     return fetch(API_BASE + path, {
       ...init,
       headers: h,
-      credentials: "same-origin",
+      credentials: "include",
       body: body == null ? undefined : isRawBody ? (body as BodyInit) : JSON.stringify(body),
     });
   };

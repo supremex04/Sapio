@@ -20,3 +20,11 @@ inference/.venv/
 
 # Local dev runner state (logs, pids, install stamps)
 .dev/
+
+# Local Firebase and editor/agent setup files
+.DS_Store
+.firebase/
+.firebaserc
+firebase.json
+.agents/
+skills-lock.json
