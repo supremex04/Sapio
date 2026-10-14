@@ -65,6 +65,7 @@ Every document is parsed **once** into a structure all features reuse
 | Figures | raster images and vector diagrams extracted, decorative ones (logos, backgrounds) dropped, described by a vision model, served via signed URLs; text-only images (terminal output, code) become searchable text transcripts instead | API only `GET /api/figures/{id}/image` |
 | Hybrid search | Postgres full-text + pgvector, fused with RRF, small-to-big expansion, figure matches, optional subtree scope | API only `GET /api/documents/{id}/search` |
 | Whole-document reading view | every node's text and kept figures in reading order, figures as signed URLs | Available `GET /api/documents/{id}/content` (Preview → Reading view) |
+| Editing the reading view | right-click a section → edit its Markdown in place (cursor where clicked), `Ctrl+S`, formatting shortcuts, links, LaTeX formulas with live preview, figures moved or removed; minimal re-indexing, AI notes flagged for a rewrite on request (ADR-0014) | Available `PUT /api/documents/{id}/sections/{nodeId}` |
 | Embedding model tracking | each vector records its model; after a model switch only matching vectors are compared and the document is re-embedded in the background | Available (automatic) |
 
 Learn and Test already run on this store: the AI only ever sees retrieved sections and figures,

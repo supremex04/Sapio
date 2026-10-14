@@ -1,6 +1,6 @@
-import { Download, ExternalLink, List } from "lucide-react";
+import { Download, ExternalLink, List, PenLine, RotateCcw } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import { errorMessage } from "../../shared/api/errors";
 import { API_BASE } from "../../shared/api/http";
 import { Sage } from "../../shared/illustrations/Sage";
@@ -15,10 +15,16 @@ import { TextSizeControl } from "./TextSizeControl";
 import { Skeleton, SkeletonText } from "../../shared/ui/Skeleton";
 import { documentsApi } from "./api";
 import { ExtractedText } from "./ExtractedText";
+import { sourceOffset } from "./edit/markdownCommands";
+import { SectionMenu, renderedTextBefore } from "./edit/SectionMenu";
+import "./edit/editor.css";
 import { isMedia, spanLabel, type ContentSection, type DocumentContent, type DocumentDto, type NoteStyle, type SectionNotes } from "./types";
 import "./preview.css";
 
 type Mode = "reading" | "original" | "raw";
+
+/** The editor (CodeMirror) loads only when the learner starts editing. */
+const SectionEditor = lazy(() => import("./edit/SectionEditor"));
 
 /**
  * Preview of the uploaded document. "Reading" is Sapio's structured version (sections in order, figures in place,
@@ -61,12 +67,59 @@ export function DocumentPreview({ doc, ready }: { doc: DocumentDto; ready: boole
 function ReadingView({ doc, ready }: { doc: DocumentDto; ready: boolean }) {
   const [content, setContent] = useState<DocumentContent | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reload, setReload] = useState(0);
+  // Learner edits (ADR-0014): one section at a time, opened where they right-clicked.
+  const editable = doc.status === "READY";
+  const [editing, setEditing] = useState<{ id: string; cursor: number | null } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; id: string; cursor: number | null; selection: string } | null>(null);
+  const latest = useRef(content);
+  latest.current = content;
 
   useEffect(() => {
     setContent(null);
     setError(null);
+    setEditing(null);
     documentsApi.content(doc.id).then(setContent, (e) => setError(errorMessage(e)));
-  }, [doc.id, doc.status]);
+  }, [doc.id, doc.status, reload]);
+
+  const startEdit = useCallback((id: string, cursor: number | null) => {
+    setEditing((current) => {
+      if (current && current.id !== id) {
+        // Finish the open section first (its draft is kept either way); bring it into view.
+        document.getElementById(`section-${current.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        return current;
+      }
+      return { id, cursor };
+    });
+  }, []);
+
+  const save = useCallback(
+    async (id: string, title: string, markdown: string) => {
+      const section = latest.current?.sections.find((s) => s.id === id);
+      if (!section) return;
+      setContent(await documentsApi.editSection(doc.id, id, { title, markdown, revision: section.revision }));
+    },
+    [doc.id],
+  );
+
+  const closeMenu = useCallback(() => setMenu(null), []);
+
+  function onContextMenu(e: MouseEvent<HTMLDivElement>) {
+    if (!editable || e.shiftKey || !content) return; // Shift: the browser's own menu
+    const target = e.target as HTMLElement;
+    const el = target.closest<HTMLElement>("[data-section-id]");
+    const id = el?.dataset.sectionId;
+    const section = id ? content.sections.find((s) => s.id === id) : undefined;
+    if (!el || !section || editing?.id === id) return;
+    const body = el.querySelector<HTMLElement>(".preview-section-body[data-view=source]");
+    let cursor: number | null = null;
+    if (body?.contains(target)) {
+      const at = renderedTextBefore(body, e.clientX, e.clientY);
+      if (at) cursor = sourceOffset(sectionMarkdown(section, content.figures), at.before, at.total);
+    }
+    e.preventDefault();
+    setMenu({ x: e.clientX, y: e.clientY, id: section.id, cursor, selection: window.getSelection()?.toString() ?? "" });
+  }
 
   // Which unit each section belongs to (itself or its nearest ancestor), so a unit's rewrite can stand in for
   // all of its subsections.
@@ -87,7 +140,8 @@ function ReadingView({ doc, ready }: { doc: DocumentDto; ready: boolean }) {
   }
 
   return (
-    <div className="preview-reading">
+    <div className="preview-reading" onContextMenu={onContextMenu}>
+      {menu && <SectionMenu x={menu.x} y={menu.y} selection={menu.selection} onEdit={() => startEdit(menu.id, menu.cursor)} onClose={closeMenu} />}
       <Contents sections={content.sections} />
       {!ready && <p className="small muted">Expand and Revision become available once your course is ready.</p>}
       {content.sections.map((section) => {
@@ -96,7 +150,8 @@ function ReadingView({ doc, ready }: { doc: DocumentDto; ready: boolean }) {
         if (unitId && unitId !== section.id && (views[unitId] ?? "source") !== "source") return null;
         return (
           <PreviewSection
-            key={section.id}
+            // A save gives the section a new revision: start fresh (its notes may now be behind).
+            key={`${section.id}:${section.revision}`}
             media={isMedia(doc)}
             documentId={doc.id}
             section={section}
@@ -104,6 +159,12 @@ function ReadingView({ doc, ready }: { doc: DocumentDto; ready: boolean }) {
             canRewrite={ready && section.unit !== null}
             view={views[section.id] ?? "source"}
             onView={(v) => setViews((all) => ({ ...all, [section.id]: v }))}
+            editable={editable}
+            editing={editing?.id === section.id ? editing : null}
+            onEdit={(cursor) => startEdit(section.id, cursor)}
+            onSave={(title, markdown) => save(section.id, title, markdown)}
+            onCloseEdit={() => setEditing(null)}
+            onReload={() => setReload((r) => r + 1)}
           />
         );
       })}
@@ -171,6 +232,12 @@ function PreviewSection({
   canRewrite,
   view,
   onView,
+  editable,
+  editing,
+  onEdit,
+  onSave,
+  onCloseEdit,
+  onReload,
 }: {
   /** Audio / video: spans are times (page = minute). */
   media: boolean;
@@ -180,6 +247,13 @@ function PreviewSection({
   canRewrite: boolean;
   view: View;
   onView: (view: View) => void;
+  editable: boolean;
+  /** Set while this section is being edited. */
+  editing: { cursor: number | null } | null;
+  onEdit: (cursor: number | null) => void;
+  onSave: (title: string, markdown: string) => Promise<void>;
+  onCloseEdit: () => void;
+  onReload: () => void;
 }) {
   const [notes, setNotes] = useState<Partial<Record<NoteStyle, SectionNotes>>>({});
   const [loading, setLoading] = useState<NoteStyle | null>(null);
@@ -203,12 +277,57 @@ function PreviewSection({
     }
   }
 
+  async function rewrite(style: NoteStyle) {
+    setError(null);
+    setLoading(style);
+    try {
+      const result = await documentsApi.rewriteNotes(documentId, section.id, style);
+      setNotes((n) => ({ ...n, [style]: result }));
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setLoading((l) => (l === style ? null : l));
+    }
+  }
+
   const current = view === "source" ? null : notes[view];
+  const sectionClass = cx("preview-section", `preview-level-${Math.min(section.level, 4)}`);
+  if (editing) {
+    return (
+      <section id={`section-${section.id}`} className={sectionClass} data-section-id={section.id}>
+        <Suspense fallback={<SkeletonText lines={5} />}>
+          <SectionEditor
+            sectionId={section.id}
+            revision={section.revision}
+            title={section.title}
+            markdown={markdown}
+            cursor={editing.cursor}
+            figures={figures}
+            headingLevel={section.level}
+            label={section.label}
+            onSave={onSave}
+            onClose={onCloseEdit}
+            onReload={onReload}
+          />
+        </Suspense>
+      </section>
+    );
+  }
   return (
-    <section id={`section-${section.id}`} className={cx("preview-section", `preview-level-${Math.min(section.level, 4)}`)}>
+    <section id={`section-${section.id}`} className={sectionClass} data-section-id={section.id}>
       <header className="preview-section-head">
         <Heading>
           {section.label && <span className="preview-label">{section.label}</span>} {section.title}
+          {section.editedAt && (
+            <span className="preview-edited xs" title={`You edited this section on ${new Date(section.editedAt).toLocaleString()}`}>
+              Edited
+            </span>
+          )}
+          {editable && (
+            <button type="button" className="preview-edit" onClick={() => onEdit(null)} title="Edit section (or right-click the text)" aria-label={`Edit ${section.title}`}>
+              <PenLine size={15} aria-hidden />
+            </button>
+          )}
         </Heading>
         {canRewrite ? (
           <div className="preview-actions">
@@ -229,7 +348,15 @@ function PreviewSection({
         )}
       </header>
       <AnimatePresence mode="wait" initial={false}>
-        <motion.div key={view} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
+        <motion.div
+          key={view}
+          className="preview-section-body"
+          data-view={view === "source" ? "source" : "notes"}
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18 }}
+        >
           {view === "source" ? (
             markdown && <Markdown figures={figures}>{markdown}</Markdown>
           ) : loading === view ? (
@@ -250,6 +377,14 @@ function PreviewSection({
           ) : current ? (
             <div className={cx("preview-notes", `preview-notes-${view.toLowerCase()}`)}>
               <span className="preview-notes-badge xs">{REWRITE_COPY[view].badge} · covers {coverage(section, media)}</span>
+              {current.stale && (
+                <p className="preview-notes-stale small">
+                  Written before your latest changes to this text.
+                  <Button size="sm" variant="ghost" icon={<RotateCcw size={14} aria-hidden />} onClick={() => void rewrite(view)}>
+                    Rewrite
+                  </Button>
+                </p>
+              )}
               <Markdown figures={current.figures}>{current.markdown}</Markdown>
             </div>
           ) : null}

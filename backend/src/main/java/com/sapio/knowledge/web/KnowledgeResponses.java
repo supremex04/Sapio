@@ -1,5 +1,6 @@
 package com.sapio.knowledge.web;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -26,10 +27,16 @@ public final class KnowledgeResponses {
     public record Block(String type, String markdown, UUID figureId, int page) {
     }
 
-    /** One node of the whole-document reading view, in document order. */
-    /** @param unit set on study units (they get Expand / Revision): what the unit covers */
+    /**
+     * One node of the whole-document reading view, in document order.
+     *
+     * @param unit     set on study units (they get Expand / Revision): what the unit covers
+     * @param revision 0 as extracted; a save must name the revision it started from
+     * @param editedAt when the learner last saved this section (null: never edited)
+     */
     public record ContentSection(UUID id, UUID parentId, String path, String label, String title, int level,
-                                 int pageFrom, int pageTo, List<Block> blocks, Unit unit) {
+                                 int pageFrom, int pageTo, List<Block> blocks, Unit unit, int revision,
+                                 Instant editedAt) {
     }
 
     /** A study unit's coverage: itself and its subsections, e.g. labels "1.1"–"1.1.3", pages 1–5. */

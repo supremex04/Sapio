@@ -37,6 +37,6 @@ class StudyUnitsTest {
 
     private static NodeRow node(String label, NodeRow parent, int from, int to) {
         return new NodeRow(UUID.randomUUID(), null, parent == null ? null : parent.id(), label, label, label,
-                label.split("\\.").length, 0, from, to, null, List.of());
+                label.split("\\.").length, 0, from, to, null, List.of(), 0);
     }
 }

@@ -152,11 +152,13 @@ sections.
 | Endpoint | Returns |
 |---|---|
 | `GET /api/documents/{id}/tree` | flat node list (`id, parentId, path, label, title, level, pageFrom, pageTo, figureCount, hasNotes`) |
-| `GET /api/documents/{id}/content` | the whole document in reading order: `sections` (`id, parentId, path, label, title, level, pageFrom, pageTo, blocks`, blocks as below) + one `figures` map (signed URLs); figures without a description are left out |
+| `GET /api/documents/{id}/content` | the whole document in reading order: `sections` (`id, parentId, path, label, title, level, pageFrom, pageTo, blocks, unit, revision, editedAt`, blocks as below) + one `figures` map (signed URLs); figures without a description are left out |
+| `PUT /api/documents/{id}/sections/{nodeId}` `{title, markdown, revision}` | saves the learner's edit of a section (ADR-0014); returns the content as above. `markdown` places the section's own figures as `![caption](figure:<id>)` (others: `400`); a figure left out is deleted. `revision` must be the section's current one, else `409 EDIT_CONFLICT`; document must be `READY` (else `409 INVALID_STATE`) |
 | `GET /api/documents/{id}/nodes/{nodeId}` | node + breadcrumb + `blocks` in reading order (`{type: text, markdown}` / `{type: figure, figureId}`) + `figures` map |
 | `GET /api/documents/{id}/search?q=&nodeId=&limit=` | hybrid hits: `{chunkId, nodeId, label, title, path, snippet (highlighted), pages, score}` + matching figures |
 | `GET /api/documents/{id}/terms` | `[{term, nodes:[{id,label,title}]}]` |
-| `GET /api/documents/{id}/nodes/{nodeId}/notes?style=EXPAND\|REVISION` | `{nodeId, style, scope ("section" \| "overview"), markdown, figures, sources, generatedAt}`: generated once per style and cached; `style` defaults to `EXPAND` |
+| `GET /api/documents/{id}/nodes/{nodeId}/notes?style=EXPAND\|REVISION` | `{nodeId, style, scope ("section" \| "overview"), markdown, figures, sources, generatedAt, stale}`: generated once per style and cached; `style` defaults to `EXPAND`; `stale` = written before significant learner edits to the covered text (not regenerated automatically) |
+| `POST /api/documents/{id}/nodes/{nodeId}/notes/rewrite?style=` | rewrites the notes from the current text (refreshing the summaries an overview builds on first); same response |
 | `POST /api/documents/{id}/ask` `{question, nodeId?, history?}` | `{answer (markdown), grounded, sources:[{citation,nodeId,label,title,pages}], figures}`; `grounded=false` when the document does not cover the question |
 | `GET /api/figures/{figureId}/image?exp=&sig=` | the image; **signed URL** (HMAC-SHA256, expiry = next full hour + `figure-url-ttl` 6 h), so `<img>` works without auth headers and URLs are cacheable |
 

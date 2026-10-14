@@ -20,6 +20,8 @@ public enum ErrorCode {
     ASSESSMENT_CLOSED(HttpStatus.CONFLICT),
     NOT_DUE(HttpStatus.CONFLICT),
     INVALID_STATE(HttpStatus.CONFLICT),
+    /** A save named a revision that is no longer current (someone saved in between). */
+    EDIT_CONFLICT(HttpStatus.CONFLICT),
     FILE_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE),
     RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS),
     UNSUPPORTED_FILE_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE),

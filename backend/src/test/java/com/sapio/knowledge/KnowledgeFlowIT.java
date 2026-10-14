@@ -135,7 +135,9 @@ class KnowledgeFlowIT {
         // Old vectors are never compared with the new model's query; keyword search still answers.
         assertThat(getJson("/api/documents/{d}/search?q=osmosis", documentId).at("/hits/0/label").asString())
                 .isEqualTo("1.1");
-        for (int i = 0; i < 100 && store.hasStaleEmbeddings(documentId, "fake:embed-v2"); i++) {
+        // Stale vectors are cleared first, then re-embedded: wait for both.
+        for (int i = 0; i < 100 && (store.hasStaleEmbeddings(documentId, "fake:embed-v2")
+                || store.hasUnembeddedChunks(documentId)); i++) {
             Thread.sleep(50);
         }
         assertThat(store.hasStaleEmbeddings(documentId, "fake:embed-v2")).isFalse();

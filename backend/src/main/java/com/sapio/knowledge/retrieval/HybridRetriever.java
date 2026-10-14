@@ -78,6 +78,9 @@ public class HybridRetriever {
         }
         if (store.hasStaleEmbeddings(documentId, q.model())) {
             events.publishEvent(new StaleEmbeddingsDetected(documentId, q.model()));
+        } else if (store.hasUnembeddedChunks(documentId)) {
+            // e.g. an edit whose background indexing was interrupted (AI outage): resume it.
+            events.publishEvent(new StaleEmbeddingsDetected(documentId, null));
         }
         return q;
     }

@@ -51,13 +51,18 @@ public class StudyNote {
     @Column(name = "profile_signature")
     private String profileSignature;
 
+    /** The covered sections' content stamp when written (KnowledgeStore.contentStamp): behind when it grows. */
+    @Column(name = "source_stamp", nullable = false)
+    private int sourceStamp;
+
     protected StudyNote() {
         // for JPA
     }
 
     StudyNote(UUID nodeId, NoteStyle style, String markdown, List<UUID> figureIds, List<UUID> sourceNodeIds,
-              String model, String profileSignature, Instant now) {
+              String model, String profileSignature, int sourceStamp, Instant now) {
         this.profileSignature = profileSignature;
+        this.sourceStamp = sourceStamp;
         this.nodeId = nodeId;
         this.style = style;
         this.markdown = markdown;
@@ -67,15 +72,20 @@ public class StudyNote {
         this.createdAt = now;
     }
 
-    /** Replaces the notes with a version written for the learner's current profile. */
+    /** Replaces the notes with a version written for the learner's current profile and text. */
     void rewrite(String markdown, List<UUID> figureIds, List<UUID> sourceNodeIds, String model, String profileSignature,
-                 Instant now) {
+                 int sourceStamp, Instant now) {
+        this.sourceStamp = sourceStamp;
         this.markdown = markdown;
         this.figureIds = List.copyOf(figureIds);
         this.sourceNodeIds = List.copyOf(sourceNodeIds);
         this.model = model;
         this.profileSignature = profileSignature;
         this.createdAt = now;
+    }
+
+    public int getSourceStamp() {
+        return sourceStamp;
     }
 
     /** The learner profile these notes were written for (Personalization signature). */

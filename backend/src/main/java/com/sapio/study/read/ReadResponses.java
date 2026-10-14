@@ -23,8 +23,9 @@ public final class ReadResponses {
     }
 
     /** @param scope "section" (full notes) or "overview" (chapter notes built from its subsections) */
+    /** @param stale written before the learner's latest significant edits to the covered text */
     public record NotesResponse(UUID nodeId, NoteStyle style, String scope, String markdown, Map<String, FigureView> figures,
-                                List<SourceRef> sources, Instant generatedAt) {
+                                List<SourceRef> sources, Instant generatedAt, boolean stale) {
     }
 
     public record AskRequest(@NotBlank @Size(max = 2000) String question, UUID nodeId,

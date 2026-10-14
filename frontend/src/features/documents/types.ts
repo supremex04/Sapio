@@ -94,6 +94,10 @@ export interface ContentSection {
   blocks: ContentBlock[];
   /** Set on study units (they get Expand / Revision): what the unit covers. */
   unit: StudyUnit | null;
+  /** 0 as extracted; a save names the revision it started from. */
+  revision: number;
+  /** When the learner last saved this section (null: never edited). */
+  editedAt: string | null;
 }
 
 export interface StudyUnit {
@@ -119,4 +123,6 @@ export interface SectionNotes {
   markdown: string;
   figures: Record<string, FigureView>;
   generatedAt: string;
+  /** Written before the learner's latest significant edits to the covered text (a rewrite is on request). */
+  stale: boolean;
 }

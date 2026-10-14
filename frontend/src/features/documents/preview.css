@@ -219,3 +219,54 @@
   align-items: flex-start;
   gap: var(--space-3);
 }
+
+/* ---- Editing (ADR-0014): a quiet pencil on hover, an "Edited" mark, notes that are behind ---- */
+.preview-edited {
+  display: inline-block;
+  margin-left: var(--space-2);
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-weight: var(--weight-strong);
+  vertical-align: middle;
+}
+.preview-edit {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-left: var(--space-1, 4px);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  vertical-align: middle;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--duration-fast);
+}
+.preview-section:hover .preview-edit,
+.preview-edit:focus-visible {
+  opacity: 1;
+}
+.preview-edit:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.preview-edit:focus-visible {
+  outline: 2px solid var(--color-primary);
+}
+@media (hover: none) {
+  .preview-edit {
+    opacity: 1;
+  }
+}
+.preview-notes-stale {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
+  color: var(--text-muted);
+}

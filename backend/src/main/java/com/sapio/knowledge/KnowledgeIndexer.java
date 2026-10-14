@@ -14,8 +14,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.sapio.common.error.ApplicationException;
+import com.sapio.common.error.ErrorCode;
 import com.sapio.document.DocumentIndexer;
 import com.sapio.document.DocumentRepository;
+import com.sapio.document.DocumentStatus;
 import com.sapio.document.extraction.ExtractionResult;
 import com.sapio.document.storage.DocumentStorage;
 import com.sapio.knowledge.ai.KnowledgeAi;
@@ -36,6 +38,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
@@ -55,6 +58,7 @@ class KnowledgeIndexer implements DocumentIndexer {
     private final TransactionTemplate tx;
     private final KnowledgeProperties.Indexing config;
     private final Set<UUID> refreshing = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> again = ConcurrentHashMap.newKeySet();
 
     KnowledgeIndexer(KnowledgeStore store, DocumentStorage storage, DocumentRepository documents, KnowledgeAi ai,
                      TransactionTemplate tx, KnowledgeProperties properties) {
@@ -197,26 +201,71 @@ class KnowledgeIndexer implements DocumentIndexer {
     }
 
     /**
-     * The embedding model was switched: re-embed the document's stale vectors in the background. Runs on the
+     * The embedding model was switched, or some text has no vector yet: re-embed in the background. Runs on the
      * document worker pool, so it shares the cap on concurrent inference calls.
      */
     @Async("documentProcessingExecutor")
     @EventListener
     public void onStaleEmbeddings(StaleEmbeddingsDetected event) {
-        UUID documentId = event.documentId();
+        refresh(event.documentId(), event.model());
+    }
+
+    /** A learner edited a section: embed its new chunks once the edit is committed (no summaries: see below). */
+    @Async("documentProcessingExecutor")
+    @TransactionalEventListener
+    public void onSectionEdited(SectionEdited event) {
+        refresh(event.documentId(), null);
+    }
+
+    /**
+     * Brings a ready document's vectors up to date: clears those of another model (if {@code staleModel} is set),
+     * then embeds what has none. One run per document at a time; a request that arrives during a run makes it go
+     * round once more, so a quick second save is never left unembedded.
+     */
+    private void refresh(UUID documentId, String staleModel) {
+        DocumentStatus status = documents.findById(documentId).map(d -> d.getStatus()).orElse(null);
+        if (status != DocumentStatus.READY && status != DocumentStatus.ANALYZING) {
+            return; // still in the pipeline, whose indexing step does all of this
+        }
         if (!refreshing.add(documentId)) {
-            return; // already in progress
+            again.add(documentId);
+            return;
         }
         try {
-            int cleared = tx.execute(status -> store.clearStaleEmbeddings(documentId, event.model()));
-            log.info("Document {}: re-embedding {} vectors with {}", documentId, cleared, event.model());
-            embedChunks(documentId);
-            embedFigures(documentId);
+            do {
+                again.remove(documentId);
+                if (staleModel != null) {
+                    int cleared = tx.execute(s -> store.clearStaleEmbeddings(documentId, staleModel));
+                    log.info("Document {}: re-embedding {} vectors with {}", documentId, cleared, staleModel);
+                }
+                embedChunks(documentId);
+                embedFigures(documentId);
+            } while (again.remove(documentId));
         } catch (KnowledgeAiException e) {
-            log.warn("Document {}: re-embedding paused ({}); it resumes on the next search", documentId,
+            log.warn("Document {}: index refresh paused ({}); it resumes on the next search", documentId,
                     e.getMessage());
         } finally {
             refreshing.remove(documentId);
+        }
+    }
+
+    /**
+     * Rewrites the summaries in a subtree that were written from older text than the sections have now (the
+     * learner edited them). Called when the learner asks for something built on them, never on save.
+     */
+    void refreshSummaries(UUID documentId, String path) {
+        List<NodeRow> stale = store.nodesWithStaleSummary(documentId, path);
+        if (stale.isEmpty()) {
+            return;
+        }
+        tx.executeWithoutResult(status -> store.clearSummaries(stale.stream().map(NodeRow::id).toList()));
+        String language = documents.findById(documentId).map(d -> d.getLanguage()).filter(l -> !"und".equals(l))
+                .orElse("en");
+        try {
+            summarize(documentId, language);
+        } catch (KnowledgeAiException e) {
+            throw new ApplicationException(e.isInputRejected() ? ErrorCode.AI_INPUT_REJECTED : ErrorCode.AI_UNAVAILABLE,
+                    "Sapi could not catch up with your changes right now, please retry");
         }
     }
 

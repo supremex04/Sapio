@@ -257,7 +257,7 @@ cmd_up() {
   for name in "${SERVICES[@]}"; do
     wait_healthy "$name" || { stop_services; exit 1; }
   done
-  printf '\n%sVed is running%s\n' "$GREEN$BOLD" "$RESET"
+  printf '\n%sSapio is running%s\n' "$GREEN$BOLD" "$RESET"
   info "App        http://localhost:5173"
   info "Backend    http://localhost:8080   ${DIM}(API under /api)${RESET}"
   info "Inference  http://localhost:8000   ${DIM}(internal)${RESET}"

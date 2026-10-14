@@ -2,11 +2,15 @@ package com.sapio.knowledge.web;
 
 import java.util.UUID;
 
+import jakarta.validation.Valid;
+
 import com.sapio.common.error.ApplicationException;
 import com.sapio.common.error.ErrorCode;
 import com.sapio.security.CurrentUserId;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,8 +21,11 @@ class KnowledgeController {
 
     private final KnowledgeService knowledge;
 
-    KnowledgeController(KnowledgeService knowledge) {
+    private final SectionEditService edits;
+
+    KnowledgeController(KnowledgeService knowledge, SectionEditService edits) {
         this.knowledge = knowledge;
+        this.edits = edits;
     }
 
     @GetMapping("/tree")
@@ -29,6 +36,14 @@ class KnowledgeController {
     @GetMapping("/content")
     KnowledgeResponses.ContentResponse content(@CurrentUserId UUID userId, @PathVariable UUID documentId) {
         return knowledge.content(userId, documentId);
+    }
+
+    /** Saves the learner's edit of one section; returns the reading view as it is now. */
+    @PutMapping("/sections/{nodeId}")
+    KnowledgeResponses.ContentResponse editSection(@CurrentUserId UUID userId, @PathVariable UUID documentId,
+                                                   @PathVariable UUID nodeId,
+                                                   @Valid @RequestBody SectionEditRequest body) {
+        return edits.edit(userId, documentId, nodeId, body);
     }
 
     @GetMapping("/nodes/{nodeId}")

@@ -3,6 +3,8 @@ package com.sapio.knowledge.store;
 import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -11,8 +13,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.IntStream;
 
 import com.sapio.document.extraction.ExtractionResult;
+import com.sapio.knowledge.edit.SectionMarkdown;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
@@ -33,8 +37,10 @@ public class KnowledgeStore {
 
     // ------------------------------------------------------------------------------- rows
 
+    /** @param contentVersion bumped by significant learner edits (see V13__section_editing.sql) */
     public record NodeRow(UUID id, UUID documentId, UUID parentId, String path, String label, String title, int level,
-                          int ordinal, int pageFrom, int pageTo, String summary, List<String> keyTerms) {
+                          int ordinal, int pageFrom, int pageTo, String summary, List<String> keyTerms,
+                          int contentVersion) {
     }
 
     public record ChunkRow(UUID id, UUID nodeId, int ordinal, String content, int pageFrom, int pageTo) {
@@ -53,7 +59,7 @@ public class KnowledgeStore {
     }
 
     private static final String NODE_COLUMNS = "id, document_id, parent_id, path::text AS path, label, title, level, "
-            + "ordinal, page_from, page_to, summary, key_terms";
+            + "ordinal, page_from, page_to, summary, key_terms, content_version";
     private static final String CHUNK_COLUMNS = "c.id, c.node_id, c.ordinal, c.content, c.page_from, c.page_to";
     private static final String FIGURE_COLUMNS = "f.id, f.document_id, f.node_id, f.chunk_id, f.ordinal, f.page, "
             + "f.storage_key, f.mime, f.width, f.height, f.caption, f.description, f.kind";
@@ -61,7 +67,8 @@ public class KnowledgeStore {
     private static final RowMapper<NodeRow> NODE = (rs, i) -> new NodeRow(rs.getObject("id", UUID.class),
             rs.getObject("document_id", UUID.class), rs.getObject("parent_id", UUID.class), rs.getString("path"),
             rs.getString("label"), rs.getString("title"), rs.getInt("level"), rs.getInt("ordinal"),
-            rs.getInt("page_from"), rs.getInt("page_to"), rs.getString("summary"), strings(rs.getArray("key_terms")));
+            rs.getInt("page_from"), rs.getInt("page_to"), rs.getString("summary"), strings(rs.getArray("key_terms")),
+            rs.getInt("content_version"));
     private static final RowMapper<ChunkRow> CHUNK = (rs, i) -> new ChunkRow(rs.getObject("id", UUID.class),
             rs.getObject("node_id", UUID.class), rs.getInt("ordinal"), rs.getString("content"), rs.getInt("page_from"),
             rs.getInt("page_to"));
@@ -169,7 +176,9 @@ public class KnowledgeStore {
 
     public void updateSummary(UUID nodeId, String summary, List<String> keyTerms) {
         jdbc.update(con -> {
-            var ps = con.prepareStatement("UPDATE document_nodes SET summary = ?, key_terms = ? WHERE id = ?");
+            // The summary is now written from the section's current text.
+            var ps = con.prepareStatement("UPDATE document_nodes SET summary = ?, key_terms = ?, "
+                    + "summary_version = content_version WHERE id = ?");
             ps.setString(1, summary);
             ps.setArray(2, con.createArrayOf("text", keyTerms.toArray()));
             ps.setObject(3, nodeId);
@@ -256,6 +265,150 @@ public class KnowledgeStore {
                 + "AND embedding_model IS DISTINCT FROM ?";
         return jdbc.update("UPDATE document_chunks" + set, documentId, model)
                 + jdbc.update("UPDATE document_figures" + set, documentId, model);
+    }
+
+    // ------------------------------------------------------------------------------- learner edits
+
+    /** A section the learner has edited: its current revision and when it was last saved. */
+    public record SectionEdit(int revision, Instant editedAt) {
+    }
+
+    /** Revision of every node (0 = as extracted), with the time of the last edit where there was one. */
+    public Map<UUID, SectionEdit> sectionEdits(UUID documentId) {
+        Map<UUID, SectionEdit> edits = new HashMap<>();
+        jdbc.query("SELECT id, revision, edited_at FROM document_nodes WHERE document_id = ?", (ResultSet rs) -> {
+            Timestamp at = rs.getTimestamp("edited_at");
+            edits.put(rs.getObject("id", UUID.class), new SectionEdit(rs.getInt("revision"),
+                    at == null ? null : at.toInstant()));
+        }, documentId);
+        return edits;
+    }
+
+    /**
+     * Records a save: renames the section and bumps its revision, but only if it is still at
+     * {@code expectedRevision} (optimistic concurrency); returns false when someone saved in between.
+     * {@code changedChars} accumulate until they reach {@code significantChars}, which bumps the content version
+     * (what AI-written summaries and notes are compared against) and starts counting again.
+     */
+    public boolean recordEdit(UUID nodeId, int expectedRevision, String title, Instant now, int changedChars,
+                              int significantChars) {
+        return jdbc.update("""
+                        UPDATE document_nodes
+                        SET title = ?, revision = revision + 1, edited_at = ?,
+                            content_version = content_version + CASE WHEN pending_change + ? >= ? THEN 1 ELSE 0 END,
+                            pending_change = CASE WHEN pending_change + ? >= ? THEN 0 ELSE pending_change + ? END
+                        WHERE id = ? AND revision = ?""",
+                truncate(title, 400), Timestamp.from(now), changedChars, significantChars, changedChars,
+                significantChars, changedChars, nodeId, expectedRevision) == 1;
+    }
+
+    /**
+     * Gives a section its new chunks: kept ones stay as they are (text and vector), the others are removed and
+     * the new ones inserted without a vector (the indexer embeds them). Chunk ordinals are unique per document
+     * and follow reading order, so they are moved out of the way and renumbered in one pass.
+     */
+    public void replaceChunks(UUID documentId, UUID nodeId, List<SectionMarkdown.Planned> chunks, int pageFrom,
+                              int pageTo, String searchConfig) {
+        Object kept = chunks.stream().filter(SectionMarkdown.Planned::kept).map(SectionMarkdown.Planned::id)
+                .toArray(UUID[]::new);
+        jdbc.update("DELETE FROM document_chunks WHERE node_id = ? AND NOT (id = ANY (?))", nodeId, kept);
+        jdbc.update("UPDATE document_chunks SET ordinal = ordinal + 1000000 WHERE document_id = ?", documentId);
+        List<Integer> positions = IntStream.range(0, chunks.size()).boxed().toList();
+        jdbc.batchUpdate("UPDATE document_chunks SET ordinal = ? WHERE id = ?",
+                positions.stream().filter(i -> chunks.get(i).kept()).toList(), 200, (ps, i) -> {
+                    ps.setInt(1, 2000000 + i);
+                    ps.setObject(2, chunks.get(i).id());
+                });
+        jdbc.batchUpdate("""
+                        INSERT INTO document_chunks (id, document_id, node_id, ordinal, content, page_from, page_to,
+                                                     search_config)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?::regconfig)""",
+                positions.stream().filter(i -> !chunks.get(i).kept()).toList(), 200, (ps, i) -> {
+                    ps.setObject(1, chunks.get(i).id());
+                    ps.setObject(2, documentId);
+                    ps.setObject(3, nodeId);
+                    ps.setInt(4, 2000000 + i);
+                    ps.setString(5, chunks.get(i).text());
+                    ps.setInt(6, pageFrom);
+                    ps.setInt(7, pageTo);
+                    ps.setString(8, searchConfig);
+                });
+        jdbc.update("""
+                UPDATE document_chunks c SET ordinal = r.position
+                FROM (SELECT c2.id, row_number() OVER (ORDER BY n.ordinal, c2.ordinal) - 1 AS position
+                      FROM document_chunks c2 JOIN document_nodes n ON n.id = c2.node_id
+                      WHERE c2.document_id = ?) r
+                WHERE c.id = r.id""", documentId);
+    }
+
+    /**
+     * Sections in a subtree whose summary was written from older text than they have now, or is missing (an
+     * earlier refresh was interrupted).
+     */
+    public List<NodeRow> nodesWithStaleSummary(UUID documentId, String path) {
+        return jdbc.query("SELECT " + NODE_COLUMNS + " FROM document_nodes WHERE document_id = ? AND path <@ ?::ltree "
+                + "AND (summary IS NULL OR summary_version < content_version) ORDER BY ordinal", NODE, documentId, path);
+    }
+
+    /** Clears summaries (and their terms) so the indexer writes them again. */
+    public void clearSummaries(Collection<UUID> nodeIds) {
+        if (nodeIds.isEmpty()) {
+            return;
+        }
+        Object ids = nodeIds.toArray(UUID[]::new);
+        jdbc.update("UPDATE document_nodes SET summary = NULL, key_terms = '{}' WHERE id = ANY (?)", ids);
+        jdbc.update("DELETE FROM document_terms WHERE node_id = ANY (?)", ids);
+    }
+
+    /**
+     * The sum of a subtree's content versions. It only grows, so anything written from the subtree's text is
+     * behind exactly when this is larger than the value recorded with it.
+     */
+    public int contentStamp(UUID documentId, String path) {
+        Integer stamp = jdbc.queryForObject("SELECT coalesce(sum(content_version), 0) FROM document_nodes "
+                + "WHERE document_id = ? AND path <@ ?::ltree", Integer.class, documentId, path);
+        return stamp == null ? 0 : stamp;
+    }
+
+    /**
+     * Places a section's figures after the given chunks (null: at the end of the section) and orders them as
+     * listed, reusing the ordinals the section's figures already had.
+     */
+    public void placeFigures(List<UUID> figureIds, List<UUID> chunkIds) {
+        if (figureIds.isEmpty()) {
+            return;
+        }
+        Object ids = figureIds.toArray(UUID[]::new);
+        List<Integer> ordinals = jdbc.queryForList(
+                "SELECT ordinal FROM document_figures WHERE id = ANY (?) ORDER BY ordinal", Integer.class, ids);
+        jdbc.update("UPDATE document_figures SET ordinal = ordinal + 1000000 WHERE id = ANY (?)", ids);
+        List<Integer> positions = IntStream.range(0, figureIds.size()).boxed().toList();
+        jdbc.batchUpdate("UPDATE document_figures SET chunk_id = ?, ordinal = ? WHERE id = ?", positions, 200,
+                (ps, i) -> {
+                    ps.setObject(1, chunkIds.get(i));
+                    ps.setInt(2, ordinals.get(i));
+                    ps.setObject(3, figureIds.get(i));
+                });
+    }
+
+    /** Deletes figures (rows only); returns their files, for the caller to remove after commit. */
+    public List<String> deleteFigures(Collection<UUID> figureIds) {
+        if (figureIds.isEmpty()) {
+            return List.of();
+        }
+        Object ids = figureIds.toArray(UUID[]::new);
+        List<String> files = jdbc.queryForList("SELECT storage_key FROM document_figures WHERE id = ANY (?)",
+                String.class, ids);
+        jdbc.update("DELETE FROM document_figures WHERE id = ANY (?)", ids);
+        return files;
+    }
+
+    /** Whether some of the document's text has no vector yet (e.g. a section the learner just edited). */
+    public boolean hasUnembeddedChunks(UUID documentId) {
+        Boolean missing = jdbc.queryForObject(
+                "SELECT EXISTS (SELECT 1 FROM document_chunks WHERE document_id = ? AND embedding IS NULL)",
+                Boolean.class, documentId);
+        return Boolean.TRUE.equals(missing);
     }
 
     // ------------------------------------------------------------------------------- figures

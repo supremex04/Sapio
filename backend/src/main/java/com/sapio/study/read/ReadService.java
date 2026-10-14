@@ -12,6 +12,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.sapio.common.error.ApplicationException;
+import com.sapio.knowledge.SummaryRefresher;
 import com.sapio.knowledge.figure.FigureViews;
 import com.sapio.knowledge.retrieval.ContextAssembler;
 import com.sapio.knowledge.retrieval.ContextAssembler.Context;
@@ -53,10 +54,12 @@ public class ReadService {
     private final TransactionTemplate tx;
     private final Clock clock;
     private final Personalization personalization;
+    private final SummaryRefresher summaries;
 
     ReadService(MaterialAccess access, KnowledgeStore store, ContextAssembler context, FigureViews figures, StudyAi ai,
                 StudyNoteRepository notes, ApplicationEventPublisher events, TransactionTemplate tx, Clock clock,
-                Personalization personalization) {
+                Personalization personalization, SummaryRefresher summaries) {
+        this.summaries = summaries;
         this.personalization = personalization;
         this.access = access;
         this.store = store;
@@ -69,7 +72,21 @@ public class ReadService {
         this.clock = clock;
     }
 
+    /**
+     * The section's notes, written once and cached. Notes written before the learner's significant edits to the
+     * covered text are still returned (marked {@code stale}): rewriting costs an AI call, so the learner decides
+     * ({@link #rewriteNotes}).
+     */
     public NotesResponse notes(UUID userId, UUID documentId, UUID nodeId, NoteStyle style) {
+        return notes(userId, documentId, nodeId, style, false);
+    }
+
+    /** Rewrites the notes from the section's current text, refreshing summaries they build on first. */
+    public NotesResponse rewriteNotes(UUID userId, UUID documentId, UUID nodeId, NoteStyle style) {
+        return notes(userId, documentId, nodeId, style, true);
+    }
+
+    private NotesResponse notes(UUID userId, UUID documentId, UUID nodeId, NoteStyle style, boolean rewrite) {
         StudyMaterial material = access.requireByDocument(userId, documentId);
         Map<UUID, NodeRow> nodes = nodeMap(documentId);
         NodeRow node = nodes.get(nodeId);
@@ -78,12 +95,19 @@ public class ReadService {
         }
         boolean overview = isLarge(documentId, node, nodes);
         Personalization.ForLearner learner = personalization.forLearner(material.getOwnerId());
+        int stamp = store.contentStamp(documentId, node.path());
         // Cached per section and style; notes written for an earlier profile are rewritten for the current one.
         StudyNote note = notes.findByNodeIdAndStyle(nodeId, style)
-                .filter(n -> learner.signature().equals(n.getProfileSignature()))
-                .orElseGet(() -> generate(material, node, nodes, overview, style, learner));
+                .filter(n -> !rewrite && learner.signature().equals(n.getProfileSignature()))
+                .orElseGet(() -> {
+                    if (rewrite && overview) {
+                        summaries.refresh(documentId, node.path()); // overview notes are built from summaries
+                    }
+                    return generate(material, node, nodes, overview, style, learner, stamp);
+                });
         return new NotesResponse(nodeId, style, overview ? "overview" : "section", note.getMarkdown(),
-                figures.byIds(note.getFigureIds()), refs(note.getSourceNodeIds(), nodes), note.getCreatedAt());
+                figures.byIds(note.getFigureIds()), refs(note.getSourceNodeIds(), nodes), note.getCreatedAt(),
+                note.getSourceStamp() < stamp);
     }
 
     public AskResponse ask(UUID userId, UUID documentId, AskRequest request) {
@@ -117,7 +141,7 @@ public class ReadService {
     // ------------------------------------------------------------------------------- notes generation
 
     private StudyNote generate(StudyMaterial material, NodeRow node, Map<UUID, NodeRow> nodes, boolean overview,
-                               NoteStyle style, Personalization.ForLearner learner) {
+                               NoteStyle style, Personalization.ForLearner learner, int stamp) {
         UUID documentId = material.getDocumentId();
         Context sources;
         if (overview) {
@@ -150,11 +174,11 @@ public class ReadService {
                 StudyNote note = notes.findByNodeIdAndStyle(node.id(), style).orElse(null);
                 if (note != null) {
                     note.rewrite(draft.markdown(), uuids(draft.figureIds()), cited, draft.model(), learner.signature(),
-                            clock.instant());
+                            stamp, clock.instant());
                     return notes.saveAndFlush(note);
                 }
                 return notes.saveAndFlush(new StudyNote(node.id(), style, draft.markdown(), uuids(draft.figureIds()),
-                        cited, draft.model(), learner.signature(), clock.instant()));
+                        cited, draft.model(), learner.signature(), stamp, clock.instant()));
             });
         } catch (DataIntegrityViolationException e) {
             return notes.findByNodeIdAndStyle(node.id(), style).orElseThrow(() -> e); // generated concurrently

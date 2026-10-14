@@ -32,4 +32,10 @@ export const documentsApi = {
   /** AI rewrite of one section: EXPAND (in depth) or REVISION (condensed). Generated once, then cached. */
   notes: (id: string, nodeId: string, style: NoteStyle) =>
     apiJson<SectionNotes>(`/documents/${id}/nodes/${nodeId}/notes?style=${style}`),
+  /** Rewrites a section's notes from its current text (after the learner's edits; costs an AI call). */
+  rewriteNotes: (id: string, nodeId: string, style: NoteStyle) =>
+    apiJson<SectionNotes>(`/documents/${id}/nodes/${nodeId}/notes/rewrite?style=${style}`, { method: "POST" }),
+  /** Saves the learner's edit of one section (Markdown); returns the reading view as it is now. */
+  editSection: (id: string, nodeId: string, edit: { title: string; markdown: string; revision: number }) =>
+    apiJson<DocumentContent>(`/documents/${id}/sections/${nodeId}`, { method: "PUT", body: edit }),
 };

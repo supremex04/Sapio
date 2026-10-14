@@ -69,6 +69,7 @@ public class KnowledgeService {
         Map<UUID, Integer> ownChars = new HashMap<>();
         chunksByNode.forEach((node, chunks) -> ownChars.put(node, chunks.stream().mapToInt(c -> c.content().length()).sum()));
         Map<UUID, KnowledgeResponses.Unit> units = studyUnits(nodes, ownChars);
+        Map<UUID, KnowledgeStore.SectionEdit> edits = store.sectionEdits(documentId);
 
         List<KnowledgeResponses.ContentSection> sections = new ArrayList<>();
         for (NodeRow n : nodes) {
@@ -80,8 +81,10 @@ public class KnowledgeService {
             }
             unanchored.getOrDefault(n.id(), List.of())
                     .forEach(f -> blocks.add(new Block("figure", null, f.id(), f.page())));
+            KnowledgeStore.SectionEdit edit = edits.get(n.id());
             sections.add(new KnowledgeResponses.ContentSection(n.id(), n.parentId(), n.path(), n.label(), n.title(),
-                    n.level(), n.pageFrom(), n.pageTo(), blocks, units.get(n.id())));
+                    n.level(), n.pageFrom(), n.pageTo(), blocks, units.get(n.id()), edit == null ? 0 : edit.revision(),
+                    edit == null ? null : edit.editedAt()));
         }
         return new KnowledgeResponses.ContentResponse(documentId, sections, figures.toMap(shown));
     }

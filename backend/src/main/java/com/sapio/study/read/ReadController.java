@@ -30,6 +30,14 @@ class ReadController {
         return read.notes(userId, documentId, nodeId, style);
     }
 
+    /** Rewrites the notes from the current text (the learner asked: it costs an AI call). */
+    @PostMapping("/nodes/{nodeId}/notes/rewrite")
+    ReadResponses.NotesResponse rewriteNotes(@CurrentUserId UUID userId, @PathVariable UUID documentId,
+                                             @PathVariable UUID nodeId,
+                                             @RequestParam(defaultValue = "EXPAND") NoteStyle style) {
+        return read.rewriteNotes(userId, documentId, nodeId, style);
+    }
+
     @PostMapping("/ask")
     ReadResponses.AskResponse ask(@CurrentUserId UUID userId, @PathVariable UUID documentId,
                                   @Valid @RequestBody ReadResponses.AskRequest body) {
