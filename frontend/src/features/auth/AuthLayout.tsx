@@ -14,31 +14,42 @@ interface Props {
   children: ReactNode;
 }
 
-/** Centered, airy auth screen: Sapi says hello, then one clean form card. */
+/** The product's promise, shown beside every sign-in and sign-up form. */
+export const SLOGAN = { lead: "While the world races to create smarter AI, we intend to make", emphasis: "smarter humans" };
+
+/**
+ * Auth screen in two halves: the slogan on the left, Sapi's hello and one clean form card on the right.
+ * On narrow screens the slogan sits above the form.
+ */
 export function AuthLayout({ title, subtitle, mood, greeting, children }: Props) {
   return (
     <main className="auth-screen">
-      <header className="auth-top">
+      <section className="auth-pitch" aria-label="Why Sapio">
         <Link to="/login" aria-label="Sapio home" className="auth-brand">
           <Wordmark />
         </Link>
-      </header>
-      <PageTransition>
-        <div className="auth-column">
-          <div className="auth-hello">
-            <Sage mood={mood} size={104} />
-            <SpeechBubble>{greeting}</SpeechBubble>
-          </div>
-          <div className="auth-card">
-            <div className="auth-heading">
-              <h1>{title}</h1>
-              <p className="muted">{subtitle}</p>
+        <p className="auth-slogan">
+          {SLOGAN.lead} <em>{SLOGAN.emphasis}</em>.
+        </p>
+        <p className="auth-origin xs muted">Sapio, from Latin sapiō: "I understand".</p>
+      </section>
+      <div className="auth-entry">
+        <PageTransition>
+          <div className="auth-column">
+            <div className="auth-hello">
+              <Sage mood={mood} size={104} />
+              <SpeechBubble>{greeting}</SpeechBubble>
             </div>
-            {children}
+            <div className="auth-card">
+              <div className="auth-heading">
+                <h1>{title}</h1>
+                <p className="muted">{subtitle}</p>
+              </div>
+              {children}
+            </div>
           </div>
-          <p className="auth-foot xs muted center">Sapio, from Sanskrit veda: "knowledge".</p>
-        </div>
-      </PageTransition>
+        </PageTransition>
+      </div>
     </main>
   );
 }

@@ -113,6 +113,7 @@
 
   --clay-main: #e77d43; /* Sapio's mark and Sapi's robe */
   --clay-edge: #bf5a26;
+  --clay-ink: #b04f1c; /* clay as text: readable on light surfaces */
   --skin-main: #f6c9a0; /* Sapi, the sage mascot */
   --skin-edge: #e3a77a;
   --hair-main: #fbfaf7;
@@ -177,6 +178,7 @@
 
   --clay-main: #f08a50;
   --clay-edge: #b85a28;
+  --clay-ink: #ffab76;
   --skin-main: #f0c29a;
   --skin-edge: #cf9568;
   --hair-main: #f4f2ee;
