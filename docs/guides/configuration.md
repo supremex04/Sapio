@@ -383,6 +383,23 @@ llm:
         - {provider: gemini, model: gemini-3.5-flash, options: {thinking_level: low}}
 ```
 
+### Several Gemini API keys
+
+`SAPIO_INFERENCE_GEMINI_API_KEY` takes one key or several, separated by commas (or new lines):
+`SAPIO_INFERENCE_GEMINI_API_KEY=key1,key2,key3`. The keys are used in order: the current key serves every request
+until it reaches a limit (HTTP 429) or is refused, then the request moves straight to the next key, without
+waiting.
+
+- **Rate or quota limit (429)**: the key rests for that model (quotas are per model): as long as the server's
+  `retryDelay` says, or an hour for a daily quota (it is checked again hourly, not abandoned).
+- **Refused key** (invalid, expired, its project blocked: 401, 403, or 400 `API_KEY_INVALID`): set aside for an
+  hour. A request the API rejects for its content (any other 400) is not blamed on the key.
+- **Every key at its limit**: the request waits for the first key to come back, or, when that is far off, falls
+  back to the next model in the route or pauses the document until then (as with one key).
+
+Keys never appear in logs: switches are logged as `key 3/7 (...ab12)`. The LLM and embedding clients share the
+pool, as they spend the same quota.
+
 ### OpenRouter as a cross-vendor fallback
 
 ```yaml

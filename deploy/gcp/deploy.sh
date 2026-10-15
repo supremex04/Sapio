@@ -4,6 +4,9 @@
 #
 #   PROJECT_ID=my-project REGION=asia-south1 deploy/gcp/deploy.sh
 #
+# Gemini: the sapio-gemini-key secret may hold several API keys separated by commas; the next is used when one
+# reaches its limit.
+#
 # Optional: INSTANCE (Cloud SQL instance, default sapio-postgres), DB_NAME / DB_USER (default sapio),
 # BUCKET (default PROJECT_ID-sapio-files), REPO (Artifact Registry repository, default sapio), TAG (default: git
 # commit), SKIP_BUILD=1 to redeploy existing images.

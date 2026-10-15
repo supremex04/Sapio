@@ -20,6 +20,11 @@ class Answer(BaseModel):
 
 
 @pytest.fixture(autouse=True)
+def _fresh_key_pools(monkeypatch):
+    monkeypatch.setattr("sapio_inference.llm.key_pool._pools", {})
+
+
+@pytest.fixture(autouse=True)
 def _no_sleep(monkeypatch):
     sleeps: list[float] = []
     monkeypatch.setattr("sapio_inference.llm.retry.time.sleep", sleeps.append)
@@ -37,8 +42,8 @@ def test_schema_is_self_contained_and_keeps_fields_named_title():
 # ------------------------------------------------------------------ Gemini
 
 
-def gemini(handler, monkeypatch, **cfg) -> tuple[GeminiProvider, list[httpx.Request]]:
-    monkeypatch.setenv("TEST_GEMINI_KEY", "k")
+def gemini(handler, monkeypatch, keys="k", **cfg) -> tuple[GeminiProvider, list[httpx.Request]]:
+    monkeypatch.setenv("TEST_GEMINI_KEY", keys)
     seen: list[httpx.Request] = []
 
     def record(request):
@@ -84,7 +89,7 @@ def test_gemini_rate_limit_waits_for_server_hint_then_succeeds(monkeypatch, _no_
         ).value
         == 1
     )
-    assert _no_sleep == [31.0]
+    assert _no_sleep == [pytest.approx(31.0, abs=0.5)]
 
 
 def test_gemini_embeds_text_and_images(monkeypatch):
@@ -102,6 +107,81 @@ def test_gemini_embeds_text_and_images(monkeypatch):
     req = json.loads(seen[0].content)["requests"][1]
     assert vectors == [[0.1, 0.2]] * 2
     assert req["outputDimensionality"] == 2 and "inlineData" in req["content"]["parts"][0]
+
+
+def ask(p):
+    return p.generate(
+        ModelRef(provider="gemini", model="g"),
+        system="s",
+        prompt="p",
+        schema=Answer,
+        temperature=0,
+        images=[],
+    )
+
+
+def test_gemini_moves_to_the_next_key_when_one_reaches_its_limit(monkeypatch, _no_sleep):
+    daily = httpx.Response(
+        429,
+        json={
+            "error": {"details": [{"violations": [{"quotaId": "GenerateRequestsPerDayPerProjectPerModel"}]}]}
+        },
+    )
+
+    def handler(request):
+        return (
+            daily if request.headers["x-goog-api-key"] == "key-one" else gemini_ok({"title": "t", "value": 2})
+        )
+
+    p, seen = gemini(handler, monkeypatch, keys="key-one, key-two\nkey-three")
+    assert ask(p).value == 2
+    assert ask(p).value == 2
+    # No waiting: the exhausted key is skipped at once, and later requests start with the key that works.
+    assert [r.headers["x-goog-api-key"] for r in seen] == ["key-one", "key-two", "key-two"]
+    assert _no_sleep == []
+
+
+def test_gemini_sets_aside_a_refused_key(monkeypatch):
+    refused = httpx.Response(403, json={"error": {"message": "Your project has been denied access."}})
+
+    def handler(request):
+        return (
+            refused
+            if request.headers["x-goog-api-key"] == "blocked"
+            else gemini_ok({"title": "t", "value": 3})
+        )
+
+    p, seen = gemini(handler, monkeypatch, keys="blocked,good")
+    assert ask(p).value == 3 and ask(p).value == 3
+    assert [r.headers["x-goog-api-key"] for r in seen] == ["blocked", "good", "good"]
+
+
+def test_gemini_reports_when_every_key_is_refused(monkeypatch):
+    invalid = httpx.Response(
+        400, json={"error": {"message": "API key not valid.", "details": [{"reason": "API_KEY_INVALID"}]}}
+    )
+    p, _ = gemini(lambda _r: invalid, monkeypatch, keys="a,b")
+    with pytest.raises(ConfigurationError, match="all 2 API keys"):
+        ask(p)
+
+
+def test_gemini_waits_for_the_first_key_back_when_all_are_at_their_limit(monkeypatch, _no_sleep):
+    def limited(seconds):
+        return httpx.Response(429, json={"error": {"details": [{"retryDelay": f"{seconds}s"}]}})
+
+    answers = iter([limited(20), limited(5), gemini_ok({"title": "t", "value": 4})])
+    p, seen = gemini(lambda _r: next(answers), monkeypatch, keys="a,b")
+    assert ask(p).value == 4
+    assert [r.headers["x-goog-api-key"] for r in seen] == ["a", "b", "b"]
+    assert _no_sleep == [pytest.approx(5.0, abs=0.5)]
+
+
+def test_a_bad_request_is_not_blamed_on_the_key(monkeypatch):
+    bad = httpx.Response(400, json={"error": {"message": "Request contains an invalid argument."}})
+    p, seen = gemini(lambda _r: bad, monkeypatch, keys="a,b")
+    with pytest.raises(ConfigurationError, match="HTTP 400"):
+        ask(p)
+    assert len(seen) == 1
 
 
 def test_gemini_requires_its_key():
