@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: ved
+      POSTGRES_USER: ved
+      POSTGRES_PASSWORD: ${VED_DB_PASSWORD:-ved}
+    volumes:
+      - ved-postgres-app:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ved -d ved"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+  inference:
+    build: ./inference
+    environment:
+      VED_INFERENCE_API_KEY: ${VED_INFERENCE_API_KEY:-dev-internal-key}
+      VED_INFERENCE_GEMINI_API_KEY: ${VED_INFERENCE_GEMINI_API_KEY:-}
+    expose: ["8000"]
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    environment:
+      VED_DB_URL: jdbc:postgresql://postgres:5432/ved
+      VED_DB_USERNAME: ved
+      VED_DB_PASSWORD: ${VED_DB_PASSWORD:-ved}
+      VED_INFERENCE_URL: http://inference:8000
+      VED_INFERENCE_API_KEY: ${VED_INFERENCE_API_KEY:-dev-internal-key}
+      VED_JWT_SECRET: ${VED_JWT_SECRET:-dev-only-secret-change-me-dev-only-secret-change-me}
+      VED_FIGURE_URL_SECRET: ${VED_FIGURE_URL_SECRET:-dev-only-figure-url-secret-change-me}
+      VED_STORAGE_DIR: /data/storage
+      VED_COOKIE_SECURE: "false"
+      VED_CORS_ORIGINS: http://localhost:5173
+    volumes:
+      - ved-storage:/data/storage
+    ports: ["8080:8080"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      inference: { condition: service_started }
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports: ["5173:80"]
+    depends_on: [backend]
+    restart: unless-stopped
+
+volumes:
+  ved-postgres-app:
+  ved-storage:

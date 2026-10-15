@@ -34,6 +34,7 @@ plus spaced review, XP/levels/streaks, daily goals and learning analytics.
 | Guides | [guides/how-sapio-works.md](guides/how-sapio-works.md) | **start here**: a plain-language tour of the whole flow (documents, embeddings, search, lessons) |
 | | [guides/local-development.md](guides/local-development.md) | setting up, running and testing locally |
 | | [guides/configuration.md](guides/configuration.md) | switching AI vendors/models, OCR engines, or tuning retrieval, budgets and processing |
+| | [guides/google-cloud-deployment.md](guides/google-cloud-deployment.md) | deploying the frontend, backend, inference API, database, and files to Google Cloud |
 | | [guides/ocr-engines.md](guides/ocr-engines.md) | switching OCR engines / running Unlimited-OCR on a GPU |
 | Planning | [roadmap.md](roadmap.md) | picking up the next piece of work; known limitations |
 
