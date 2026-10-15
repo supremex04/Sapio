@@ -1,0 +1,41 @@
+# Filled in at container start: PORT (Cloud Run sets it) and BACKEND_URL (the backend's base URL, no trailing slash).
+
+# The scheme the browser used: Cloud Run's front end says https; without a proxy in front, nginx's own.
+map $http_x_forwarded_proto $browser_scheme {
+    default $http_x_forwarded_proto;
+    "" $scheme;
+}
+
+server {
+    listen ${PORT};
+    root /usr/share/nginx/html;
+    client_max_body_size 1100m;
+
+    # The API, uploads included, and signed figure / media URLs.
+    location /api/ {
+        proxy_pass ${BACKEND_URL};
+        proxy_ssl_server_name on;
+        proxy_set_header Host $proxy_host;
+        # The backend sees the address the browser used, so same-origin checks and cookies line up.
+        proxy_set_header X-Forwarded-Host $http_host;
+        proxy_set_header X-Forwarded-Proto $browser_scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_request_buffering off;
+        proxy_buffering off;
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+    }
+
+    # Hashed build output: cache for a year.
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+
+    # Single-page app: unknown paths get index.html, which must never be cached.
+    location / {
+        add_header Cache-Control "no-cache";
+        try_files $uri /index.html;
+    }
+}

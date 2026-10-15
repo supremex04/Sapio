@@ -1,0 +1,15 @@
+# What Cloud Build uploads (gcloud builds submit): sources only.
+.git/
+.dev/
+**/node_modules/
+frontend/dist/
+**/*.tsbuildinfo
+backend/target/
+backend/var/
+inference/.venv/
+**/.env
+**/.env.*
+**/__pycache__/
+*.pdf
+*.mp4
+*.mp3

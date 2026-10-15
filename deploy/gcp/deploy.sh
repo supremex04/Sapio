@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# Builds Sapio in Cloud Build and deploys it to Cloud Run: sapio-inference, sapio-backend and sapio-web (the
+# public URL). One-time setup (APIs, Artifact Registry, bucket, secrets, IAM, database) is in the deployment guide.
+#
+#   PROJECT_ID=my-project REGION=asia-south1 deploy/gcp/deploy.sh
+#
+# Optional: INSTANCE (Cloud SQL instance, default sapio-postgres), DB_NAME / DB_USER (default sapio),
+# BUCKET (default PROJECT_ID-sapio-files), REPO (Artifact Registry repository, default sapio), TAG (default: git
+# commit), SKIP_BUILD=1 to redeploy existing images.
+set -euo pipefail
+
+: "${PROJECT_ID:?set PROJECT_ID}"
+REGION=${REGION:-asia-south1}
+INSTANCE=${INSTANCE:-sapio-postgres}
+DB_NAME=${DB_NAME:-sapio}
+DB_USER=${DB_USER:-sapio}
+BUCKET=${BUCKET:-$PROJECT_ID-sapio-files}
+REPO=${REPO:-sapio}
+TAG=${TAG:-$(git rev-parse --short HEAD)}
+MAX_MEDIA_BYTES=31457280 # 30 MiB: Cloud Run caps request bodies at 32 MiB
+REGISTRY="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO"
+RUNTIME_SA="sapio-runtime@$PROJECT_ID.iam.gserviceaccount.com"
+
+cd "$(dirname "$0")/../.."
+gcloud config set project "$PROJECT_ID" >/dev/null
+
+if [[ -z ${SKIP_BUILD:-} ]]; then
+  echo "==> Building images ($TAG)"
+  gcloud builds submit --region "$REGION" --config deploy/gcp/cloudbuild.yaml \
+    --substitutions "_REGISTRY=$REGISTRY,_TAG=$TAG,_MAX_MEDIA_BYTES=$MAX_MEDIA_BYTES" .
+fi
+
+CONNECTION=$(gcloud sql instances describe "$INSTANCE" --format='value(connectionName)')
+
+echo "==> Inference"
+gcloud run deploy sapio-inference --region "$REGION" --image "$REGISTRY/inference:$TAG" \
+  --service-account "$RUNTIME_SA" --allow-unauthenticated \
+  --cpu 2 --memory 4Gi --timeout 3600 --concurrency 4 --min-instances 0 --max-instances 2 \
+  --set-secrets "SAPIO_INFERENCE_API_KEY=sapio-inference-key:latest,SAPIO_INFERENCE_GEMINI_API_KEY=sapio-gemini-key:latest"
+INFERENCE_URL=$(gcloud run services describe sapio-inference --region "$REGION" --format='value(status.url)')
+
+echo "==> Backend"
+# Background work (document processing, retries) runs outside requests: CPU always on, one warm instance.
+gcloud run deploy sapio-backend --region "$REGION" --image "$REGISTRY/backend:$TAG" \
+  --service-account "$RUNTIME_SA" --allow-unauthenticated --execution-environment gen2 \
+  --cpu 1 --memory 1Gi --timeout 900 --no-cpu-throttling --min-instances 1 --max-instances 2 \
+  --add-volume "name=files,type=cloud-storage,bucket=$BUCKET" --add-volume-mount "volume=files,mount-path=/data" \
+  --set-env-vars "^@^SAPIO_DB_URL=jdbc:postgresql:///$DB_NAME?cloudSqlInstance=$CONNECTION&socketFactory=com.google.cloud.sql.postgres.SocketFactory@SAPIO_DB_USERNAME=$DB_USER@SAPIO_INFERENCE_URL=$INFERENCE_URL@SAPIO_MAX_MEDIA_BYTES=$MAX_MEDIA_BYTES" \
+  --set-secrets "SAPIO_DB_PASSWORD=sapio-db-password:latest,SAPIO_JWT_SECRET=sapio-jwt-secret:latest,SAPIO_INFERENCE_API_KEY=sapio-inference-key:latest,SAPIO_MEDIA_URL_SECRET=sapio-media-url-secret:latest,SAPIO_FIGURE_URL_SECRET=sapio-figure-url-secret:latest"
+BACKEND_URL=$(gcloud run services describe sapio-backend --region "$REGION" --format='value(status.url)')
+
+echo "==> Web"
+gcloud run deploy sapio-web --region "$REGION" --image "$REGISTRY/web:$TAG" \
+  --service-account "$RUNTIME_SA" --allow-unauthenticated \
+  --cpu 1 --memory 256Mi --min-instances 0 --max-instances 2 \
+  --set-env-vars "BACKEND_URL=$BACKEND_URL"
+WEB_URL=$(gcloud run services describe sapio-web --region "$REGION" --format='value(status.url)')
+
+# The browser's origin is the web URL; the backend only needs to know it for CORS.
+gcloud run services update sapio-backend --region "$REGION" --update-env-vars "SAPIO_CORS_ORIGINS=$WEB_URL" >/dev/null
+
+echo
+echo "Sapio is live: $WEB_URL"

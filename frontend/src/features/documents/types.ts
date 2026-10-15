@@ -48,7 +48,8 @@ const DOCUMENT_EXTENSIONS = ["pdf", "docx", "png", "jpg", "jpeg", "webp", "tif",
 const MEDIA_EXTENSIONS = ["mp3", "m4a", "aac", "wav", "ogg", "oga", "opus", "flac", "mp4", "m4v", "mov", "webm", "mkv", "avi"];
 export const ACCEPTED_FILE_TYPES = [...DOCUMENT_EXTENSIONS, ...MEDIA_EXTENSIONS].map((e) => `.${e}`).join(",");
 export const MAX_FILE_BYTES = 25 * 1024 * 1024;
-export const MAX_MEDIA_BYTES = 1024 * 1024 * 1024;
+/** 1 GiB unless the build sets VITE_MAX_MEDIA_BYTES (hosts with a request size cap; matches SAPIO_MAX_MEDIA_BYTES). */
+export const MAX_MEDIA_BYTES = Number(import.meta.env.VITE_MAX_MEDIA_BYTES) || 1024 * 1024 * 1024;
 
 const extension = (name: string) => name.slice(name.lastIndexOf(".") + 1).toLowerCase();
 export const isMediaFile = (name: string) => MEDIA_EXTENSIONS.includes(extension(name));

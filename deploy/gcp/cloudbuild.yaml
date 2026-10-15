@@ -1,0 +1,26 @@
+# Builds the three images in Cloud Build and pushes them to Artifact Registry.
+# Used by deploy.sh: gcloud builds submit --config deploy/gcp/cloudbuild.yaml --substitutions=...
+substitutions:
+  _REGISTRY: ""          # REGION-docker.pkg.dev/PROJECT/REPO
+  _TAG: latest
+  _MAX_MEDIA_BYTES: "31457280" # 30 MiB: Cloud Run's request cap is 32 MiB
+steps:
+  - id: backend
+    name: gcr.io/cloud-builders/docker
+    args: ["build", "-t", "${_REGISTRY}/backend:${_TAG}", "backend"]
+    waitFor: ["-"]
+  - id: inference
+    name: gcr.io/cloud-builders/docker
+    args: ["build", "-t", "${_REGISTRY}/inference:${_TAG}", "inference"]
+    waitFor: ["-"]
+  - id: web
+    name: gcr.io/cloud-builders/docker
+    args: ["build", "-t", "${_REGISTRY}/web:${_TAG}", "--build-arg", "VITE_MAX_MEDIA_BYTES=${_MAX_MEDIA_BYTES}", "frontend"]
+    waitFor: ["-"]
+images:
+  - ${_REGISTRY}/backend:${_TAG}
+  - ${_REGISTRY}/inference:${_TAG}
+  - ${_REGISTRY}/web:${_TAG}
+options:
+  machineType: E2_HIGHCPU_8
+timeout: 3600s
