@@ -10,6 +10,12 @@
 # Optional: INSTANCE (Cloud SQL instance, default sapio-postgres), DB_NAME / DB_USER (default sapio),
 # BUCKET (default PROJECT_ID-sapio-files), REPO (Artifact Registry repository, default sapio), TAG (default: git
 # commit), SKIP_BUILD=1 to redeploy existing images.
+#
+# Sized for a prototype with a handful of users: one instance per service at most (a spike or a retry loop
+# cannot multiply the bill). BACKEND_MIN_INSTANCES=1 (default) keeps one backend running around the clock, its
+# CPU always on, so documents keep processing after the upload request ends and nobody waits for a cold start;
+# it is the largest fixed cost. BACKEND_MIN_INSTANCES=0 lets it scale to zero when idle (billed only while in use;
+# the first visit after a quiet spell takes ~15 s, and pauses resume on the next visit).
 set -euo pipefail
 
 : "${PROJECT_ID:?set PROJECT_ID}"
@@ -20,6 +26,7 @@ DB_USER=${DB_USER:-sapio}
 BUCKET=${BUCKET:-$PROJECT_ID-sapio-files}
 REPO=${REPO:-sapio}
 TAG=${TAG:-$(git rev-parse --short HEAD)}
+BACKEND_MIN_INSTANCES=${BACKEND_MIN_INSTANCES:-1}
 MAX_MEDIA_BYTES=31457280 # 30 MiB: Cloud Run caps request bodies at 32 MiB
 REGISTRY="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO"
 RUNTIME_SA="sapio-runtime@$PROJECT_ID.iam.gserviceaccount.com"
@@ -38,15 +45,17 @@ CONNECTION=$(gcloud sql instances describe "$INSTANCE" --format='value(connectio
 echo "==> Inference"
 gcloud run deploy sapio-inference --region "$REGION" --image "$REGISTRY/inference:$TAG" \
   --service-account "$RUNTIME_SA" --allow-unauthenticated \
-  --cpu 2 --memory 4Gi --timeout 3600 --concurrency 4 --min-instances 0 --max-instances 2 \
+  --cpu 2 --memory 4Gi --timeout 3600 --concurrency 4 --min-instances 0 --max-instances 1 \
   --set-secrets "SAPIO_INFERENCE_API_KEY=sapio-inference-key:latest,SAPIO_INFERENCE_GEMINI_API_KEY=sapio-gemini-key:latest"
 INFERENCE_URL=$(gcloud run services describe sapio-inference --region "$REGION" --format='value(status.url)')
 
 echo "==> Backend"
-# Background work (document processing, retries) runs outside requests: CPU always on, one warm instance.
+# Background work (document processing, retries) runs outside requests: CPU always on (billed while the
+# instance runs, not per request).
 gcloud run deploy sapio-backend --region "$REGION" --image "$REGISTRY/backend:$TAG" \
   --service-account "$RUNTIME_SA" --allow-unauthenticated --execution-environment gen2 \
-  --cpu 1 --memory 1Gi --timeout 900 --no-cpu-throttling --min-instances 1 --max-instances 2 \
+  --cpu 1 --memory 1Gi --timeout 900 --no-cpu-throttling \
+  --min-instances "$BACKEND_MIN_INSTANCES" --max-instances 1 \
   --add-volume "name=files,type=cloud-storage,bucket=$BUCKET" --add-volume-mount "volume=files,mount-path=/data" \
   --set-env-vars "^@^SAPIO_DB_URL=jdbc:postgresql:///$DB_NAME?cloudSqlInstance=$CONNECTION&socketFactory=com.google.cloud.sql.postgres.SocketFactory@SAPIO_DB_USERNAME=$DB_USER@SAPIO_INFERENCE_URL=$INFERENCE_URL@SAPIO_MAX_MEDIA_BYTES=$MAX_MEDIA_BYTES" \
   --set-secrets "SAPIO_DB_PASSWORD=sapio-db-password:latest,SAPIO_JWT_SECRET=sapio-jwt-secret:latest,SAPIO_INFERENCE_API_KEY=sapio-inference-key:latest,SAPIO_MEDIA_URL_SECRET=sapio-media-url-secret:latest,SAPIO_FIGURE_URL_SECRET=sapio-figure-url-secret:latest"
@@ -55,7 +64,7 @@ BACKEND_URL=$(gcloud run services describe sapio-backend --region "$REGION" --fo
 echo "==> Web"
 gcloud run deploy sapio-web --region "$REGION" --image "$REGISTRY/web:$TAG" \
   --service-account "$RUNTIME_SA" --allow-unauthenticated \
-  --cpu 1 --memory 256Mi --min-instances 0 --max-instances 2 \
+  --cpu 1 --memory 256Mi --min-instances 0 --max-instances 1 \
   --set-env-vars "BACKEND_URL=$BACKEND_URL"
 WEB_URL=$(gcloud run services describe sapio-web --region "$REGION" --format='value(status.url)')
 
