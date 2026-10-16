@@ -827,7 +827,7 @@
       "HealthResponse": {
         "properties": {
           "contractVersion": {
-            "default": "1.2",
+            "default": "1.3",
             "title": "Contractversion",
             "type": "string"
           },
@@ -1631,6 +1631,16 @@
               "HARD"
             ],
             "title": "Difficulty",
+            "type": "string"
+          },
+          "format": {
+            "default": "MIXED",
+            "enum": [
+              "MIXED",
+              "OBJECTIVE",
+              "SUBJECTIVE"
+            ],
+            "title": "Format",
             "type": "string"
           },
           "kind": {

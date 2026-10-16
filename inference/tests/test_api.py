@@ -35,7 +35,7 @@ def test_health_reports_engines():
     with client() as c:
         assert c.get("/health").json() == {
             "status": "ok",
-            "contractVersion": "1.2",
+            "contractVersion": "1.3",
             "ocrEngine": "rapidocr-layout",
             "llmModel": "fake-llm",
             "embeddingModel": "fake-embed",

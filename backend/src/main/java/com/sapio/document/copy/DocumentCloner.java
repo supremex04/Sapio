@@ -48,8 +48,14 @@ public class DocumentCloner {
         this.clock = clock;
     }
 
-    /** Where a copy came from; shown on it as the "Imported" tag. */
-    public record Origin(UUID shareId, String ownerName) {
+    /** Where a copy came from; shown on it ("Imported" from Explore, or "From your teacher"). */
+    public record Origin(UUID shareId, String ownerName, Kind kind) {
+
+        public enum Kind { EXPLORE, CLASS }
+
+        public Origin(UUID shareId, String ownerName) {
+            this(shareId, ownerName, Kind.EXPLORE);
+        }
     }
 
     /**
@@ -77,12 +83,14 @@ public class DocumentCloner {
         params.put("now", Timestamp.from(now));
         params.put("share", origin.shareId());
         params.put("from", origin.ownerName());
+        params.put("kind", origin.kind().name());
         copy.copyRows("documents", DocumentCopy.set(
                         "id", ":target", "owner_id", ":owner", "storage_key", ":file",
                         "created_at", ":now", "updated_at", ":now", "completed_at", ":now",
                         "processing_started_at", "NULL", "heartbeat_at", "NULL", "error_message", "NULL",
                         "retry_at", "NULL", "auto_retries", "0",
-                        "origin_share_id", "CAST(:share AS uuid)", "origin_owner_name", ":from", "imported_at", ":now"),
+                        "origin_share_id", "CAST(:share AS uuid)", "origin_owner_name", ":from", "imported_at", ":now",
+                        "origin_kind", ":kind"),
                 "src.id = :source", params);
         copy.copyRows("document_segments", DocumentCopy.set("id", "gen_random_uuid()", "document_id", ":target"),
                 "src.document_id = :source");

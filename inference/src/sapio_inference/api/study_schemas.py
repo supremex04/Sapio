@@ -132,6 +132,8 @@ class QuestionsRequest(ApiModel):
     kind: MaterialKind = "OTHER"
     count: int = Field(ge=1, le=30)
     difficulty: AssessmentDifficulty = "MIXED"
+    #: Question types: OBJECTIVE (multiple choice, true/false), SUBJECTIVE (short answer), MIXED (by difficulty)
+    format: Literal["MIXED", "OBJECTIVE", "SUBJECTIVE"] = "MIXED"
     topics: list[QuestionTopicIn] = Field(min_length=1)
     avoid_prompts: list[str] = Field(default_factory=list)
     #: Who the content is for (depth, vocabulary, examples); None = a general audience

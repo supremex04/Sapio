@@ -159,13 +159,29 @@ DIFFICULTY_GUIDE = {
 }
 
 
+FORMAT_GUIDE = {
+    "MIXED": "",
+    "OBJECTIVE": "Question types: ONLY MULTIPLE_CHOICE and TRUE_FALSE (about 75% / 25%); no SHORT_ANSWER. "
+    "This overrides the type mix above.",
+    "SUBJECTIVE": "Question types: ONLY SHORT_ANSWER (explain, compare, apply in 1-3 sentences); no choice questions. "
+    "This overrides the type mix above.",
+}
+
+
 def questions_prompt(
-    *, material_title: str, kind: str, count: int, difficulty: str, topics_block: str, avoid: list[str]
+    *,
+    material_title: str,
+    kind: str,
+    count: int,
+    difficulty: str,
+    topics_block: str,
+    avoid: list[str],
+    question_format: str = "MIXED",
 ) -> str:
     avoid_block = "\n".join(f"- {p}" for p in avoid[:60]) or "- (none)"
     return f"""Write exactly {count} assessment questions for the material "{material_title}" (kind: {kind}).
 
-Difficulty: {difficulty}. {DIFFICULTY_GUIDE[difficulty]}
+Difficulty: {difficulty}. {DIFFICULTY_GUIDE[difficulty]} {FORMAT_GUIDE[question_format]}
 
 Rules:
 - Spread questions across the topics below in proportion to their content; every topic gets at least one question if {count} allows.

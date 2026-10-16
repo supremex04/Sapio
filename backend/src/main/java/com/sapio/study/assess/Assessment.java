@@ -49,6 +49,15 @@ public class Assessment {
     @Column(name = "completed_at")
     private Instant completedAt;
 
+    /** Set on tests a teacher assigned (classroom): their title, who set them, when they are due. */
+    private String title;
+
+    @Column(name = "assigned_by")
+    private String assignedBy;
+
+    @Column(name = "due_at")
+    private Instant dueAt;
+
     protected Assessment() {
         // for JPA
     }
@@ -60,6 +69,24 @@ public class Assessment {
         this.questionCount = questionCount;
         this.status = AssessmentStatus.IN_PROGRESS;
         this.createdAt = now;
+    }
+
+    void assign(String title, String assignedBy, Instant dueAt) {
+        this.title = title;
+        this.assignedBy = assignedBy;
+        this.dueAt = dueAt;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getAssignedBy() {
+        return assignedBy;
+    }
+
+    public Instant getDueAt() {
+        return dueAt;
     }
 
     void complete(double score, String reportJson, Instant now) {

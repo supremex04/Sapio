@@ -26,13 +26,17 @@ public final class TestUsers {
     }
 
     public static Registered register(MockMvc mvc, JsonMapper json) throws Exception {
+        return register(mvc, json, "STUDENT", "Test User");
+    }
+
+    public static Registered register(MockMvc mvc, JsonMapper json, String role, String fullName) throws Exception {
         String email = "user-" + UUID.randomUUID() + "@example.com";
         String password = "correct-horse-battery";
         MvcResult result = mvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"%s","password":"%s","fullName":"Test User","role":"STUDENT"}
-                                """.formatted(email, password)))
+                                {"email":"%s","password":"%s","fullName":"%s","role":"%s"}
+                                """.formatted(email, password, fullName, role)))
                 .andExpect(status().isCreated())
                 .andReturn();
         JsonNode body = json.readTree(result.getResponse().getContentAsString());

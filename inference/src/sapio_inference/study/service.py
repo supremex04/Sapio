@@ -161,6 +161,7 @@ class StudyService:
                 difficulty=request.difficulty,
                 topics_block=topics_block,
                 avoid=request.avoid_prompts,
+                question_format=request.format,
             ),
             schema=QuestionSet,
             temperature=0.6,
@@ -170,6 +171,11 @@ class StudyService:
         out: list[api.QuestionOut] = []
         for q in result.questions:
             if q.topic_key not in sections_by_topic or not q.prompt.strip():
+                continue
+            # The requested format is a hard rule: a question of another kind is dropped.
+            if (request.format == "OBJECTIVE" and q.type == "SHORT_ANSWER") or (
+                request.format == "SUBJECTIVE" and q.type != "SHORT_ANSWER"
+            ):
                 continue
             cited = [s for s in dict.fromkeys(q.source_section_ids) if s in sections_by_topic[q.topic_key]]
             if q.type == "SHORT_ANSWER":

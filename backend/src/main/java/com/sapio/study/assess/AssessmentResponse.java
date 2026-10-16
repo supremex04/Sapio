@@ -19,7 +19,16 @@ public record AssessmentResponse(
         Instant createdAt,
         Instant completedAt,
         List<Item> items,
-        AssessmentReport report) {
+        AssessmentReport report,
+        Assignment assignment) {
+
+    /** Present on tests a teacher assigned. */
+    public record Assignment(String title, String assignedBy, Instant dueAt) {
+
+        static Assignment of(Assessment a) {
+            return a.getAssignedBy() == null ? null : new Assignment(a.getTitle(), a.getAssignedBy(), a.getDueAt());
+        }
+    }
 
     /**
      * @param submitted what the learner answered (null if not yet)

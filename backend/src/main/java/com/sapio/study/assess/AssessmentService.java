@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 
 import com.sapio.common.error.ApplicationException;
 import com.sapio.common.error.ErrorCode;
+import com.sapio.knowledge.store.KnowledgeStore;
 import com.sapio.study.LearningActivityEvent;
 import com.sapio.study.ai.Personalization;
 import com.sapio.study.ai.StudyAi;
@@ -32,6 +33,7 @@ import com.sapio.study.question.AttemptContext;
 import com.sapio.study.question.QuestionAttempt;
 import com.sapio.study.question.QuestionAttemptRepository;
 import com.sapio.study.question.QuestionOrigin;
+import com.sapio.study.question.QuestionType;
 import com.sapio.study.question.QuestionView;
 import com.sapio.study.question.ReviewCard;
 import com.sapio.study.question.ReviewCardRepository;
@@ -67,12 +69,15 @@ public class AssessmentService {
     private final JsonMapper json;
     private final Clock clock;
     private final Personalization personalization;
+    private final KnowledgeStore store;
 
     AssessmentService(MaterialAccess access, StudyAi ai, AssessmentRepository assessments,
                       AssessmentItemRepository items, StudyTopicRepository topics, StudyQuestionRepository questions,
                       QuestionAttemptRepository attempts, ReviewCardRepository cards, AnswerGrader grader,
                       AnswerRecorder recorder, ReportBuilder reports, ApplicationEventPublisher events,
-                      TransactionTemplate tx, JsonMapper json, Clock clock, Personalization personalization) {
+                      TransactionTemplate tx, JsonMapper json, Clock clock, Personalization personalization,
+                      KnowledgeStore store) {
+        this.store = store;
         this.personalization = personalization;
         this.access = access;
         this.ai = ai;
@@ -99,29 +104,13 @@ public class AssessmentService {
         if (selected.isEmpty()) {
             throw new ApplicationException(ErrorCode.VALIDATION_FAILED, "Select at least one topic of this material");
         }
-        List<String> avoid = questions.findAssessedPrompts(userId, material.getId());
-        Map<String, UUID> sectionNodes = new HashMap<>(); // citation id ("§2.3") -> tree node
-        List<StudyAi.QuestionTopic> topicSpecs = selected.stream().map(t -> {
-            var sources = access.sources(material, t, access.budgets().questions());
-            sources.sections().forEach(sec -> sectionNodes.put(sec.id(), sec.nodeId()));
-            return new StudyAi.QuestionTopic(t.getId().toString(), t.getTitle(), t.getSummary(), t.getKeyConcepts(),
-                    t.getDifficulty(), StudyAi.sources(sources.sections()));
-        }).toList();
-        StudyAi.QuestionsDraft draft = ai.generateQuestions(new StudyAi.QuestionSpec(material.getTitle(),
-                material.getLanguage(), material.getKind(), request.questionCount(), request.difficulty().name(),
-                topicSpecs, avoid.subList(Math.max(0, avoid.size() - MAX_AVOID_PROMPTS), avoid.size()),
-                personalization.forLearner(material.getOwnerId()).learner()));
-
-        Map<String, StudyTopic> byKey = selected.stream()
-                .collect(Collectors.toMap(t -> t.getId().toString(), Function.identity()));
-        List<StudyAi.QuestionDraft> usable = draft.questions().stream()
-                .filter(q -> byKey.containsKey(q.topicKey())).toList();
-        if (usable.isEmpty()) {
-            throw new ApplicationException(ErrorCode.AI_UNAVAILABLE, "Could not generate questions, please retry");
-        }
+        Generated generated = generate(userId, material, selected, request.questionCount(), request.difficulty(), "MIXED");
+        List<StudyAi.QuestionDraft> usable = generated.questions();
+        Map<String, StudyTopic> byKey = generated.byKey();
+        Map<String, UUID> sectionNodes = generated.sectionNodes();
         UUID id = tx.execute(status -> {
             Instant now = clock.instant();
-            List<StudyAi.QuestionDraft> ordered = interleave(usable, selected);
+            List<StudyAi.QuestionDraft> ordered = usable;
             Assessment assessment = assessments.save(new Assessment(userId, material.getId(), request.difficulty(),
                     ordered.size(), now));
             int position = 1;
@@ -142,13 +131,113 @@ public class AssessmentService {
         return get(userId, id);
     }
 
+    private record Generated(List<StudyAi.QuestionDraft> questions, Map<String, StudyTopic> byKey,
+                             Map<String, UUID> sectionNodes) {
+    }
+
+    /** One AI call for {@code count} questions over the topics; only questions on a given topic are kept. */
+    private Generated generate(UUID userId, StudyMaterial material, List<StudyTopic> selected, int count,
+                               AssessmentDifficulty difficulty, String format) {
+        List<String> avoid = questions.findAssessedPrompts(userId, material.getId());
+        Map<String, UUID> sectionNodes = new HashMap<>(); // citation id ("§2.3") -> tree node
+        List<StudyAi.QuestionTopic> topicSpecs = selected.stream().map(t -> {
+            var sources = access.sources(material, t, access.budgets().questions());
+            sources.sections().forEach(sec -> sectionNodes.put(sec.id(), sec.nodeId()));
+            return new StudyAi.QuestionTopic(t.getId().toString(), t.getTitle(), t.getSummary(), t.getKeyConcepts(),
+                    t.getDifficulty(), StudyAi.sources(sources.sections()));
+        }).toList();
+        StudyAi.QuestionsDraft draft = ai.generateQuestions(new StudyAi.QuestionSpec(material.getTitle(),
+                material.getLanguage(), material.getKind(), count, difficulty.name(), format,
+                topicSpecs, avoid.subList(Math.max(0, avoid.size() - MAX_AVOID_PROMPTS), avoid.size()),
+                personalization.forLearner(material.getOwnerId()).learner()));
+        Map<String, StudyTopic> byKey = selected.stream()
+                .collect(Collectors.toMap(t -> t.getId().toString(), Function.identity()));
+        List<StudyAi.QuestionDraft> usable = draft.questions().stream()
+                .filter(q -> byKey.containsKey(q.topicKey())).toList();
+        if (usable.isEmpty()) {
+            throw new ApplicationException(ErrorCode.AI_UNAVAILABLE, "Could not generate questions, please retry");
+        }
+        return new Generated(interleave(usable, selected), byKey, sectionNodes);
+    }
+
+    // ------------------------------------------------------------------------------- tests a teacher sets
+
+    /**
+     * A question for a teacher to review before sending (classroom). Topics are identified by their position in the
+     * learning path and sources by tree path, which every copy of the document shares.
+     */
+    public record DraftQuestion(int topicPosition, String topicTitle, QuestionType type, String prompt,
+                                List<String> options, Integer correctOption, String referenceAnswer, String explanation,
+                                List<String> sourcePaths) {
+    }
+
+    /** Drafts a full test over every topic of the user's document (nothing is saved). */
+    public List<DraftQuestion> draftQuestions(UUID userId, UUID documentId, int count, AssessmentDifficulty difficulty,
+                                              String format) {
+        StudyMaterial material = access.requireByDocument(userId, documentId);
+        List<StudyTopic> all = topics.findByMaterialIdOrderByPosition(material.getId());
+        Generated generated = generate(userId, material, all, count, difficulty, format);
+        Map<UUID, String> paths = new HashMap<>();
+        store.nodes(documentId).forEach(n -> paths.put(n.id(), n.path()));
+        return generated.questions().stream().map(q -> {
+            StudyTopic topic = generated.byKey().get(q.topicKey());
+            List<String> sources = q.sourceSectionIds() == null ? List.of() : q.sourceSectionIds().stream()
+                    .map(generated.sectionNodes()::get).filter(Objects::nonNull).map(paths::get)
+                    .filter(Objects::nonNull).distinct().toList();
+            return new DraftQuestion(topic.getPosition(), topic.getTitle(), q.type(), q.prompt(),
+                    q.options() == null ? List.of() : q.options(), q.correctOptionIndex(), q.referenceAnswer(),
+                    q.explanation() == null ? "" : q.explanation(), sources);
+        }).toList();
+    }
+
+    /** A question of an assigned test, as the teacher finalised it. */
+    public record AssignedQuestion(int topicPosition, QuestionType type, String prompt, List<String> options,
+                                   Integer correctOption, String referenceAnswer, String explanation,
+                                   List<String> sourcePaths) {
+    }
+
+    /**
+     * Creates a teacher's test on the student's copy of the document: an ordinary assessment (same runner, grading
+     * and report) with the teacher's questions in the teacher's order, marked with who set it.
+     *
+     * @return the assessment's id
+     */
+    public UUID createAssigned(UUID studentId, UUID documentId, String title, String assignedBy, Instant dueAt,
+                               AssessmentDifficulty difficulty, List<AssignedQuestion> assigned) {
+        StudyMaterial material = access.requireByDocument(studentId, documentId);
+        List<StudyTopic> path = topics.findByMaterialIdOrderByPosition(material.getId());
+        if (path.isEmpty() || assigned.isEmpty()) {
+            throw new ApplicationException(ErrorCode.INVALID_STATE, "This test has no questions to assign");
+        }
+        Map<Integer, StudyTopic> byPosition = path.stream()
+                .collect(Collectors.toMap(StudyTopic::getPosition, Function.identity(), (a, b) -> a));
+        Map<String, UUID> nodeByPath = new HashMap<>();
+        store.nodes(documentId).forEach(n -> nodeByPath.put(n.path(), n.id()));
+        return tx.execute(status -> {
+            Instant now = clock.instant();
+            Assessment assessment = new Assessment(studentId, material.getId(), difficulty, assigned.size(), now);
+            assessment.assign(title, assignedBy, dueAt);
+            assessments.save(assessment);
+            int position = 1;
+            for (AssignedQuestion q : assigned) {
+                StudyTopic topic = byPosition.getOrDefault(q.topicPosition(), path.getFirst());
+                StudyQuestion saved = questions.save(new StudyQuestion(material.getId(), topic.getId(), null,
+                        QuestionOrigin.ASSESSMENT, null, position, q.type(), q.prompt(), q.options(), q.correctOption(),
+                        q.referenceAnswer(), q.explanation(), q.sourcePaths().stream().map(nodeByPath::get)
+                        .filter(Objects::nonNull).toList(), now));
+                items.save(new AssessmentItem(assessment.getId(), position++, saved.getId()));
+            }
+            return assessment.getId();
+        });
+    }
+
     public List<AssessmentSummary> list(UUID userId, UUID documentId) {
         StudyMaterial material = access.requireByDocument(userId, documentId);
         return tx.execute(status -> assessments.findByUserIdAndMaterialIdOrderByCreatedAtDesc(userId, material.getId())
                 .stream()
                 .map(a -> new AssessmentSummary(a.getId(), a.getStatus(), a.getDifficulty(), a.getQuestionCount(),
                         items.countByAssessmentIdAndAttemptIdIsNotNull(a.getId()), a.getScore(), a.getCreatedAt(),
-                        a.getCompletedAt()))
+                        a.getCompletedAt(), AssessmentResponse.Assignment.of(a)))
                 .toList());
     }
 
@@ -273,7 +362,7 @@ public class AssessmentService {
                 : json.readValue(a.getReportJson(), AssessmentReport.class);
         return new AssessmentResponse(a.getId(), material.getDocumentId(), material.getTitle(), a.getStatus(),
                 a.getDifficulty(), a.getQuestionCount(), answeredCount, a.getScore(), a.getCreatedAt(),
-                a.getCompletedAt(), views, report);
+                a.getCompletedAt(), views, report, AssessmentResponse.Assignment.of(a));
     }
 
     /**

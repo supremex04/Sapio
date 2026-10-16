@@ -105,8 +105,9 @@ public interface StudyAi {
                          TopicDifficulty difficulty, List<Source> sections) {
     }
 
+    /** @param format question types: MIXED (by difficulty), OBJECTIVE (choice only) or SUBJECTIVE (short answer only) */
     record QuestionSpec(String materialTitle, String language, MaterialKind kind, int count, String difficulty,
-                        List<QuestionTopic> topics, List<String> avoidPrompts, Learner learner) {
+                        String format, List<QuestionTopic> topics, List<String> avoidPrompts, Learner learner) {
     }
 
     record QuestionDraft(String topicKey, QuestionType type, String prompt, List<String> options,

@@ -111,6 +111,10 @@ public class Document {
     @Column(name = "origin_share_id", updatable = false)
     private UUID originShareId;
 
+    /** EXPLORE or CLASS (DocumentCloner.Origin.Kind); null on uploads. */
+    @Column(name = "origin_kind", updatable = false)
+    private String originKind;
+
     /** Who shared the original (kept even if the share is withdrawn). */
     @Column(name = "origin_owner_name", updatable = false)
     private String originOwnerName;
@@ -307,6 +311,10 @@ public class Document {
 
     public UUID getOriginShareId() {
         return originShareId;
+    }
+
+    public String getOriginKind() {
+        return originKind;
     }
 
     public String getOriginOwnerName() {

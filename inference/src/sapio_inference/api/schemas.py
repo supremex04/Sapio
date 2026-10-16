@@ -70,7 +70,7 @@ class ExtractResponse(ApiModel):
 
 
 #: Bumped on breaking wire changes; the backend refuses to talk to a different major version.
-CONTRACT_VERSION = "1.2"
+CONTRACT_VERSION = "1.3"
 
 
 class HealthResponse(ApiModel):
