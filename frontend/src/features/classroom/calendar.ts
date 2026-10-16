@@ -1,14 +1,7 @@
+import { monthGrid } from "../../shared/ui/dateTime";
 import type { CalendarItem } from "./types";
 
-/** The 6 weeks shown for a month (Monday first), as local dates at midnight. */
-export function monthGrid(year: number, month: number): Date[] {
-  const first = new Date(year, month, 1);
-  const lead = (first.getDay() + 6) % 7; // Monday = 0
-  return Array.from({ length: 42 }, (_, i) => new Date(year, month, 1 - lead + i));
-}
-
-export const sameDay = (a: Date, b: Date) =>
-  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+export { monthGrid, sameDay } from "../../shared/ui/dateTime";
 
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 

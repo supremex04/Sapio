@@ -564,9 +564,44 @@ a.cls-row:hover {
 .cls-title-input:focus {
   border-bottom-color: color-mix(in srgb, var(--color-primary) 50%, transparent);
 }
-.cls-due {
-  width: auto;
-  padding: 4px 8px;
+.cls-title {
+  margin: 0;
+}
+.cls-due-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-2) var(--space-3);
+}
+.cls-due-row .field-label {
+  padding-top: 10px;
+}
+.cls-due-row .xs {
+  padding-top: 12px;
+}
+/* A draft's actions, kept in view at the bottom of the screen. */
+.cls-draft-bar {
+  position: sticky;
+  /* Above the phone tab bar; just above the screen's edge on desktop. */
+  bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom, 0px) + var(--space-2));
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-float);
+}
+.cls-draft-bar-gap {
+  flex: 1;
+}
+@media (min-width: 1024px) {
+  .cls-draft-bar {
+    bottom: var(--space-3);
+  }
 }
 .cls-q-prompt {
   margin: var(--space-2) 0;

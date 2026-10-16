@@ -7,6 +7,7 @@ import { Alert } from "../../shared/ui/Alert";
 import { Button } from "../../shared/ui/Button";
 import { Card } from "../../shared/ui/Card";
 import { cx } from "../../shared/ui/cx";
+import { DateTimePicker } from "../../shared/ui/DateTimePicker";
 import { Dialog } from "../../shared/ui/Dialog";
 import { PageTransition } from "../../shared/ui/PageTransition";
 import { classroomApi } from "./api";
@@ -131,35 +132,27 @@ export function CalendarPage() {
   );
 }
 
-const pad = (n: number) => String(n).padStart(2, "0");
-const dateValue = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const timeValue = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-/** Local date and time inputs to an instant. */
-function toIso(date: string, time: string): string {
-  return new Date(`${date}T${time || "00:00"}`).toISOString();
-}
-
 function EventDialog({ item, day, onClose, onSaved }: { item: CalendarItem | null; day: Date; onClose: () => void; onSaved: () => void }) {
-  const start = item ? new Date(item.startsAt) : new Date(day.getFullYear(), day.getMonth(), day.getDate(), 9, 0);
-  const end = item?.endsAt ? new Date(item.endsAt) : null;
   const [title, setTitle] = useState(item?.title ?? "");
   const [description, setDescription] = useState(item?.description ?? "");
-  const [date, setDate] = useState(dateValue(start));
-  const [time, setTime] = useState(timeValue(start));
+  const [startsAt, setStartsAt] = useState<string | null>(item?.startsAt ?? new Date(day.getFullYear(), day.getMonth(), day.getDate(), 9, 0).toISOString());
+  const [endsAt, setEndsAt] = useState<string | null>(item?.endsAt ?? null);
   const [allDay, setAllDay] = useState(item?.allDay ?? false);
-  const [endDate, setEndDate] = useState(end ? dateValue(end) : "");
-  const [endTime, setEndTime] = useState(end ? timeValue(end) : "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function save() {
     setBusy(true);
     setError(null);
+    if (!startsAt) return;
+    const start = new Date(startsAt);
+    const end = endsAt ? new Date(endsAt) : null;
     const input: EventInput = {
       title,
       description: description || null,
-      startsAt: toIso(date, allDay ? "00:00" : time),
-      endsAt: endDate ? toIso(endDate, allDay ? "23:59" : endTime || time) : null,
+      // All-day events run from midnight to the end of their last day.
+      startsAt: allDay ? new Date(start.getFullYear(), start.getMonth(), start.getDate()).toISOString() : startsAt,
+      endsAt: end ? (allDay ? new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59).toISOString() : endsAt) : null,
       allDay,
     };
     try {
@@ -195,7 +188,7 @@ function EventDialog({ item, day, onClose, onSaved }: { item: CalendarItem | nul
               Delete
             </Button>
           )}
-          <Button variant="primary" onClick={() => void save()} loading={busy} disabled={!title.trim() || !date}>
+          <Button variant="primary" onClick={() => void save()} loading={busy} disabled={!title.trim() || !startsAt}>
             {item ? "Save" : "Add to calendar"}
           </Button>
         </>
@@ -207,32 +200,16 @@ function EventDialog({ item, day, onClose, onSaved }: { item: CalendarItem | nul
           <span className="field-label">Title</span>
           <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} autoFocus placeholder="e.g. Unit 2 quiz in class" />
         </label>
-        <div className="cls-form-row">
-          <label className="field">
-            <span className="field-label">Date</span>
-            <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          </label>
-          {!allDay && (
-            <label className="field">
-              <span className="field-label">Time</span>
-              <input className="input" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-            </label>
-          )}
+        <div className="field">
+          <span className="field-label">Starts</span>
+          <DateTimePicker value={startsAt} onChange={setStartsAt} withTime={!allDay} clearable={false} defaultMinutes={9 * 60} label="Start" />
         </div>
         <label className="row small">
           <input type="checkbox" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} /> All day
         </label>
-        <div className="cls-form-row">
-          <label className="field">
-            <span className="field-label">Ends (optional)</span>
-            <input className="input" type="date" value={endDate} min={date} onChange={(e) => setEndDate(e.target.value)} />
-          </label>
-          {!allDay && endDate && (
-            <label className="field">
-              <span className="field-label">End time</span>
-              <input className="input" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
-            </label>
-          )}
+        <div className="field">
+          <span className="field-label">Ends (optional)</span>
+          <DateTimePicker value={endsAt} onChange={setEndsAt} withTime={!allDay} placeholder="Same day" min={startsAt ? new Date(startsAt) : undefined} defaultMinutes={17 * 60} label="End" />
         </div>
         <label className="field">
           <span className="field-label">Details (optional)</span>

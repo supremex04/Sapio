@@ -1,6 +1,6 @@
 import { ArrowLeft, ArrowRight, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useParams, useSearchParams } from "react-router";
 import { errorMessage } from "../../../shared/api/errors";
 import { usePolling } from "../../../shared/hooks/usePolling";
 import { Emoji } from "../../../shared/illustrations/Emoji";
@@ -47,7 +47,10 @@ export function StudyHubPage() {
   const [assessments, setAssessments] = useState<AssessmentSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const teacher = useIsTeacher();
-  const [tab, setTab] = useState<Tab>(teacher ? "students" : "topics");
+  // ?tab= opens a given tab (e.g. back to Class tests after saving a draft).
+  const [params] = useSearchParams();
+  const requested = params.get("tab") as Tab | null;
+  const [tab, setTab] = useState<Tab>(requested ?? (teacher ? "students" : "topics"));
   const [shareVersion, setShareVersion] = useState(0);
 
   const load = useCallback(async () => {

@@ -1,4 +1,4 @@
-import { ArrowLeft, Pencil, Plus, Send, Trash2, X } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, Save, Send, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { errorMessage } from "../../shared/api/errors";
@@ -8,13 +8,15 @@ import { Button } from "../../shared/ui/Button";
 import { Card } from "../../shared/ui/Card";
 import { ConfirmButton } from "../../shared/ui/ConfirmButton";
 import { cx } from "../../shared/ui/cx";
+import { DateTimePicker } from "../../shared/ui/DateTimePicker";
 import { Dialog } from "../../shared/ui/Dialog";
 import { Markdown } from "../../shared/ui/Markdown";
 import { PageTransition } from "../../shared/ui/PageTransition";
 import { ProgressBar } from "../../shared/ui/Progress";
 import { Skeleton } from "../../shared/ui/Skeleton";
 import { Tabs } from "../../shared/ui/Tabs";
-import { formatPercent, formatRelative } from "../../shared/lib/format";
+import { formatDateTime, formatPercent, formatRelative } from "../../shared/lib/format";
+import { useToast } from "../../shared/ui/Toast";
 import { classroomApi } from "./api";
 import { StudentPicker } from "./StudentPicker";
 import { scoreTone } from "./TeacherHome";
@@ -34,22 +36,19 @@ const STATUS_LABEL: Record<ResultStatus, string> = {
   WITHDRAWN: "Removed",
 };
 
-const pad = (n: number) => String(n).padStart(2, "0");
-const toLocalInput = (iso: string | null) => {
-  if (!iso) return "";
-  const d = new Date(iso);
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-};
-
 /** A class test: review and edit a draft, send it, then follow the results. */
 export function ClassTestPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [test, setTest] = useState<ClassTest | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"results" | "questions">("results");
   const [sending, setSending] = useState(false);
+  const [saving, setSaving] = useState(false);
+  // The title and due date are edited here and saved with "Save as draft" (or before sending).
   const [title, setTitle] = useState("");
+  const [dueAt, setDueAt] = useState<string | null>(null);
 
   const load = useCallback(
     () =>
@@ -57,6 +56,7 @@ export function ClassTestPage() {
         (t) => {
           setTest(t);
           setTitle(t.summary.title);
+          setDueAt(t.summary.dueAt);
         },
         (e) => setError(errorMessage(e)),
       ),
@@ -70,55 +70,96 @@ export function ClassTestPage() {
   if (!test) return <Skeleton height={300} />;
   const s = test.summary;
   const draft = s.status === "DRAFT";
+  const toClassTests = `/documents/${s.documentId}?tab=class-tests`;
+  const metaChanged = title.trim() !== s.title || dueAt !== s.dueAt;
 
-  async function saveMeta(nextTitle: string, dueAt: string | null) {
+  /** Saves the title and due date; returns false (with the error shown) when that fails. */
+  async function saveMeta(): Promise<boolean> {
+    if (!title.trim()) {
+      setError("A test needs a title.");
+      return false;
+    }
+    if (!metaChanged) return true;
     try {
-      const t = await classroomApi.updateTest(id, nextTitle, dueAt);
-      setTest(t);
+      setTest(await classroomApi.updateTest(id, title.trim(), dueAt));
+      return true;
     } catch (e) {
       setError(errorMessage(e));
+      return false;
     }
+  }
+
+  async function saveDraft() {
+    setSaving(true);
+    setError(null);
+    if (await saveMeta()) {
+      toast.show("success", "Draft saved. Send it whenever it is ready.");
+      navigate(toClassTests);
+    }
+    setSaving(false);
+  }
+
+  async function startSending() {
+    setError(null);
+    if (await saveMeta()) setSending(true);
   }
 
   return (
     <PageTransition>
       <div className="stack-lg">
-        <Link to={`/documents/${s.documentId}`} className="back-link small">
+        <Link to={toClassTests} className="back-link small">
           <ArrowLeft size={16} /> {s.documentTitle}
         </Link>
         <header className="cls-test-head">
           <div className="stack-sm" style={{ flex: 1 }}>
             <p className="eyebrow">
-              Class test · {s.questionCount} questions · {s.format === "MIXED" ? "objective and subjective" : s.format.toLowerCase()} · {s.difficulty.toLowerCase()}
+              Class test · {test.questions.length} questions · {s.format === "MIXED" ? "objective and subjective" : s.format.toLowerCase()} · {s.difficulty.toLowerCase()}
             </p>
-            <input className="cls-title-input" value={title} onChange={(e) => setTitle(e.target.value)} onBlur={() => title.trim() && title !== s.title && void saveMeta(title, s.dueAt)} aria-label="Test title" />
-            <label className="row small">
-              Due
-              <input
-                type="datetime-local"
-                className="input cls-due"
-                value={toLocalInput(s.dueAt)}
-                onChange={(e) => void saveMeta(title || s.title, e.target.value ? new Date(e.target.value).toISOString() : null)}
-              />
-              <span className="xs muted">optional; shown in students' calendars</span>
-            </label>
+            {draft ? (
+              <input className="cls-title-input" value={title} onChange={(e) => setTitle(e.target.value)} aria-label="Test title" maxLength={200} />
+            ) : (
+              <h1 className="cls-title">{s.title}</h1>
+            )}
+            <div className="cls-due-row small">
+              <span className="field-label">Due</span>
+              {draft ? (
+                <>
+                  <DateTimePicker value={dueAt} onChange={setDueAt} placeholder="No due date" min={new Date()} label="Due date" />
+                  <span className="xs muted">optional; shown in students' calendars</span>
+                </>
+              ) : (
+                <span>{s.dueAt ? formatDateTime(s.dueAt) : "No due date"}</span>
+              )}
+            </div>
           </div>
           <div className="stack-sm cls-test-actions">
-            <Badge tone={draft ? "neutral" : "mastery"}>{draft ? "Draft" : `Sent ${s.sentAt ? formatRelative(s.sentAt) : ""}`}</Badge>
-            <Button variant="primary" icon={<Send size={16} />} onClick={() => setSending(true)} disabled={test.questions.length === 0}>
-              {draft ? "Send to students" : "Send to more students"}
-            </Button>
-            {draft && (
-              <ConfirmButton onConfirm={() => classroomApi.deleteTest(id).then(() => navigate(`/documents/${s.documentId}`))} prompt="Delete this draft?" confirmLabel="Delete" icon={<Trash2 size={14} />}>
-                Delete draft
-              </ConfirmButton>
+            <Badge tone={draft ? "neutral" : "mastery"}>{draft ? (metaChanged ? "Draft · unsaved changes" : "Draft") : `Sent ${s.sentAt ? formatRelative(s.sentAt) : ""}`}</Badge>
+            {!draft && (
+              <Button variant="primary" icon={<Send size={16} />} onClick={() => setSending(true)}>
+                Send to more students
+              </Button>
             )}
           </div>
         </header>
         {error && <Alert>{error}</Alert>}
 
         {draft ? (
-          <QuestionEditorList test={test} onChange={setTest} onError={setError} />
+          <>
+            <QuestionEditorList test={test} onChange={setTest} onError={setError} />
+            {/* The three things to do with a draft, always at hand. */}
+            <div className="cls-draft-bar">
+              <ConfirmButton onConfirm={() => classroomApi.deleteTest(id).then(() => navigate(toClassTests))} prompt="Delete this draft and its questions?" confirmLabel="Delete" icon={<Trash2 size={14} />} variant="ghost" size="md">
+                Delete draft
+              </ConfirmButton>
+              <span className="cls-draft-bar-gap" />
+              <Button onClick={() => void saveDraft()} loading={saving} icon={<Save size={16} />}>
+                Save as draft
+              </Button>
+              <Button variant="primary" icon={<Send size={16} />} onClick={() => void startSending()} disabled={test.questions.length === 0}>
+                Send to students
+              </Button>
+            </div>
+          </>
         ) : (
           <>
             <Tabs
@@ -137,11 +178,12 @@ export function ClassTestPage() {
       {sending && (
         <SendDialog
           testId={id}
-          dueAt={s.dueAt}
+          dueAt={draft ? dueAt : s.dueAt}
           onClose={() => setSending(false)}
-          onSent={() => {
+          onSent={(count) => {
             setSending(false);
             setTab("results");
+            toast.show("success", `Sent to ${count} student${count === 1 ? "" : "s"}`);
             void load();
           }}
         />
@@ -364,10 +406,10 @@ function QuestionForm({
 
 // ---------------------------------------------------------------------------------------------------- sending
 
-function SendDialog({ testId, dueAt, onClose, onSent }: { testId: string; dueAt: string | null; onClose: () => void; onSent: () => void }) {
+function SendDialog({ testId, dueAt, onClose, onSent }: { testId: string; dueAt: string | null; onClose: () => void; onSent: (count: number) => void }) {
   const [selection, setSelection] = useState<{ ids: string[]; count: number }>({ ids: [], count: 0 });
   const [done, setDone] = useState<string[]>([]);
-  const [due, setDue] = useState(toLocalInput(dueAt));
+  const [due, setDue] = useState<string | null>(dueAt);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -379,8 +421,8 @@ function SendDialog({ testId, dueAt, onClose, onSent }: { testId: string; dueAt:
     setBusy(true);
     setError(null);
     try {
-      await classroomApi.send(testId, selection.ids, due ? new Date(due).toISOString() : null);
-      onSent();
+      const { sent } = await classroomApi.send(testId, selection.ids, due);
+      onSent(sent);
     } catch (e) {
       setError(errorMessage(e));
       setBusy(false);
@@ -402,10 +444,10 @@ function SendDialog({ testId, dueAt, onClose, onSent }: { testId: string; dueAt:
         {error && <Alert>{error}</Alert>}
         <p className="small muted">Students without the document get it too. They find the test in their notifications and calendar; once sent, its questions cannot change.</p>
         <StudentPicker done={done} onChange={(ids, count) => setSelection({ ids, count })} />
-        <label className="field">
+        <div className="field">
           <span className="field-label">Due (optional)</span>
-          <input className="input" type="datetime-local" value={due} onChange={(e) => setDue(e.target.value)} />
-        </label>
+          <DateTimePicker value={due} onChange={setDue} placeholder="No due date" min={new Date()} label="Due date" />
+        </div>
       </div>
     </Dialog>
   );

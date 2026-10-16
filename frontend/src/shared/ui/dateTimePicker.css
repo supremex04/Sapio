@@ -1,0 +1,214 @@
+/* Date-time picker: the design system's own, in place of the browser's control. Tokens only. */
+.dtp {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 100%;
+}
+.dtp-field {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.dtp-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 0 var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: var(--weight-strong);
+  cursor: pointer;
+}
+.dtp-trigger.is-empty {
+  color: var(--text-muted);
+}
+.dtp-trigger:hover,
+.dtp-trigger.is-open {
+  border-color: color-mix(in srgb, var(--color-primary) 55%, var(--border));
+}
+.dtp-trigger:focus-visible,
+.dtp-clear:focus-visible,
+.dtp-day:focus-visible,
+.dtp-step:focus-visible,
+.dtp-preset:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+.dtp-clear {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.dtp-clear:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.dtp-panel {
+  width: 300px;
+  max-width: 100%;
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 var(--edge) 0 var(--border);
+  background: var(--surface);
+}
+.dtp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+.dtp-steps {
+  display: inline-flex;
+  gap: 2px;
+}
+.dtp-step {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.dtp-step:hover {
+  background: var(--surface-2);
+}
+.dtp-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.dtp-weekday {
+  padding-bottom: 4px;
+  font-size: 11px;
+  font-weight: var(--weight-strong);
+  color: var(--text-muted);
+  text-align: center;
+}
+.dtp-day {
+  height: 34px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: var(--weight-strong);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.dtp-day:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+.dtp-day.is-other {
+  color: var(--text-muted);
+}
+.dtp-day.is-today {
+  box-shadow: inset 0 0 0 1.5px var(--color-primary);
+}
+.dtp-day.is-selected {
+  background: var(--color-primary);
+  color: #fff;
+  box-shadow: 0 2px 0 var(--blue-edge);
+}
+.dtp-day:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.dtp-time {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+.dtp-time-label {
+  font-size: var(--text-label);
+  font-weight: var(--weight-heading);
+  color: var(--text-2);
+}
+.dtp-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.dtp-preset {
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--text-label);
+  font-weight: var(--weight-strong);
+  cursor: pointer;
+}
+.dtp-preset:hover {
+  color: var(--text);
+}
+.dtp-preset.is-selected {
+  background: color-mix(in srgb, var(--color-primary) 16%, transparent);
+  color: var(--color-primary);
+}
+.dtp-select {
+  margin-left: auto;
+  padding: 5px 8px;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: var(--weight-strong);
+  color-scheme: light dark;
+}
+.dtp-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-3);
+}
+.dtp-link {
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: var(--weight-heading);
+  cursor: pointer;
+}
+.dtp-link:disabled {
+  color: var(--text-muted);
+  cursor: default;
+}
+.dtp-done {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  color: #fff;
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: var(--weight-heading);
+  box-shadow: 0 2px 0 var(--blue-edge);
+  cursor: pointer;
+}
