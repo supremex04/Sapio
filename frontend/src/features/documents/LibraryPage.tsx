@@ -1,10 +1,13 @@
-import { ArrowRight, Globe2, RotateCcw, Share2, Trash2, Upload } from "lucide-react";
+import { classroomApi } from "../classroom/api";
+import type { DocumentStats } from "../classroom/types";
+import { useIsTeacher } from "../classroom/useRole";
+import { ArrowRight, Globe2, RotateCcw, Share2, Trash2, Upload, Users } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { errorMessage } from "../../shared/api/errors";
 import { usePolling } from "../../shared/hooks/usePolling";
-import { formatBytes, formatRelative } from "../../shared/lib/format";
+import { formatBytes, formatPercent, formatRelative } from "../../shared/lib/format";
 import { Emoji } from "../../shared/illustrations/Emoji";
 import { Alert } from "../../shared/ui/Alert";
 import { Badge } from "../../shared/ui/Badge";
@@ -31,6 +34,8 @@ export function LibraryPage() {
   const toast = useToast();
   const [documents, setDocuments] = useState<DocumentDto[] | null>(null);
   const [shares, setShares] = useState<Record<string, MyShare>>({});
+  const teacher = useIsTeacher();
+  const [classStats, setClassStats] = useState<Record<string, DocumentStats>>({});
   const [sharing, setSharing] = useState<DocumentDto | null>(null);
   const [uploading, setUploading] = useState(0);
   const [errors, setErrors] = useState<string[]>([]);
@@ -43,6 +48,12 @@ export function LibraryPage() {
       setErrors([errorMessage(e)]);
     }
   }, []);
+
+  // Teachers: how each document is doing with their class.
+  useEffect(() => {
+    if (!teacher) return;
+    classroomApi.documentStats().then((list) => setClassStats(Object.fromEntries(list.map((x) => [x.documentId, x]))), () => undefined);
+  }, [teacher]);
 
   useEffect(() => {
     void load();
@@ -142,7 +153,7 @@ export function LibraryPage() {
             <AnimatePresence initial={false}>
               {documents.map((doc) => (
                 <motion.div key={doc.id} layout initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.97 }}>
-                  <DocumentCard doc={doc} share={shares[doc.id] ?? null} onShare={() => setSharing(doc)} onRetry={() => retry(doc)} onDelete={() => remove(doc)} />
+                  <DocumentCard doc={doc} share={shares[doc.id] ?? null} classStats={classStats[doc.id] ?? null} onShare={() => setSharing(doc)} onRetry={() => retry(doc)} onDelete={() => remove(doc)} />
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -163,9 +174,11 @@ export function LibraryPage() {
   );
 }
 
-function DocumentCard({ doc, share, onShare, onRetry, onDelete }: {
+function DocumentCard({ doc, share, classStats, onShare, onRetry, onDelete }: {
   doc: DocumentDto;
   share: MyShare | null;
+  /** Teachers: shared with / opened by / tests taken. */
+  classStats: DocumentStats | null;
   onShare: () => void;
   onRetry: () => void;
   onDelete: () => Promise<void>;
@@ -208,6 +221,13 @@ function DocumentCard({ doc, share, onShare, onRetry, onDelete }: {
           {share.importCount > 0 && ` · imported ${share.importCount} ${share.importCount === 1 ? "time" : "times"}`}
           {share.upvotes + share.downvotes > 0 && ` · ${share.upvotes} up, ${share.downvotes} down`}
           {share.commentCount > 0 && ` · ${share.commentCount} ${share.commentCount === 1 ? "comment" : "comments"}`}
+        </p>
+      )}
+      {classStats && (
+        <p className="xs share-status">
+          <Users size={14} aria-hidden /> Shared with {classStats.sharedWith} · opened by {classStats.opened} · {classStats.testsCompleted}{" "}
+          {classStats.testsCompleted === 1 ? "test" : "tests"} taken
+          {classStats.averageScore != null && ` (average ${formatPercent(classStats.averageScore)})`}
         </p>
       )}
       {!state.done && <PipelineStepper doc={doc} compact />}

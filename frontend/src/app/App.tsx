@@ -20,6 +20,13 @@ const StyleguidePage = lazy(() => import("./styleguide/StyleguidePage").then((m)
 const ExplorePage = lazy(() => import("../features/sharing/ExplorePage").then((m) => ({ default: m.ExplorePage })));
 const SharedItemPage = lazy(() => import("../features/sharing/SharedItemPage").then((m) => ({ default: m.SharedItemPage })));
 const PersonalizePage = lazy(() => import("../features/personalization/PersonalizePage").then((m) => ({ default: m.PersonalizePage })));
+// Classroom (teachers; students see notices and the calendar)
+const StudentsPage = lazy(() => import("../features/classroom/StudentsPage").then((m) => ({ default: m.StudentsPage })));
+const StudentProfilePage = lazy(() => import("../features/classroom/StudentProfilePage").then((m) => ({ default: m.StudentProfilePage })));
+const StudentReportPage = lazy(() => import("../features/classroom/StudentProfilePage").then((m) => ({ default: m.StudentReportPage })));
+const ClassTestPage = lazy(() => import("../features/classroom/ClassTestPage").then((m) => ({ default: m.ClassTestPage })));
+const NoticesPage = lazy(() => import("../features/classroom/NoticesPage").then((m) => ({ default: m.NoticesPage })));
+const CalendarPage = lazy(() => import("../features/classroom/CalendarPage").then((m) => ({ default: m.CalendarPage })));
 const RecallPage = lazy(() => import("../features/study/recall/RecallPage").then((m) => ({ default: m.RecallPage })));
 
 /** Route table. New features add their routes inside the authenticated layout. */
@@ -47,6 +54,12 @@ export function App() {
                   <Route path="documents/:id/learn/:topicId" element={<LessonPage />} />
                   <Route path="documents/:id/test" element={<TestSetupPage />} />
                   <Route path="assessments/:id" element={<AssessmentPage />} />
+                  <Route path="students" element={<StudentsPage />} />
+                  <Route path="students/:studentId" element={<StudentProfilePage />} />
+                  <Route path="students/:studentId/tests/:assessmentId" element={<StudentReportPage />} />
+                  <Route path="class-tests/:id" element={<ClassTestPage />} />
+                  <Route path="notices" element={<NoticesPage />} />
+                  <Route path="calendar" element={<CalendarPage />} />
                   <Route path="styleguide" element={<StyleguidePage />} />
                 </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />

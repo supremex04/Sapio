@@ -18,6 +18,7 @@ frontend routes, inference endpoints) as of 2026-10-10. Details live in the link
 | Study notes & ask-your-document (Read mode) | Available notes (Expand / Revision in the document Preview) · API only ask-your-document, search |
 | Personalize: academic level, occupation, field, depth, preferences, goal; lessons, notes, tests and tutor written for it | Available |
 | Gamification & analytics | Available |
+| Classroom: roster by email invitation, sharing to students' libraries, class tests (AI-drafted, teacher-reviewed), results and insights, notices, calendar, notifications | Available ([spec](specs/classroom.md)) |
 | Design system (light/dark, Diya v2, `/styleguide`) | Available |
 | AI vendor-neutrality (providers, per-task routes, fallbacks) | Available (config) |
 | Operations (`dev.sh`, auto-retries, config) | Available |
@@ -185,8 +186,8 @@ Guides: [guides/local-development.md](guides/local-development.md), [guides/conf
 |---|---|
 | Frontend **Read mode** (tree navigation, search, term index, ask the document) | Planned (next) |
 | Explore moderation: reporting shares and comments, admin review | Planned (next) |
-| Teacher features: classes & sharing, teacher analytics, personalised assignments, exams | Planned (later) |
-| Role-specific behaviour (teacher vs student), admin user management | Planned |
+| Teacher features beyond the classroom: class groups, re-syncing shared copies, timed exams | Planned (later) |
+| Admin user management | Planned |
 | Per-user AI quotas and cost logging; login rate limiting, password reset, refresh-token reuse detection | Planned |
 | Streaming lesson generation (SSE), pre-generating the first lesson | Planned |
 | Material versioning, a message broker for document processing (DB coordination today), S3/MinIO storage | Planned |
@@ -194,4 +195,4 @@ Guides: [guides/local-development.md](guides/local-development.md), [guides/conf
 
 Full list: [roadmap.md](roadmap.md). Specs: [auth](specs/auth.md) · [ocr](specs/ocr.md) ·
 [knowledge](specs/knowledge.md) · [study](specs/study.md) · [progress](specs/progress.md) ·
-[design system](specs/design-system.md) · [inference API](specs/inference-api.md) · [API conventions](specs/api-conventions.md).
+[classroom](specs/classroom.md) · [design system](specs/design-system.md) · [inference API](specs/inference-api.md) · [API conventions](specs/api-conventions.md).

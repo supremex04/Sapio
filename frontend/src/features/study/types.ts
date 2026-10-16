@@ -181,6 +181,14 @@ export interface Assessment {
   completedAt: string | null;
   items: AssessmentItem[];
   report: AssessmentReport | null;
+  /** Set on tests a teacher assigned. */
+  assignment: Assignment | null;
+}
+
+export interface Assignment {
+  title: string | null;
+  assignedBy: string;
+  dueAt: string | null;
 }
 
 export interface AssessmentSummary {
@@ -192,6 +200,7 @@ export interface AssessmentSummary {
   score: number | null;
   createdAt: string;
   completedAt: string | null;
+  assignment: Assignment | null;
 }
 
 export interface CreateAssessmentInput {

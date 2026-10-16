@@ -423,3 +423,10 @@
   border-radius: var(--radius-md);
   background: var(--surface-2);
 }
+
+/* A test a teacher set: who and when it is due, above the question. */
+.ar-assigned {
+  max-width: var(--reading-width, 760px);
+  margin: var(--space-3) auto 0;
+  text-align: center;
+}

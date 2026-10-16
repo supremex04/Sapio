@@ -258,6 +258,77 @@ const GLYPHS = {
       <path d="M33 26c.4 2.6 1.4 3.6 4 4-2.6.4-3.6 1.4-4 4-.4-2.6-1.4-3.6-4-4 2.6-.4 3.6-1.4 4-4Z" fill="#fff" />
     </>
   ),
+  // ---- Classroom
+  /** A teacher's students: two people. */
+  students: () => (
+    <>
+      <Tile tone="blue" />
+      <circle cx="30" cy="16" r="5" fill="#fff" opacity="0.75" />
+      <path d="M21 33c0-5.5 4-9 9-9s9 3.5 9 9Z" fill="#fff" opacity="0.75" />
+      <circle cx="19" cy="17" r="6" fill="#fff" />
+      <path d="M8 35c0-6.5 4.9-10.5 11-10.5S30 28.5 30 35Z" fill="#fff" />
+    </>
+  ),
+  /** An invitation: an envelope. */
+  invite: () => (
+    <>
+      <Tile tone="blue" />
+      <rect x="10" y="13" width="28" height="20" rx="3.5" fill="#fff" />
+      <path d="M11.5 15.5 24 25l12.5-9.5" fill="none" stroke="var(--blue-main)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  /** A notice to the class: a megaphone. */
+  notice: () => (
+    <>
+      <Tile tone="amber" />
+      <path d="M12 19.5h5.5L31 12v20l-13.5-7.5H12a2 2 0 0 1-2-2v-1a2 2 0 0 1 2-2Z" fill="#fff" />
+      <path d="M15 25.5 17 33h4l-1.6-7" fill="#fff" opacity="0.85" />
+      <path d="M35 17.5c1.6 1.2 2.5 2.9 2.5 4.5s-.9 3.3-2.5 4.5" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" />
+    </>
+  ),
+  /** The class calendar. */
+  calendar: () => (
+    <>
+      <Tile tone="teal" />
+      <rect x="10.5" y="12.5" width="27" height="22" rx="4" fill="#fff" />
+      <path d="M10.5 18.5h27" stroke="var(--teal-main)" strokeWidth="2.6" />
+      <path d="M17 9.5v6M31 9.5v6" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
+      <g fill="var(--teal-main)">
+        <rect x="15" y="22.5" width="4.5" height="4" rx="1" />
+        <rect x="21.75" y="22.5" width="4.5" height="4" rx="1" />
+        <rect x="28.5" y="22.5" width="4.5" height="4" rx="1" />
+        <rect x="15" y="28" width="4.5" height="4" rx="1" />
+      </g>
+    </>
+  ),
+  /** A test a teacher sets: a clipboard with a tick. */
+  "class-test": () => (
+    <>
+      <Tile tone="purple" />
+      <rect x="13" y="12" width="22" height="25" rx="3.5" fill="#fff" />
+      <rect x="19" y="9" width="10" height="6" rx="2" fill="#fff" stroke="var(--purple-main)" strokeWidth="2" />
+      <path d="M18 25.5l4 4 8-9" fill="none" stroke="var(--purple-main)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  /** Sharing with students: a paper plane. */
+  share: () => (
+    <>
+      <Tile tone="blue" />
+      <path d="M38 10 9.5 21.5l10.5 4L38 10Z" fill="#fff" />
+      <path d="M38 10 20 25.5l2.5 9.5 4.5-6.5L38 10Z" fill="#fff" opacity="0.8" />
+    </>
+  ),
+  /** Class insights: rising bars. */
+  insights: () => (
+    <>
+      <Tile tone="green" />
+      <g fill="#fff">
+        <rect x="11" y="24" width="6" height="10" rx="2" />
+        <rect x="21" y="18" width="6" height="16" rx="2" />
+        <rect x="31" y="11" width="6" height="23" rx="2" />
+      </g>
+    </>
+  ),
 } satisfies Record<string, () => ReactElement>;
 
 export type GlyphName = keyof typeof GLYPHS;

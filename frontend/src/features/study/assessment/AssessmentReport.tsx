@@ -38,7 +38,11 @@ function scoreColor(score: number): string {
 }
 
 /** Report order follows the peak-end rule: celebrate, strengths, then what to work on. */
-export function AssessmentReportView({ assessment, fresh }: { assessment: Assessment; fresh: boolean }) {
+/**
+ * The report of a finished test. ``observer``: a teacher reading a student's report (read-only: no recall, lessons
+ * or new tests, which belong to the student).
+ */
+export function AssessmentReportView({ assessment, fresh, observer }: { assessment: Assessment; fresh: boolean; observer?: { studentName: string; exitTo: string } }) {
   const report = assessment.report!;
   const { title, sub, mood } = reportHeadline(report.score);
   const docId = assessment.documentId;
@@ -46,12 +50,17 @@ export function AssessmentReportView({ assessment, fresh }: { assessment: Assess
 
   return (
     <>
-      <FocusHeader exitTo={`/documents/${docId}`} exitLabel="Back to course" progress={1} progressLabel="Test complete" />
+      <FocusHeader exitTo={observer ? observer.exitTo : `/documents/${docId}`} exitLabel={observer ? "Back" : "Back to course"} progress={1} progressLabel="Test complete" />
       <div className="rp">
         <motion.section className="rp-hero" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: "spring", stiffness: 300, damping: 24 }}>
           <Sage mood={mood} size={128} />
           <div className="rp-hero-text">
             {fresh && <p className="eyebrow">Test complete · {assessment.documentTitle}</p>}
+            {observer && (
+              <p className="eyebrow">
+                {observer.studentName} · {assessment.assignment?.title ?? "Practice test"} · {assessment.documentTitle}
+              </p>
+            )}
             <h1>{title}</h1>
             <p className="text-2">{sub}</p>
           </div>
@@ -66,6 +75,7 @@ export function AssessmentReportView({ assessment, fresh }: { assessment: Assess
           <ResultStat tone="teal" label="To recall" emoji="recall" value={toReview} />
         </div>
 
+        {!observer && (
         <div className="rp-actions">
           {toReview + report.partialCount > 0 && (
             <ButtonLink to={`/recall?documentId=${docId}`} variant="review" size="lg">
@@ -76,6 +86,7 @@ export function AssessmentReportView({ assessment, fresh }: { assessment: Assess
             Back to course
           </ButtonLink>
         </div>
+        )}
 
         {report.summary && (
           <Card>
@@ -127,7 +138,7 @@ export function AssessmentReportView({ assessment, fresh }: { assessment: Assess
                   <strong>{w.title}</strong>
                   <Markdown className="small">{w.advice}</Markdown>
                 </div>
-                {w.topicId && (
+                {w.topicId && !observer && (
                   <ButtonLink to={`/documents/${docId}/learn/${w.topicId}`} size="sm" variant="accent">
                     Review lesson
                   </ButtonLink>
@@ -147,6 +158,7 @@ export function AssessmentReportView({ assessment, fresh }: { assessment: Assess
                 </li>
               ))}
             </ol>
+            {!observer && (
             <div className="row" style={{ marginTop: "var(--space-4)" }}>
               <ButtonLink to={`/documents/${docId}/test`} variant="mastery">
                 New test
@@ -155,6 +167,7 @@ export function AssessmentReportView({ assessment, fresh }: { assessment: Assess
                 Learning path
               </ButtonLink>
             </div>
+            )}
           </Card>
         )}
 

@@ -19,5 +19,6 @@ immutable once accepted; to change a decision, add a new ADR that supersedes the
 | [0012](0012-import-shared-documents-as-independent-copies.md) | Import shared documents as independent copies (deep copy via per-module copy steps) | Accepted |
 | [0013](0013-lectures-from-audio-and-video.md) | Lectures from audio and video: faster-whisper speech-to-text, then AI study notes | Accepted |
 | [0014](0014-editing-the-reading-view.md) | Editing the reading view: in-place Markdown, minimal re-indexing, AI rewrites on request | Accepted |
+| [0015](0015-classroom.md) | Classroom: copies for students, class tests as ordinary assessments | Accepted |
 
 New ADR: copy [template.md](template.md) to `NNNN-short-title.md`.

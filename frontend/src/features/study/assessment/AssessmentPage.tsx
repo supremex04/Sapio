@@ -9,6 +9,7 @@ import { Badge } from "../../../shared/ui/Badge";
 import { ConfirmButton } from "../../../shared/ui/ConfirmButton";
 import { cx } from "../../../shared/ui/cx";
 import { FocusHeader } from "../../../shared/ui/FocusHeader";
+import { formatDateTime } from "../../../shared/lib/format";
 import { Skeleton } from "../../../shared/ui/Skeleton";
 import { useProgress } from "../../progress/ProgressContext";
 import { studyApi } from "../api";
@@ -147,6 +148,12 @@ export function AssessmentPage() {
       />
 
       {error && <Alert>{error}</Alert>}
+      {assessment.assignment && (
+        <p className="ar-assigned small muted">
+          <strong>{assessment.assignment.title ?? "Class test"}</strong> · set by {assessment.assignment.assignedBy}
+          {assessment.assignment.dueAt && ` · due ${formatDateTime(assessment.assignment.dueAt)}`}
+        </p>
+      )}
 
       {item && (
         <AnimatePresence mode="wait">

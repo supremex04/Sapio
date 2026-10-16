@@ -1,3 +1,5 @@
+import { TeacherHome } from "../classroom/TeacherHome";
+import { useIsTeacher } from "../classroom/useRole";
 import { ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
@@ -39,7 +41,12 @@ function timeOfDayEmoji(date = new Date()): IconName {
   return "crescent-moon";
 }
 
+/** Home: the learner's dashboard, or the teacher's class overview. */
 export function DashboardPage() {
+  return useIsTeacher() ? <TeacherHome /> : <StudentDashboard />;
+}
+
+function StudentDashboard() {
   const { user } = useAuth();
   const { summary } = useProgress();
   const [nextStep, setNextStep] = useState<NextStep | null | undefined>(undefined);

@@ -3,6 +3,9 @@ import { AnimatePresence, motion } from "motion/react";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { Link, matchPath, NavLink, Outlet, useLocation } from "react-router";
 import { useAuth } from "../features/auth/AuthContext";
+import { CalendarCard } from "../features/classroom/CalendarCard";
+import { NotificationsButton } from "../features/classroom/NotificationsButton";
+import { useIsTeacher } from "../features/classroom/useRole";
 import { ProgressProvider } from "../features/progress/ProgressProvider";
 import { useProgress } from "../features/progress/ProgressContext";
 import { useActivityHeartbeat } from "../features/progress/useActivityHeartbeat";
@@ -20,7 +23,7 @@ import { useSidebar } from "./useSidebar";
 import "./layout.css";
 
 /** Task screens hide all navigation (one thing at a time). They render their own FocusHeader. */
-const FOCUS_ROUTES = ["/documents/:id/learn/:topicId", "/assessments/:id", "/recall"];
+const FOCUS_ROUTES = ["/documents/:id/learn/:topicId", "/assessments/:id", "/recall", "/students/:studentId/tests/:assessmentId"];
 /** Screens wide enough to own the right side (no progress rail). */
 const FULL_WIDTH_ROUTES = ["/styleguide"];
 
@@ -39,6 +42,8 @@ function Shell() {
   const fullWidth = FULL_WIDTH_ROUTES.some((p) => matchPath(p, location.pathname));
   const reviews = useReviewSummary();
   const sidebar = useSidebar();
+  const teacher = useIsTeacher();
+  const nav = teacher ? TEACHER_NAV : NAV;
 
   const page = (
     <Suspense
@@ -65,22 +70,36 @@ function Shell() {
 
   return (
     <div className={cx("app", fullWidth && "app-full", sidebar.collapsed && "sidebar-collapsed")}>
-      <Sidebar reviewsDue={reviews?.dueNow ?? 0} collapsed={sidebar.collapsed} onToggle={sidebar.toggle} />
-      <MobileTopBar />
+      <Sidebar nav={nav} reviewsDue={reviews?.dueNow ?? 0} collapsed={sidebar.collapsed} onToggle={sidebar.toggle} />
+      <MobileTopBar teacher={teacher} />
       <main className="main" id="main">
         {page}
       </main>
       {!fullWidth && (
-        <aside className="rail" aria-label="Your progress">
-          <ProgressPanel />
+        <aside className="rail" aria-label={teacher ? "Your class" : "Your progress"}>
+          {/* Teachers do not collect XP or recall cards: their rail is the class calendar. */}
+          {!teacher && <ProgressPanel />}
+          <CalendarCard />
         </aside>
       )}
-      <TabBar reviewsDue={reviews?.dueNow ?? 0} />
+      <TabBar nav={nav} reviewsDue={reviews?.dueNow ?? 0} />
     </div>
   );
 }
 
-const NAV: { to: string; label: string; emoji: IconName; end: boolean }[] = [
+type NavItem = { to: string; label: string; emoji: IconName; end: boolean };
+
+/** Teachers: their class instead of the learner's recall and personalisation. */
+const TEACHER_NAV: NavItem[] = [
+  { to: "/", label: "Home", emoji: "house", end: true },
+  { to: "/library", label: "Library", emoji: "library", end: false },
+  { to: "/students", label: "Students", emoji: "students", end: false },
+  { to: "/notices", label: "Notices", emoji: "notice", end: false },
+  { to: "/calendar", label: "Calendar", emoji: "calendar", end: false },
+  { to: "/explore", label: "Explore", emoji: "globe-showing-asia-australia", end: false },
+];
+
+const NAV: NavItem[] = [
   { to: "/", label: "Home", emoji: "house", end: true },
   { to: "/library", label: "Library", emoji: "library", end: false },
   { to: "/explore", label: "Explore", emoji: "globe-showing-asia-australia", end: false },
@@ -92,14 +111,17 @@ const NAV: { to: string; label: string; emoji: IconName; end: boolean }[] = [
  * Desktop navigation. Collapses to an icon strip (labels become tooltips, the theme switch a single button, the
  * profile an avatar); the choice is remembered in this browser. Toggle: the button at the bottom or "[".
  */
-function Sidebar({ reviewsDue, collapsed, onToggle }: { reviewsDue: number; collapsed: boolean; onToggle: () => void }) {
+function Sidebar({ nav, reviewsDue, collapsed, onToggle }: { nav: NavItem[]; reviewsDue: number; collapsed: boolean; onToggle: () => void }) {
   return (
     <nav className="sidebar" aria-label="Main">
-      <Link to="/" className="sidebar-brand" aria-label="Sapio home">
-        <Wordmark />
-      </Link>
+      <div className="sidebar-top">
+        <Link to="/" className="sidebar-brand" aria-label="Sapio home">
+          <Wordmark />
+        </Link>
+        {!collapsed && <NotificationsButton placement="start" />}
+      </div>
       <div className="sidebar-nav">
-        {NAV.map(({ to, label, emoji, end }) => (
+        {nav.map(({ to, label, emoji, end }) => (
           <NavLink key={to} to={to} end={end} data-label={label} className={({ isActive }) => cx("nav-item", isActive && "active")}>
             <Emoji name={emoji} size={30} />
             <span className="nav-label">{label}</span>
@@ -112,6 +134,7 @@ function Sidebar({ reviewsDue, collapsed, onToggle }: { reviewsDue: number; coll
         ))}
       </div>
       <div className="sidebar-foot">
+        {collapsed && <NotificationsButton placement="right" />}
         {collapsed ? <ThemeToggle /> : <ThemeSwitch />}
         <UserMenu placement="up" compact={collapsed} />
         <button
@@ -130,7 +153,7 @@ function Sidebar({ reviewsDue, collapsed, onToggle }: { reviewsDue: number; coll
   );
 }
 
-function MobileTopBar() {
+function MobileTopBar({ teacher }: { teacher: boolean }) {
   const { summary } = useProgress();
   return (
     <header className="mobile-top">
@@ -138,7 +161,8 @@ function MobileTopBar() {
         <Wordmark />
       </Link>
       <div className="row" style={{ gap: "var(--space-1)" }}>
-        {summary && (
+        <NotificationsButton />
+        {summary && !teacher && (
           <>
             <Chip emoji="fire" tone="streak" label={`${summary.streak.current} day streak`}>
               {summary.streak.current}
@@ -155,10 +179,10 @@ function MobileTopBar() {
   );
 }
 
-function TabBar({ reviewsDue }: { reviewsDue: number }) {
+function TabBar({ nav, reviewsDue }: { nav: NavItem[]; reviewsDue: number }) {
   return (
     <nav className="tabbar" aria-label="Main">
-      {NAV.map(({ to, label, emoji, end }) => (
+      {nav.map(({ to, label, emoji, end }) => (
         <NavLink key={to} to={to} end={end} className={({ isActive }) => cx("tab-item", isActive && "active")}>
           <span className="tab-icon">
             <Emoji name={emoji} size={28} />

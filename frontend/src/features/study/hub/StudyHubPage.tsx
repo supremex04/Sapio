@@ -19,6 +19,9 @@ import { Skeleton, SkeletonText } from "../../../shared/ui/Skeleton";
 import { Tabs } from "../../../shared/ui/Tabs";
 import { documentsApi } from "../../documents/api";
 import { OriginTag } from "../../sharing/OriginTag";
+import { classroomApi } from "../../classroom/api";
+import { ClassTestsTab, DocumentStudentsTab, TeacherActions } from "../../classroom/TeacherDocument";
+import { useIsTeacher } from "../../classroom/useRole";
 import { DocumentPreview } from "../../documents/DocumentPreview";
 import { LearningPath } from "./LearningPath";
 import { pipelineState } from "../../documents/pipeline";
@@ -32,7 +35,7 @@ import { recommendedTopic } from "../path";
 import type { AssessmentSummary, Material } from "../types";
 import "./hub.css";
 
-type Tab = "topics" | "preview" | "tests";
+type Tab = "topics" | "preview" | "tests" | "students" | "class-tests";
 
 /** Rough lesson length used for time estimates ("~6 min per topic"). */
 const MINUTES_PER_TOPIC = 6;
@@ -43,7 +46,9 @@ export function StudyHubPage() {
   const [material, setMaterial] = useState<Material | null>(null);
   const [assessments, setAssessments] = useState<AssessmentSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>("topics");
+  const teacher = useIsTeacher();
+  const [tab, setTab] = useState<Tab>(teacher ? "students" : "topics");
+  const [shareVersion, setShareVersion] = useState(0);
 
   const load = useCallback(async () => {
     try {
@@ -63,6 +68,12 @@ export function StudyHubPage() {
     void load();
   }, [load]);
   usePolling(load, 2500, doc !== null && !isSettled(doc));
+
+  // A document shared by a teacher: let them see it was opened.
+  const fromTeacher = doc?.origin?.kind === "CLASS";
+  useEffect(() => {
+    if (fromTeacher) void classroomApi.opened(id).catch(() => undefined);
+  }, [fromTeacher, id]);
 
   async function retry() {
     try {
@@ -96,7 +107,7 @@ export function StudyHubPage() {
               <Emoji name="document" size={44} />
             </span>
             <div className="hub-title-text">
-              <p className="eyebrow">Your course</p>
+              <p className="eyebrow">{teacher ? "Your document" : "Your course"}</p>
               <h1 className="break">{material?.title ?? displayTitle(doc)}</h1>
             </div>
           </div>
@@ -138,7 +149,8 @@ export function StudyHubPage() {
           </Card>
         )}
 
-        {ready && material && <ModeCards documentId={id} material={material} />}
+        {ready && material && !teacher && <ModeCards documentId={id} material={material} />}
+        {ready && teacher && <TeacherActions documentId={id} onShared={() => setShareVersion((v) => v + 1)} />}
 
         {(ready || hasExtractedText(doc.status)) && (
           <section>
@@ -146,15 +158,24 @@ export function StudyHubPage() {
               label="Course sections"
               value={ready ? tab : "preview"}
               onChange={setTab}
-              items={[
-                ...(ready ? [{ value: "topics" as const, label: "Topics" }] : []),
-                { value: "preview" as const, label: "Preview" },
-                ...(ready ? [{ value: "tests" as const, label: `Tests${assessments?.length ? ` (${assessments.length})` : ""}` }] : []),
-              ]}
+              items={
+                teacher
+                  ? [
+                      ...(ready ? [{ value: "students" as const, label: "Students" }, { value: "class-tests" as const, label: "Class tests" }, { value: "topics" as const, label: "Topics" }] : []),
+                      { value: "preview" as const, label: "Preview" },
+                    ]
+                  : [
+                      ...(ready ? [{ value: "topics" as const, label: "Topics" }] : []),
+                      { value: "preview" as const, label: "Preview" },
+                      ...(ready ? [{ value: "tests" as const, label: `Tests${assessments?.length ? ` (${assessments.length})` : ""}` }] : []),
+                    ]
+              }
             />
             <div className="hub-panel">
               {ready && tab === "topics" && material && <LearningPath documentId={id} topics={material.topics} />}
               {ready && tab === "tests" && <AssessmentList documentId={id} items={assessments} />}
+              {ready && tab === "students" && <DocumentStudentsTab documentId={id} version={shareVersion} />}
+              {ready && tab === "class-tests" && <ClassTestsTab documentId={id} />}
               {(!ready || tab === "preview") && (
                 <Card>
                   <DocumentPreview doc={doc} ready={ready} />
@@ -288,13 +309,14 @@ function AssessmentList({ documentId, items }: { documentId: string; items: Asse
             <span className={cx("hub-score", a.score != null && `is-${scoreTone(a.score)}`)}>{a.score == null ? "…" : formatPercent(a.score)}</span>
             <span className="hub-row-main">
               <strong>
-                {a.questionCount} questions · {a.difficulty.toLowerCase()}
+                {a.assignment ? (a.assignment.title ?? "Class test") : `${a.questionCount} questions · ${a.difficulty.toLowerCase()}`}
               </strong>
               <span className="small muted">
                 {a.status === "COMPLETED" ? `Finished ${formatRelative(a.completedAt ?? a.createdAt)}` : `In progress · ${a.answeredCount}/${a.questionCount} answered`}
               </span>
             </span>
-            {a.status === "IN_PROGRESS" ? <Badge tone="primary">Resume</Badge> : <Badge>Report</Badge>}
+            {a.assignment && <Badge tone="mastery">From {a.assignment.assignedBy}</Badge>}
+            {a.status === "IN_PROGRESS" ? <Badge tone="primary">{a.answeredCount ? "Resume" : "Start"}</Badge> : <Badge>Report</Badge>}
           </Link>
         </li>
       ))}

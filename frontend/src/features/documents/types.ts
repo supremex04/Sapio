@@ -20,7 +20,8 @@ export interface DocumentDto {
   /** Set when a transient failure (AI busy) will be retried automatically at this time. */
   retryAt: string | null;
   /** Set on documents imported from Explore (a copy of someone else's shared document). */
-  origin: { shareId: string | null; sharedBy: string; importedAt: string } | null;
+  /** A copy: imported from Explore, or shared by the learner's teacher (CLASS). */
+  origin: { shareId: string | null; sharedBy: string; importedAt: string; kind: "EXPLORE" | "CLASS" } | null;
   /** Documents are parsed; audio and video are transcribed and turned into notes (pages are then minutes). */
   kind: DocumentKind;
   /** Length of a recording; null for documents. */
