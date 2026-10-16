@@ -8,22 +8,50 @@ STORYBOARD_SYSTEM = """You are a brilliant teacher who explains maths and scienc
 Write captions in {language}. Output strictly the requested JSON."""
 
 
-def storyboard_prompt(request: str, context: str | None) -> str:
+ENGINES = """How to show it (engine):
+- animation: an animated 2D/3D video drawn with code (formulas, graphs, geometry, physics, processes, algorithms as
+  pictures). The default.
+- molecule: one small molecule shown in 3D (structure, bonds, functional groups, shape). Give its name and SMILES;
+  each beat's focus says which atoms light up, or empty for the whole molecule. For a common group use its name:
+  group:methyl, group:n-methyl, group:carbonyl, group:hydroxyl, group:carboxylic acid, group:ester, group:ether,
+  group:amide, group:amine, group:aldehyde, group:ketone, group:phenol, group:nitro, group:nitrile, group:thiol,
+  group:phosphate, group:halogen, group:alkene, group:alkyne, group:benzene ring, group:purine, group:imidazole,
+  group:pyrimidine. Otherwise a specific SMARTS of just those atoms (aromatic ring atoms are lowercase: c, n, o).
+  Highlight only what the caption talks about, never most of the molecule.
+- protein: a protein, nucleic acid or complex from the Protein Data Bank shown in 3D. Give the 4-character PDB ID
+  of a well-known entry you are sure of (e.g. 1HHO haemoglobin, 1BNA DNA, 1LYZ lysozyme, 4HHB haemoglobin, 2HHB);
+  each beat's focus is chain and residues (A:58-63), a ligand (ligand:HEM), or empty for the whole structure.
+- code: a short Python program run line by line, showing variables change. Use for questions about how code
+  behaves (loops, recursion, sorting, data structures). Put the program in program (at most 40 lines, with a small
+  example input, printing its result; if the learner gave Python, copy it exactly; if they gave another language,
+  write the equivalent Python and say so in the first beat); each beat's focus is the lines it explains (3-5)."""
+
+
+def storyboard_prompt(request: str, context: str | None, engine: str = "auto") -> str:
     context_block = (
         f"\n\nWhere it comes from (the learner's material):\n{context.strip()[:4000]}" if context else ""
     )
-    return f"""Plan a short animation (20-45 seconds) that helps a learner understand this:
+    choice = (
+        "Choose the engine that shows it best."
+        if engine == "auto"
+        else f"Use the engine {engine} (the learner chose it)."
+    )
+    return f"""Plan a short visualization (20-45 seconds of narration) that helps a learner understand this:
 
-\"\"\"{request.strip()[:2000]}\"\"\"{context_block}
+\"\"\"{request.strip()[:4000]}\"\"\"{context_block}
+
+{ENGINES}
+
+{choice}
 
 Rules:
-- 3-6 beats. Each beat says concretely what appears or moves (shapes, axes, labels, formulas, colours) and gives one
-  caption sentence.
+- 3-6 beats. Each beat says concretely what appears, moves or is pointed at, and gives one caption sentence.
 - The caption is read aloud as the narration and shown as a subtitle, so write it the way a teacher would say it:
   plain words, no LaTeX or symbols ("a squared plus b squared equals c squared", "x of t"), at most about 25 words.
-- Visual first: show the quantity, the geometry or the motion, not paragraphs of text. Formulas appear as LaTeX.
-- Two dimensions unless depth is essential. Nothing that needs images, photos, sound or real-world footage.
-- If the request is not something an animation can show (e.g. an opinion, a list of facts with no structure, a
+- Visual first: show the quantity, the geometry, the structure or the motion, not paragraphs of text.
+- For animation: formulas appear as LaTeX; two dimensions unless depth is essential; nothing that needs images,
+  photos or real-world footage.
+- If the request is not something any engine can show (e.g. an opinion, a list of facts with no structure, a
   request to render something unsafe), set feasible = false and explain in reason; beats can then be empty."""
 
 

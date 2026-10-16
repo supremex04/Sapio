@@ -72,43 +72,68 @@ class Rejected(Exception):
         return self.reason
 
 
+#: Programs traced line by line (the code engine): ordinary teaching Python, still without files, processes or
+#: Python's internals. They may read input() (fed from the request) and use a few common dunders.
+PROGRAM_IMPORTS = {
+    "math",
+    "random",
+    "itertools",
+    "functools",
+    "collections",
+    "heapq",
+    "bisect",
+    "string",
+    "re",
+    "dataclasses",
+    "typing",
+    "statistics",
+    "fractions",
+    "decimal",
+    "operator",
+    "copy",
+    "enum",
+}
+PROGRAM_DUNDERS = {
+    "__init__",
+    "__str__",
+    "__repr__",
+    "__len__",
+    "__eq__",
+    "__ne__",
+    "__lt__",
+    "__le__",
+    "__gt__",
+    "__ge__",
+    "__hash__",
+    "__iter__",
+    "__next__",
+    "__getitem__",
+    "__setitem__",
+    "__contains__",
+    "__add__",
+    "__sub__",
+    "__mul__",
+    "__bool__",
+    "__name__",
+}
+MAX_PROGRAM_CHARS = 8_000
+
+
 def check(code: str) -> None:
     """Raises Rejected when the code is not acceptable scene code."""
-    if len(code) > MAX_CODE_CHARS:
-        raise Rejected(f"The scene code is too long (over {MAX_CODE_CHARS} characters).")
-    try:
-        tree = ast.parse(code)
-    except SyntaxError as e:
-        raise Rejected(f"Syntax error on line {e.lineno}: {e.msg}") from e
-
+    tree = _parse(code, MAX_CODE_CHARS, "scene code")
     scenes = []
     for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            for alias in node.names:
-                _allowed_module(alias.name)
-        elif isinstance(node, ast.ImportFrom):
-            if node.level:
-                raise Rejected("Relative imports are not allowed.")
-            if node.module == NARRATION_MODULE:
-                if {a.name for a in node.names} - NARRATION_NAMES or any(a.asname for a in node.names):
-                    raise Rejected(
-                        f"Import only this from {NARRATION_MODULE}: from {NARRATION_MODULE} import narrate"
-                    )
-                continue
-            _allowed_module(node.module or "")
-        elif isinstance(node, ast.Name) and node.id in FORBIDDEN_NAMES:
-            raise Rejected(f"'{node.id}' is not allowed in scene code.")
-        elif isinstance(node, ast.Attribute):
-            if node.attr.startswith("__") and node.attr.endswith("__"):
-                raise Rejected(f"Access to '{node.attr}' is not allowed in scene code.")
-            if node.attr in FORBIDDEN_NAMES:
-                raise Rejected(f"'.{node.attr}' is not allowed in scene code.")
-        elif isinstance(node, ast.Constant) and isinstance(node.value, str) and "__" in node.value:
-            # str.format can reach attributes from inside a string: "{0.__class__}".
-            raise Rejected("Strings with '__' are not allowed in scene code.")
-        elif isinstance(node, (ast.Global, ast.Nonlocal)):
+        if isinstance(node, ast.ImportFrom) and node.module == NARRATION_MODULE and not node.level:
+            if {a.name for a in node.names} - NARRATION_NAMES or any(a.asname for a in node.names):
+                raise Rejected(
+                    f"Import only this from {NARRATION_MODULE}: from {NARRATION_MODULE} import narrate"
+                )
+            continue
+        _check_node(node, ALLOWED_IMPORTS, FORBIDDEN_NAMES, set(), "scene code")
+        if isinstance(node, (ast.Global, ast.Nonlocal)):
             raise Rejected("'global' and 'nonlocal' are not allowed in scene code.")
-        elif isinstance(node, ast.ClassDef) and node.name == SCENE_CLASS:
+        if isinstance(node, ast.ClassDef) and node.name == SCENE_CLASS:
             scenes.append(node)
 
     if len(scenes) != 1:
@@ -120,7 +145,60 @@ def check(code: str) -> None:
         raise Rejected(f"{SCENE_CLASS} needs a construct(self) method.")
 
 
-def _allowed_module(name: str) -> None:
+def check_program(code: str) -> None:
+    """Raises Rejected when a program to trace is not acceptable (or not Python)."""
+    tree = _parse(code, MAX_PROGRAM_CHARS, "the program")
+    for node in ast.walk(tree):
+        _check_node(node, PROGRAM_IMPORTS, FORBIDDEN_NAMES - {"input"}, PROGRAM_DUNDERS, "the program")
+
+
+def _parse(code: str, limit: int, what: str) -> ast.AST:
+    if len(code) > limit:
+        raise Rejected(f"{what[0].upper() + what[1:]} is too long (over {limit} characters).")
+    try:
+        return ast.parse(code)
+    except SyntaxError as e:
+        raise Rejected(f"Syntax error on line {e.lineno}: {e.msg}") from e
+
+
+def _check_node(node: ast.AST, imports: set[str], forbidden: set[str], dunders: set[str], what: str) -> None:
+    if isinstance(node, ast.Import):
+        for alias in node.names:
+            _allowed_module(alias.name, imports)
+    elif isinstance(node, ast.ImportFrom):
+        if node.level:
+            raise Rejected("Relative imports are not allowed.")
+        _allowed_module(node.module or "", imports)
+    elif isinstance(node, ast.Name):
+        if node.id in forbidden:
+            raise Rejected(f"'{node.id}' is not allowed in {what}.")
+        if _dunder(node.id) and node.id not in dunders:
+            # e.g. __builtins__["op" + "en"] would reach what the names above keep out
+            raise Rejected(f"'{node.id}' is not allowed in {what}.")
+    elif isinstance(node, ast.Attribute):
+        if _dunder(node.attr) and node.attr not in dunders:
+            raise Rejected(f"Access to '{node.attr}' is not allowed in {what}.")
+        if node.attr in forbidden:
+            raise Rejected(f"'.{node.attr}' is not allowed in {what}.")
+    elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and _dunder(node.name):
+        if node.name not in dunders:
+            raise Rejected(f"Defining '{node.name}' is not allowed in {what}.")
+    elif (
+        isinstance(node, ast.Constant)
+        and isinstance(node.value, str)
+        and "__" in node.value
+        # programs may compare __name__ with "__main__"
+        and not (node.value == "__main__" and "__name__" in dunders)
+    ):
+        # str.format can reach attributes from inside a string: "{0.__class__}".
+        raise Rejected(f"Strings with '__' are not allowed in {what}.")
+
+
+def _dunder(name: str) -> bool:
+    return name.startswith("__") and name.endswith("__")
+
+
+def _allowed_module(name: str, allowed: set[str]) -> None:
     root = name.split(".")[0]
-    if root not in ALLOWED_IMPORTS:
-        raise Rejected(f"Importing '{name}' is not allowed (only {', '.join(sorted(ALLOWED_IMPORTS))}).")
+    if root not in allowed:
+        raise Rejected(f"Importing '{name}' is not allowed (only {', '.join(sorted(allowed))}).")

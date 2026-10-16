@@ -21,5 +21,6 @@ immutable once accepted; to change a decision, add a new ADR that supersedes the
 | [0014](0014-editing-the-reading-view.md) | Editing the reading view: in-place Markdown, minimal re-indexing, AI rewrites on request | Accepted |
 | [0015](0015-classroom.md) | Classroom: copies for students, class tests as ordinary assessments | Accepted |
 | [0016](0016-visualizations.md) | Visualizations: AI-written Manim scenes rendered in a separate, locked-down service | Accepted |
+| [0017](0017-visualization-engines.md) | Visualization engines, routed by rules and by the storyboard call | Accepted |
 
 New ADR: copy [template.md](template.md) to `NNNN-short-title.md`.

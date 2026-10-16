@@ -13,9 +13,13 @@ import { ProgressBar } from "../../shared/ui/Progress";
 import { SkeletonText } from "../../shared/ui/Skeleton";
 import { Sage } from "../../shared/illustrations/Sage";
 import { visualizeApi } from "./api";
+import { CodeView } from "./CodeView";
+import { MoleculeView } from "./MoleculeView";
+import { NarratedScene } from "./NarratedScene";
+import { ProteinView } from "./ProteinView";
 import { VideoPlayer } from "./VideoPlayer";
 import { fraction, stage, videoLength } from "./progress";
-import { isWorking, type Visualization } from "./types";
+import { isWorking, type CodeScene, type MoleculeScene, type ProteinScene, type Visualization } from "./types";
 import "./visualize.css";
 
 const POLL_MS = 2500;
@@ -73,9 +77,13 @@ export function VisualizationPage() {
           <>
             <header className="page-head">
               <h1>{v.title ?? "Visualization"}</h1>
-              <Markdown className="viz-request muted">{v.request}</Markdown>
+              {/* Code is shown in the viewer, line by line; as Markdown it would collapse into one line. */}
+              {v.engine !== "CODE" && <Markdown className="viz-request muted">{v.request}</Markdown>}
             </header>
 
+            {v.status === "READY" && v.scene ? (
+              <SceneFor v={v} />
+            ) : (
             <div className="viz-stage">
               {v.status === "READY" && v.videoUrl ? (
                 <VideoPlayer src={v.videoUrl} poster={v.thumbnailUrl ?? undefined} narrated={v.narrated} />
@@ -94,6 +102,10 @@ export function VisualizationPage() {
                 </div>
               )}
             </div>
+            )}
+
+            {v.status === "READY" && v.engine === "MOLECULE" && v.scene && <MoleculeFacts scene={v.scene as MoleculeScene} drawing={v.thumbnailUrl} />}
+            {v.status === "READY" && v.engine === "PROTEIN" && v.scene && <ProteinFacts scene={v.scene as ProteinScene} />}
 
             <div className="row-between">
               <span className="small muted">
@@ -130,7 +142,7 @@ export function VisualizationPage() {
               </Card>
             )}
 
-            {v.code && (
+            {v.code && v.engine === "ANIMATION" && (
               <details className="viz-code card">
                 <summary>The code behind it (Python, Manim)</summary>
                 <pre>
@@ -142,5 +154,82 @@ export function VisualizationPage() {
         )}
       </div>
     </PageTransition>
+  );
+}
+
+/** The narrated viewer of a molecule, protein or program. */
+function SceneFor({ v }: { v: Visualization }) {
+  const scene = v.scene;
+  if (!scene) return null;
+  return (
+    <NarratedScene audioUrl={v.audioUrl} timing={scene.timing} beats={v.beats}>
+      {(clock) =>
+        v.engine === "MOLECULE" ? (
+          <MoleculeView scene={scene as MoleculeScene} clock={clock} />
+        ) : v.engine === "PROTEIN" && v.structureUrl ? (
+          <ProteinView scene={scene as ProteinScene} beats={v.beats} structureUrl={v.structureUrl} picture={v.thumbnailUrl} clock={clock} />
+        ) : (
+          <CodeView scene={scene as CodeScene} beats={v.beats} clock={clock} />
+        )
+      }
+    </NarratedScene>
+  );
+}
+
+function MoleculeFacts({ scene, drawing }: { scene: MoleculeScene; drawing: string | null }) {
+  return (
+    <Card>
+      <div className="viz-facts">
+        {drawing && <img className="viz-drawing" src={drawing} alt={`Structural formula of ${scene.name}`} />}
+        <dl className="viz-fact-list">
+          <div>
+            <dt>Molecule</dt>
+            <dd>{scene.name}</dd>
+          </div>
+          <div>
+            <dt>Formula</dt>
+            <dd>{scene.formula}</dd>
+          </div>
+          <div>
+            <dt>Molar mass</dt>
+            <dd>{scene.weight} g/mol</dd>
+          </div>
+          <div>
+            <dt>SMILES</dt>
+            <dd>
+              <code>{scene.smiles}</code>
+            </dd>
+          </div>
+          {!scene.threeD && (
+            <div>
+              <dt>Shape</dt>
+              <dd className="muted">A 3D shape could not be computed, so the drawing is flat.</dd>
+            </div>
+          )}
+        </dl>
+      </div>
+    </Card>
+  );
+}
+
+function ProteinFacts({ scene }: { scene: ProteinScene }) {
+  return (
+    <Card>
+      <dl className="viz-fact-list">
+        <div>
+          <dt>Structure</dt>
+          <dd>{scene.name}</dd>
+        </div>
+        <div>
+          <dt>Protein Data Bank</dt>
+          <dd>
+            <a href={`https://www.rcsb.org/structure/${scene.pdbId}`} target="_blank" rel="noreferrer noopener">
+              {scene.pdbId}
+            </a>{" "}
+            <span className="muted small">{scene.entryTitle}</span>
+          </dd>
+        </div>
+      </dl>
+    </Card>
   );
 }

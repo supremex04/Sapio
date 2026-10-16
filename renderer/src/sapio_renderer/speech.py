@@ -101,3 +101,66 @@ def _to_wav(samples, rate: int) -> Clip:
         w.setframerate(rate)
         w.writeframes(pcm.tobytes())
     return Clip(out.getvalue(), len(pcm) / rate)
+
+
+WORDS_PER_SECOND = 2.6  # timing when there is no voice: roughly a teacher's pace
+
+
+@dataclass(frozen=True)
+class Track:
+    audio: bytes | None  # AAC in MP4 (m4a); None when speech is unavailable
+    beats: list[tuple[float, float]]  # (start, seconds) of each line
+
+
+def track(lines: list[str]) -> Track:
+    """One audio track of all the lines in order, and where each starts: for viewers that are not videos
+    (molecules, proteins, code), which step through the beats in time with it."""
+    import subprocess
+    import tempfile
+
+    clips = [synthesize(line) for line in lines]
+    if not lines or any(c is None for c in clips):
+        beats, start = [], 0.0
+        for line in lines:
+            seconds = max(2.5, len(line.split()) / WORDS_PER_SECOND)
+            beats.append((round(start, 3), round(seconds, 3)))
+            start += seconds
+        return Track(None, beats)
+
+    beats, start, frames, rate = [], 0.0, [], None
+    for clip in clips:
+        with wave.open(io.BytesIO(clip.wav)) as w:
+            rate = w.getframerate()
+            frames.append(w.readframes(w.getnframes()))
+        beats.append((round(start, 3), round(clip.seconds, 3)))
+        start += clip.seconds
+    with tempfile.TemporaryDirectory(prefix="track-") as tmp:
+        wav, m4a = Path(tmp) / "track.wav", Path(tmp) / "track.m4a"
+        with wave.open(str(wav), "wb") as w:
+            w.setnchannels(1)
+            w.setsampwidth(2)
+            w.setframerate(rate)
+            w.writeframes(b"".join(frames))
+        done = subprocess.run(
+            [
+                "ffmpeg",
+                "-loglevel",
+                "error",
+                "-i",
+                str(wav),
+                "-c:a",
+                "aac",
+                "-b:a",
+                "64k",
+                "-movflags",
+                "+faststart",
+                "-y",
+                str(m4a),
+            ],
+            check=False,
+            timeout=60,
+        )
+        if done.returncode != 0 or not m4a.exists():
+            log.warning("Could not encode the narration track")
+            return Track(None, beats)
+        return Track(m4a.read_bytes(), beats)

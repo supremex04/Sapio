@@ -19,7 +19,7 @@ frontend routes, inference endpoints) as of 2026-10-10. Details live in the link
 | Personalize: academic level, occupation, field, depth, preferences, goal; lessons, notes, tests and tutor written for it | Available |
 | Gamification & analytics | Available |
 | Classroom: roster by email invitation, sharing to students' libraries, class tests (AI-drafted, teacher-reviewed), results and insights, notices, calendar, notifications | Available ([spec](specs/classroom.md)) |
-| Visualize: a formula or idea in, a short narrated animated video (Manim, Kokoro TTS) out; storyboard and code shown, failed renders repaired by the AI | Available ([spec](specs/visualizations.md)) |
+| Visualize: a formula, idea, molecule, protein or program in; a narrated animation (Manim), 3D molecule (RDKit), Protein Data Bank structure or line-by-line program trace out, routed without an extra AI call | Available ([spec](specs/visualizations.md)) |
 | Design system (light/dark, Diya v2, `/styleguide`) | Available |
 | AI vendor-neutrality (providers, per-task routes, fallbacks) | Available (config) |
 | Operations (`dev.sh`, auto-retries, config) | Available |

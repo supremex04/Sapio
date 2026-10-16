@@ -38,8 +38,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @IntegrationTest
 class VisualizationFlowIT {
 
-    private static final List<VisualizeAi.Beat> BEATS = List.of(new VisualizeAi.Beat("A right triangle", "Look"),
-            new VisualizeAi.Beat("Squares on each side", "Areas add up"));
+    private static final List<VisualizeAi.Beat> BEATS = List.of(new VisualizeAi.Beat("A right triangle", "Look", ""),
+            new VisualizeAi.Beat("Squares on each side", "Areas add up", ""));
+    private static final List<VisualizeAi.Beat> FOCUSED = List.of(new VisualizeAi.Beat("The whole thing", "Look", ""),
+            new VisualizeAi.Beat("One part", "This part", "C(=O)[OX2H1]"));
 
     @Autowired
     MockMvc mvc;
@@ -53,6 +55,9 @@ class VisualizationFlowIT {
     @MockitoBean
     RendererClient renderer;
 
+    @MockitoBean
+    ProteinBank proteinBank;
+
     Registered learner;
 
     @BeforeEach
@@ -60,11 +65,24 @@ class VisualizationFlowIT {
         learner = TestUsers.register(mvc, json);
         when(ai.storyboard(any())).thenAnswer(inv -> {
             VisualizeAi.StoryboardSpec spec = inv.getArgument(0);
-            return spec.request().contains("love")
-                    ? new VisualizeAi.Storyboard(false, "Feelings are not something we can animate well.", null, null,
-                            List.of(), "fake")
-                    : new VisualizeAi.Storyboard(true, null, "Pythagoras", "math", BEATS, "fake");
+            if (spec.request().contains("love")) {
+                return new VisualizeAi.Storyboard(false, "Feelings are not something we can animate well.", null,
+                        null, "animation", null, null, "", List.of(), "fake");
+            }
+            String engine = spec.engine().equals("auto") ? guess(spec.request()) : spec.engine();
+            return switch (engine) {
+                case "molecule" -> new VisualizeAi.Storyboard(true, null, "Aspirin", "chemistry", "molecule",
+                        new VisualizeAi.Molecule("aspirin", "CC(=O)Oc1ccccc1C(=O)O"), null, "", FOCUSED, "fake");
+                case "protein" -> new VisualizeAi.Storyboard(true, null, "Haemoglobin", "biology", "protein", null,
+                        new VisualizeAi.Protein("4HHB", "human haemoglobin"), "", FOCUSED, "fake");
+                case "code" -> new VisualizeAi.Storyboard(true, null, "Factorial", "code", "code", null, null,
+                        "print('ai program')\n", FOCUSED, "fake");
+                default -> new VisualizeAi.Storyboard(true, null, "Pythagoras", "math", "animation", null, null, "",
+                        BEATS, "fake");
+            };
         });
+        when(renderer.narrate(any())).thenReturn(new RendererClient.Narration(new byte[] {7, 7},
+                List.of(new RendererClient.Timing(0, 1.5), new RendererClient.Timing(1.5, 2.0))));
         when(ai.code(any())).thenReturn(new VisualizeAi.SceneCode("broken", "fake"));
         when(ai.code(argThat(s -> s != null && s.error() != null))).thenReturn(new VisualizeAi.SceneCode("fixed", "fake"));
     }
@@ -143,13 +161,111 @@ class VisualizationFlowIT {
     }
 
     @Test
+    void aMoleculeIsBuiltByRdkitWithoutSceneCodeAndNarratedAsATrack() throws Exception {
+        when(renderer.molecule(any(), any(), any())).thenReturn(molecule());
+
+        JsonNode done = await(create("aspirin").get("id").asString());
+        assertThat(done.get("status").asString()).isEqualTo("READY");
+        assertThat(done.get("engine").asString()).isEqualTo("MOLECULE");
+        assertThat(done.at("/scene/formula").asString()).isEqualTo("C9H8O4");
+        assertThat(done.at("/scene/highlights/1/0").asInt()).isEqualTo(10);
+        assertThat(done.at("/scene/drawings/1").asString()).isEqualTo("aGlnaGxpZ2h0ZWQ=");
+        assertThat(done.at("/scene/timing/1/start").asDouble()).isEqualTo(1.5);
+        assertThat(done.get("durationSeconds").asDouble()).isEqualTo(3.5);
+        assertThat(done.get("narrated").asBoolean()).isTrue();
+        // Each beat's focus is what RDKit highlights; no scene code, no render.
+        verify(renderer).molecule(eq("CC(=O)Oc1ccccc1C(=O)O"), eq(List.of("", "C(=O)[OX2H1]")),
+                eq(List.of("Look", "This part")));
+        verify(ai, never()).code(any());
+        verify(renderer, never()).render(any(), any());
+
+        byte[] audio = mvc.perform(get(done.get("audioUrl").asString())).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsByteArray();
+        assertThat(audio).containsExactly(7, 7);
+        mvc.perform(get(done.get("thumbnailUrl").asString())).andExpect(status().isOk());
+        // The list stays light: no scenes in it.
+        assertThat(getJson("/api/visualizations").get(0).get("scene").isNull()).isTrue();
+    }
+
+    @Test
+    void aSmilesStringIsRoutedByTheRulesOnlyOnceRdkitReadsIt() throws Exception {
+        when(renderer.molecule(any(), any(), any())).thenReturn(molecule());
+        when(renderer.molecule(eq("E=mc2"), any(), any())).thenThrow(new RendererClient.RenderFailed("input", "not SMILES"));
+
+        await(create("CC(=O)Oc1ccccc1C(=O)O").get("id").asString());
+        verify(ai).storyboard(argThat(s -> s != null && s.engine().equals("molecule")));
+
+        await(create("E=mc2").get("id").asString());
+        verify(ai).storyboard(argThat(s -> s != null && s.request().equals("E=mc2") && s.engine().equals("auto")));
+    }
+
+    @Test
+    void aProteinComesFromTheProteinDataBankAndItsStructureIsServed() throws Exception {
+        when(proteinBank.fetch("4HHB")).thenReturn(new ProteinBank.Entry("4HHB", "THE CRYSTAL STRUCTURE OF HUMAN "
+                + "DEOXYHAEMOGLOBIN", "data_4HHB\n".getBytes(), FakeAi.PNG));
+        when(proteinBank.fetch("9ZZZ")).thenThrow(new ProteinBank.NotFound("There is no entry 9ZZZ"));
+
+        JsonNode done = await(create("haemoglobin", "PROTEIN").get("id").asString());
+        assertThat(done.get("status").asString()).isEqualTo("READY");
+        assertThat(done.at("/scene/pdbId").asString()).isEqualTo("4HHB");
+        assertThat(done.at("/scene/entryTitle").asString()).contains("HAEMOGLOBIN");
+        String cif = mvc.perform(get(done.get("structureUrl").asString())).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        assertThat(cif).startsWith("data_4HHB");
+
+        // The learner's own ID comes first; when it does not exist the AI's is used.
+        JsonNode mine = await(create("show 9ZZZ protein").get("id").asString());
+        assertThat(mine.at("/scene/pdbId").asString()).isEqualTo("4HHB");
+    }
+
+    @Test
+    void pastedCodeIsTracedAsGivenAndTheAisProgramIsTheFallback() throws Exception {
+        JsonNode trace = json.readTree("{\"steps\":[{\"line\":1}],\"output\":\"6\\n\",\"error\":null}");
+        String program = "def f(n):\n    return n * 2\nprint(f(3))\n";
+        when(renderer.trace(eq(program), any())).thenReturn(trace);
+        when(renderer.trace(eq("print('ai program')\n"), any())).thenReturn(trace);
+
+        JsonNode done = await(create("```python\n" + program + "```").get("id").asString());
+        assertThat(done.get("engine").asString()).isEqualTo("CODE");
+        assertThat(done.at("/scene/program").asString()).isEqualTo(program);
+        assertThat(done.at("/scene/trace/output").asString()).isEqualTo("6\n");
+
+        String java = "int x = 2;\nx = x * 3;\nSystem.out.println(x);";
+        when(renderer.trace(eq(java + "\n"), any())).thenThrow(new RendererClient.RenderFailed("code", "Syntax error"));
+        JsonNode translated = await(create(java).get("id").asString());
+        assertThat(translated.at("/scene/program").asString()).isEqualTo("print('ai program')\n");
+    }
+
+    @Test
+    void anEngineTheLearnerChoseFailsWithTheReasonInsteadOfFallingBack() throws Exception {
+        when(renderer.molecule(any(), any(), any())).thenThrow(new RendererClient.RenderFailed("input", "not a valid SMILES"));
+        JsonNode done = await(create("aspirin", "MOLECULE").get("id").asString());
+        assertThat(done.get("status").asString()).isEqualTo("FAILED");
+        assertThat(done.get("error").asString()).contains("not a valid SMILES");
+    }
+
+    @Test
     void anEmptyRequestIsRejected() throws Exception {
         call(learner, post("/api/visualizations"), Map.of("request", " ")).andExpect(status().isBadRequest());
     }
 
     private JsonNode create(String request) throws Exception {
-        return json.readTree(call(learner, post("/api/visualizations"), Map.of("request", request))
+        return create(request, "AUTO");
+    }
+
+    private JsonNode create(String request, String engine) throws Exception {
+        return json.readTree(call(learner, post("/api/visualizations"), Map.of("request", request, "engine", engine))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+    }
+
+    private static String guess(String request) {
+        return request.contains("aspirin") ? "molecule" : request.contains("haemoglobin") ? "protein" : "animation";
+    }
+
+    private static RendererClient.Molecule molecule() {
+        return new RendererClient.Molecule("CC(=O)Oc1ccccc1C(=O)O", "C9H8O4", 180.16, 13, "mol block", true,
+                java.util.Base64.getEncoder().encodeToString(FakeAi.PNG), List.of(List.of(), List.of(10, 11, 12)),
+                List.of("cGxhaW4=", "aGlnaGxpZ2h0ZWQ="));
     }
 
     private JsonNode await(String id) throws Exception {

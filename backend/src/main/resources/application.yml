@@ -128,6 +128,11 @@ sapio:
     # Signs video / thumbnail URLs. MUST be overridden outside local development.
     url-secret: ${SAPIO_VISUALIZATION_URL_SECRET:dev-only-visualization-url-secret-change-me}
     url-ttl: 6h
+    protein-bank: # RCSB, public: entries for the protein engine are fetched once and stored
+      data-url: https://data.rcsb.org
+      files-url: https://files.rcsb.org
+      images-url: https://cdn.rcsb.org/images/structures
+      max-structure-bytes: 15728640 # 15 MiB of mmCIF: larger complexes are too heavy for a browser viewer
   inference:
     base-url: ${SAPIO_INFERENCE_URL:http://localhost:8000}
     api-key: ${SAPIO_INFERENCE_API_KEY:dev-internal-key}

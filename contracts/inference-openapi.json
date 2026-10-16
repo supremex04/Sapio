@@ -116,6 +116,11 @@
       },
       "BeatIo": {
         "properties": {
+          "focus": {
+            "default": "",
+            "title": "Focus",
+            "type": "string"
+          },
           "says": {
             "title": "Says",
             "type": "string"
@@ -845,7 +850,7 @@
       "HealthResponse": {
         "properties": {
           "contractVersion": {
-            "default": "1.4",
+            "default": "1.5",
             "title": "Contractversion",
             "type": "string"
           },
@@ -1231,6 +1236,24 @@
         "title": "MissedQuestion",
         "type": "object"
       },
+      "MoleculeIo": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "smiles": {
+            "title": "Smiles",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "smiles"
+        ],
+        "title": "MoleculeIo",
+        "type": "object"
+      },
       "NodeOut": {
         "properties": {
           "key": {
@@ -1478,6 +1501,24 @@
           "level"
         ],
         "title": "OutlineNodeIn",
+        "type": "object"
+      },
+      "ProteinIo": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "pdbId": {
+            "title": "Pdbid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pdbId",
+          "name"
+        ],
+        "title": "ProteinIo",
         "type": "object"
       },
       "QuestionOut": {
@@ -1908,6 +1949,18 @@
             ],
             "title": "Context"
           },
+          "engine": {
+            "default": "auto",
+            "enum": [
+              "auto",
+              "animation",
+              "molecule",
+              "protein",
+              "code"
+            ],
+            "title": "Engine",
+            "type": "string"
+          },
           "language": {
             "default": "en",
             "title": "Language",
@@ -1924,7 +1977,7 @@
             ]
           },
           "request": {
-            "maxLength": 2000,
+            "maxLength": 4000,
             "minLength": 1,
             "title": "Request",
             "type": "string"
@@ -1945,6 +1998,16 @@
             "title": "Beats",
             "type": "array"
           },
+          "engine": {
+            "enum": [
+              "animation",
+              "molecule",
+              "protein",
+              "code"
+            ],
+            "title": "Engine",
+            "type": "string"
+          },
           "feasible": {
             "title": "Feasible",
             "type": "boolean"
@@ -1956,6 +2019,9 @@
               "geometry",
               "physics",
               "process",
+              "chemistry",
+              "biology",
+              "code",
               "other"
             ],
             "title": "Kind",
@@ -1964,6 +2030,31 @@
           "model": {
             "title": "Model",
             "type": "string"
+          },
+          "molecule": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MoleculeIo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "program": {
+            "default": "",
+            "title": "Program",
+            "type": "string"
+          },
+          "protein": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProteinIo"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "reason": {
             "title": "Reason",
@@ -1979,6 +2070,7 @@
           "reason",
           "title",
           "kind",
+          "engine",
           "beats",
           "model"
         ],

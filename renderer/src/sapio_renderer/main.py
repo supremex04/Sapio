@@ -13,8 +13,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
+from sapio_renderer import molecule, safety, speech, trace
 from sapio_renderer import render as renderer
-from sapio_renderer import safety, speech
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-5s %(name)s: %(message)s")
 log = logging.getLogger("sapio_renderer")
@@ -51,7 +51,52 @@ class RenderError(ApiModel):
     message: str
 
 
-app = FastAPI(title="Sapio renderer", version="1.0")
+class MoleculeRequest(ApiModel):
+    smiles: str = Field(max_length=molecule.MAX_SMILES)
+    #: Each beat's focus: a SMARTS pattern or a named group ("group:methyl"); empty: nothing highlighted
+    highlights: list[Annotated[str, Field(max_length=molecule.MAX_PATTERN)]] = Field(
+        default_factory=list, max_length=8
+    )
+    #: Each beat's narration: a group it names rescues a focus that lights up nothing or most of the molecule
+    captions: list[Annotated[str, Field(max_length=speech.MAX_TEXT)]] = Field(
+        default_factory=list, max_length=8
+    )
+
+
+class MoleculeResponse(ApiModel):
+    canonical_smiles: str
+    formula: str
+    weight: float
+    heavy_atoms: int
+    mol_block: str
+    three_d: bool
+    png_base64: str
+    highlights: list[list[int]]
+    #: Per highlight: the 2D drawing with those atoms highlighted (PNG), for viewers without WebGL
+    drawings_base64: list[str]
+
+
+class TraceRequest(ApiModel):
+    code: str = Field(max_length=safety.MAX_PROGRAM_CHARS)
+    stdin: list[Annotated[str, Field(max_length=500)]] = Field(default_factory=list, max_length=50)
+
+
+class NarrateRequest(ApiModel):
+    lines: list[Annotated[str, Field(max_length=speech.MAX_TEXT)]] = Field(min_length=1, max_length=8)
+
+
+class BeatTiming(ApiModel):
+    start: float
+    seconds: float
+
+
+class NarrateResponse(ApiModel):
+    #: AAC in MP4 (audio/mp4); null when speech is unavailable (the beats then carry estimated timings)
+    audio_base64: str | None
+    beats: list[BeatTiming]
+
+
+app = FastAPI(title="Sapio renderer", version="1.1")
 
 
 @app.get("/health")
@@ -59,17 +104,69 @@ def health() -> dict:
     return {"status": "ok", "engine": "manim 0.19.0", "speech": speech.engine_name()}
 
 
+def _authorised(key: str | None) -> None:
+    if not key or not hmac.compare_digest(key, API_KEY):
+        raise HTTPException(status_code=401, detail="Missing or wrong renderer key")
+
+
+def _error(kind: str, message: str) -> JSONResponse:
+    return JSONResponse(status_code=422, content=RenderError(kind=kind, message=message).model_dump())
+
+
+@app.post("/v1/molecule", response_model=MoleculeResponse, responses={422: {"model": RenderError}})
+async def build_molecule(body: MoleculeRequest, x_internal_api_key: Annotated[str | None, Header()] = None):
+    """A molecule from SMILES (RDKit): 3D structure, 2D drawing, facts, atoms matching each highlight."""
+    _authorised(x_internal_api_key)
+    try:
+        built = await run_in_threadpool(molecule.build, body.smiles, body.highlights, body.captions)
+    except molecule.Invalid as e:
+        return _error("input", e.message)
+    return MoleculeResponse(
+        canonical_smiles=built.canonical_smiles,
+        formula=built.formula,
+        weight=built.weight,
+        heavy_atoms=built.heavy_atoms,
+        mol_block=built.mol_block,
+        three_d=built.three_d,
+        png_base64=base64.b64encode(built.png).decode(),
+        highlights=built.highlights,
+        drawings_base64=[base64.b64encode(d).decode() for d in built.drawings],
+    ).model_dump(by_alias=True)
+
+
+@app.post("/v1/trace", responses={422: {"model": RenderError}})
+async def trace_program(body: TraceRequest, x_internal_api_key: Annotated[str | None, Header()] = None):
+    """Runs a Python program line by line in the sandbox: ``{steps, output, error, truncated}``."""
+    _authorised(x_internal_api_key)
+    try:
+        return await run_in_threadpool(trace.trace, body.code, body.stdin)
+    except safety.Rejected as e:
+        return _error("code", e.reason)
+    except renderer.RenderFailed as e:
+        return _error(e.kind, e.message)
+
+
+@app.post("/v1/narrate", response_model=NarrateResponse)
+async def narrate(body: NarrateRequest, x_internal_api_key: Annotated[str | None, Header()] = None):
+    """The narration alone, one track, with where each line starts (for viewers that are not videos)."""
+    _authorised(x_internal_api_key)
+    track = await run_in_threadpool(speech.track, body.lines)
+    return NarrateResponse(
+        audio_base64=base64.b64encode(track.audio).decode() if track.audio else None,
+        beats=[BeatTiming(start=start, seconds=seconds) for start, seconds in track.beats],
+    ).model_dump(by_alias=True)
+
+
 @app.post("/v1/render", response_model=RenderResponse, responses={422: {"model": RenderError}})
 async def render(body: RenderRequest, x_internal_api_key: Annotated[str | None, Header()] = None):
-    if not x_internal_api_key or not hmac.compare_digest(x_internal_api_key, API_KEY):
-        raise HTTPException(status_code=401, detail="Missing or wrong renderer key")
+    _authorised(x_internal_api_key)
     try:
         result = await run_in_threadpool(renderer.render, body.code, body.quality, body.narration)
     except safety.Rejected as e:
-        return JSONResponse(status_code=422, content=RenderError(kind="code", message=e.reason).model_dump())
+        return _error("code", e.reason)
     except renderer.RenderFailed as e:
         log.info("Render failed (%s): %s", e.kind, e.message.splitlines()[-1] if e.message else "")
-        return JSONResponse(status_code=422, content=RenderError(kind=e.kind, message=e.message).model_dump())
+        return _error(e.kind, e.message)
     log.info(
         "Rendered %.1f s of video (%d KB, %s)",
         result.duration_seconds,

@@ -3,6 +3,7 @@ package com.sapio.visualization;
 import java.net.URI;
 import java.time.Duration;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -15,5 +16,11 @@ import org.springframework.validation.annotation.Validated;
 @ConfigurationProperties("sapio.visualization")
 public record VisualizationProperties(@NotNull URI rendererUrl, @NotBlank String rendererApiKey,
                                       @NotNull Duration renderTimeout, @Min(1) int maxAttempts, @Min(0) int dailyLimit,
-                                      @NotBlank String urlSecret, @NotNull Duration urlTtl) {
+                                      @NotBlank String urlSecret, @NotNull Duration urlTtl,
+                                      @NotNull @Valid ProteinBank proteinBank) {
+
+    /** The RCSB Protein Data Bank (protein engine). */
+    public record ProteinBank(@NotBlank String dataUrl, @NotBlank String filesUrl, @NotBlank String imagesUrl,
+                              @Min(1) long maxStructureBytes) {
+    }
 }

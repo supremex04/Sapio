@@ -46,8 +46,9 @@ class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/figures/*/image").permitAll()
                         // Recordings likewise, by the signature in their playback URL (MediaUrlSigner).
                         .requestMatchers(HttpMethod.GET, "/api/media/*").permitAll()
-                        // Visualization videos and thumbnails likewise (VisualizationUrlSigner).
-                        .requestMatchers(HttpMethod.GET, "/api/visualizations/*/video", "/api/visualizations/*/thumbnail")
+                        // Visualization files likewise: video, thumbnail, narration, structure (VisualizationUrlSigner).
+                        .requestMatchers(HttpMethod.GET, "/api/visualizations/*/video", "/api/visualizations/*/thumbnail",
+                                "/api/visualizations/*/audio", "/api/visualizations/*/structure")
                         .permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(rs -> rs

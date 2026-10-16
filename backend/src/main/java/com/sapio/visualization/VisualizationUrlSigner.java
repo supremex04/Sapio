@@ -7,11 +7,14 @@ import java.util.UUID;
 import com.sapio.common.web.UrlSignature;
 import org.springframework.stereotype.Component;
 
-/** Signed, expiring URLs for a visualization's video and thumbnail, so {@code <video>} and {@code <img>} load them. */
+/**
+ * Signed, expiring URLs for a visualization's files (video, thumbnail, narration, protein structure), so
+ * {@code <video>}, {@code <img>}, {@code <audio>} and the 3D viewer load them without an Authorization header.
+ */
 @Component
 class VisualizationUrlSigner {
 
-    enum Asset { video, thumbnail }
+    enum Asset { video, thumbnail, audio, structure }
 
     private final UrlSignature signature;
     private final Duration ttl;

@@ -166,14 +166,17 @@ Guarantees the service enforces on LLM output:
 - Grades: `score` is clamped into the verdict band (CORRECT 0.8–1, PARTIAL 0.3–0.7, INCORRECT 0–0.2);
   blank answers are INCORRECT without calling the LLM.
 
-## Visualize endpoints (`/v1/visualize/*`, contract 1.4)
+## Visualize endpoints (`/v1/visualize/*`, contract 1.5)
 
 | Endpoint | Task | Request | Response |
 |---|---|---|---|
-| `POST /storyboard` | `visualize_plan` | `{request (formula or words, at most 2000), language, context?, learner?}` | `{feasible, reason, title, kind, beats:[{shows, says}] (2-8), model}` |
+| `POST /storyboard` | `visualize_plan` | `{request (formula, words, code; at most 4000), language, context?, learner?, engine: auto\|animation\|molecule\|protein\|code}` | `{feasible, reason, title, kind, engine, molecule?:{name, smiles}, protein?:{pdbId, name}, program, beats:[{shows, says, focus}] (2-8), model}` |
 | `POST /code` | `visualize_code` | `{title, beats, previousCode?, error?}` (both set: repair code the renderer refused or could not run) | `{code (one Visualization(Scene) class, Manim CE 0.19), model}` |
 
-The service does not run the code; the renderer does ([visualizations.md](visualizations.md)).
+The storyboard also routes (contract 1.5): with `engine: auto` it picks the engine and returns that engine's data;
+otherwise it uses the engine given. Missing data falls back to `animation` under `auto`, and is `feasible: false`
+with a reason when the engine was given. The service does not run anything; the renderer does
+([visualizations.md](visualizations.md)).
 
 ## Contract file
 

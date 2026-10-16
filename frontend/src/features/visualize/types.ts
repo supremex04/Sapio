@@ -1,9 +1,61 @@
 export type VisualizationStatus = "PLANNING" | "CODING" | "RENDERING" | "READY" | "FAILED";
+/** How it is shown: AUTO lets Sapio choose (rules, then the storyboard). */
+export type Engine = "AUTO" | "ANIMATION" | "MOLECULE" | "PROTEIN" | "CODE";
 
 /** One scene of the storyboard: what appears on screen, and the line of narration under it. */
 export interface Beat {
   shows: string;
   says: string;
+  /** What to point at: SMARTS (molecule), "A:58-63" or "ligand:HEM" (protein), "3-5" (code lines). */
+  focus?: string;
+}
+
+/** Where each beat's line starts in the narration track. */
+export interface Timing {
+  start: number;
+  seconds: number;
+}
+
+export interface MoleculeScene {
+  name: string;
+  smiles: string;
+  formula: string;
+  weight: number;
+  heavyAtoms: number;
+  threeD: boolean;
+  molBlock: string;
+  /** Per beat: atom indices to highlight. */
+  highlights: number[][];
+  /** Per beat: a 2D drawing (PNG, base64) with those atoms highlighted, for browsers without WebGL. */
+  drawings?: string[];
+  timing: Timing[];
+}
+
+export interface ProteinScene {
+  pdbId: string;
+  name: string;
+  entryTitle: string;
+  timing: Timing[];
+}
+
+export interface Frame {
+  name: string;
+  line: number;
+  vars: Record<string, string>;
+}
+
+export interface TraceStep {
+  line: number;
+  event: "line" | "return" | "exception";
+  stack: Frame[];
+  output: string;
+  value?: string;
+}
+
+export interface CodeScene {
+  program: string;
+  trace: { steps: TraceStep[]; output: string; error: string | null; truncated: boolean };
+  timing: Timing[];
 }
 
 export interface Visualization {
@@ -11,6 +63,9 @@ export interface Visualization {
   request: string;
   documentId: string | null;
   status: VisualizationStatus;
+  engineChoice: Engine;
+  /** The engine asked for until planned, then the one used. */
+  engine: Engine;
   title: string | null;
   kind: string | null;
   beats: Beat[];
@@ -23,6 +78,12 @@ export interface Visualization {
   /** Signed, expiring; null until READY. */
   videoUrl: string | null;
   thumbnailUrl: string | null;
+  /** Narration track of a molecule, protein or code visualization. */
+  audioUrl: string | null;
+  /** A protein's structure (mmCIF). */
+  structureUrl: string | null;
+  /** What the viewer shows; only on a single visualization. */
+  scene: MoleculeScene | ProteinScene | CodeScene | null;
   createdAt: string;
   completedAt: string | null;
 }

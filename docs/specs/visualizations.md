@@ -23,28 +23,55 @@ inference: `sapio_inference.visualize`; renderer: `renderer/`; frontend: `featur
 Status: `PLANNING` -> `CODING` -> `RENDERING` -> `READY` | `FAILED`. `attempts` counts renders tried. Work
 interrupted by a restart is resumed at startup.
 
+## Engines ([ADR-0017](../adr/0017-visualization-engines.md))
+
+| Engine | Shown as | Built by | The beat's `focus` |
+|---|---|---|---|
+| `ANIMATION` | narrated video | the AI's Manim scene, rendered | (none) |
+| `MOLECULE` | 3D model (3Dmol.js), 2D drawing, formula and mass | RDKit from SMILES | a named group (`group:methyl`, see `renderer/src/sapio_renderer/groups.py`) or a SMARTS of the atoms to highlight |
+| `PROTEIN` | 3D cartoon (3Dmol.js) | RCSB Protein Data Bank entry (title, mmCIF, picture), stored | `A:58-63`, `A`, `ligand:HEM` |
+| `CODE` | listing, running line, call stack with variables, output | the renderer's tracer (Python) | line range, `3-5` |
+
+**Routing**, cheapest first and never a separate AI call: the learner's choice (`engine` on create: `AUTO`
+default); rules for obvious requests (pasted code; a single SMILES token, once RDKit reads it; a PDB ID on its own
+or next to words like "protein"); otherwise the storyboard picks. The learner's own program, SMILES or PDB ID is
+tried before the AI's. When the chosen data does not work: under `AUTO`, the AI's own data is tried next; when the
+learner chose the engine, it fails with the reason.
+
+The non-video engines write no code: one storyboard call, then the build (milliseconds for a molecule, a second for
+a trace, a download for a protein), then one narration track (`POST /v1/narrate`) with each beat's start, which the
+viewer follows. A program in another language is translated to Python by the storyboard and said so in the first
+beat. Browsers without WebGL see, per beat, RDKit's 2D drawing with its atoms highlighted (molecules) or the PDB's
+picture with the focus named (proteins). Narration waits for a click when the browser blocks sound.
+
 ## Limits
 
-- The same request (ignoring case and spacing, plus the same context) returns the existing visualization if it is
-  ready or still being made; a failed one is not reused.
+- The same request (words ignoring case and spacing; code, SMILES and IDs exactly; plus the same context and
+  engine choice) returns the existing visualization if it is ready or still being made; a failed one is not reused.
 - `sapio.visualization.daily-limit` new visualizations per learner per 24 hours (default 15; env
   `SAPIO_VISUALIZATIONS_PER_DAY`); over it: `429 RATE_LIMITED`. A retry does not count.
-- Request up to 2000 characters; `context` is trimmed to 6000.
+- Request up to 4000 characters; `context` is trimmed to 6000.
 
 ## API (`/api/visualizations`, the learner's own only; others answer 404)
 
 | Method | Path | Body / result |
 |---|---|---|
-| `POST` | `/api/visualizations` | `{request, documentId?, context?}` -> visualization (`documentId` must be the learner's own) |
+| `POST` | `/api/visualizations` | `{request (at most 4000), engine? (AUTO\|ANIMATION\|MOLECULE\|PROTEIN\|CODE), documentId?, context?}` -> visualization (`documentId` must be the learner's own) |
 | `GET` | `/api/visualizations` | the latest 100, newest first |
 | `GET` | `/api/visualizations/{id}` | visualization |
 | `POST` | `/api/visualizations/{id}/retry` | only when `FAILED`: starts again from the storyboard |
 | `DELETE` | `/api/visualizations/{id}` | `204`; the video and thumbnail are deleted too |
 | `GET` | `/api/visualizations/{id}/video?exp&sig` | MP4, no login (signed URL); Range requests for seeking |
-| `GET` | `/api/visualizations/{id}/thumbnail?exp&sig` | PNG, no login (signed URL) |
+| `GET` | `/api/visualizations/{id}/thumbnail?exp&sig` | PNG (a protein's: JPEG), no login (signed URL) |
+| `GET` | `/api/visualizations/{id}/audio?exp&sig` | narration track (AAC in MP4) of a molecule, protein or program |
+| `GET` | `/api/visualizations/{id}/structure?exp&sig` | a protein's structure (mmCIF text) |
 
-A visualization: `{id, request, documentId, status, title, kind, beats:[{shows, says}], code, attempts, error
-(when FAILED), durationSeconds, narrated, videoUrl, thumbnailUrl (signed, when READY), createdAt, completedAt}`.
+A visualization: `{id, request, documentId, status, engineChoice, engine, title, kind, beats:[{shows, says,
+focus}], code, attempts, error (when FAILED), durationSeconds, narrated, videoUrl, thumbnailUrl, audioUrl,
+structureUrl (signed, when READY), scene (single visualization only), createdAt, completedAt}`. `scene` by engine:
+molecule `{name, smiles, formula, weight, heavyAtoms, threeD, molBlock, highlights[[atom]], drawings[png], timing}`;
+protein `{pdbId, name, entryTitle, timing}`; code `{program, trace:{steps:[{line, event, stack:[{name, line,
+vars}], output, value?}], output, error, truncated}, timing}`; `timing: [{start, seconds}]` per beat.
 
 The player has its own controls (play, time, seek, sound, full screen); narrated videos start with sound when the
 browser allows autoplay with sound (after a click in the app), otherwise muted with the sound button showing it.
@@ -74,8 +101,17 @@ Locally `./dev.sh` builds the image `sapio-renderer:dev` (rebuilt when `renderer
 Docker; nothing is installed on the host. In Google Cloud it is the `sapio-renderer` Cloud Run service
 (`deploy/gcp/deploy.sh`): 2 vCPU, 2 GiB, one request per instance, scales to zero, egress only into the VPC.
 
+**Molecules and traces.** `POST /v1/molecule {smiles (at most 500), highlights:[SMARTS or group:name], captions:[narration]}` -> `{canonicalSmiles,
+formula, weight, heavyAtoms, molBlock, threeD, pngBase64, highlights:[[atom]], drawingsBase64:[png]}` (at most 120
+heavy atoms; 422 kind `input` when RDKit cannot read it). A focus that lights up nothing or more than 60% of the
+heavy atoms gives way to a group the beat's caption names ("three methyl groups"); a SMARTS matching nothing is then
+retried by element and connectivity. Highlights include the group's hydrogens (indices in `molBlock`). `POST /v1/trace {code (at most 8000), stdin:[line]}` -> `{steps, output, error, truncated}`: checked
+like scenes but for teaching Python (`collections`, `heapq`, `dataclasses` and the like; dunders such as `__init__`;
+`input()` reads `stdin`), run in a child process with 8 s of CPU, 512 MiB and a 400-step cap. `POST /v1/narrate
+{lines}` -> `{audioBase64 (AAC in MP4, or null without speech), beats:[{start, seconds}]}`.
+
 ## Configuration (`sapio.visualization` in `application.yml`)
 
 `renderer-url` (`SAPIO_RENDERER_URL`), `renderer-api-key` (`SAPIO_RENDERER_API_KEY`), `render-timeout` (4m),
 `max-attempts` (3), `daily-limit` (15), `url-secret` (`SAPIO_VISUALIZATION_URL_SECRET`, must be set outside
-local development), `url-ttl` (6h).
+local development), `url-ttl` (6h), `protein-bank.*` (RCSB URLs, `max-structure-bytes` 15 MiB).

@@ -22,6 +22,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -33,15 +34,20 @@ import tools.jackson.databind.json.JsonMapper;
 public class VisualizationService {
 
     private static final Logger log = LoggerFactory.getLogger(VisualizationService.class);
-    static final int MAX_REQUEST = 2000;
+    static final int MAX_REQUEST = 4000; // room for a short program
     static final int MAX_CONTEXT = 6000;
     private static final int LIST_LIMIT = 100;
 
-    public record View(UUID id, String request, UUID documentId, VisualizationStore.Status status, String title,
-                       String kind, List<VisualizeAi.Beat> beats, String code, int attempts, String error,
-                       Double durationSeconds, boolean narrated, String videoUrl, String thumbnailUrl,
-                       Instant createdAt,
-                       Instant completedAt) {
+    /**
+     * {@code engine}: what was asked for until planned, then what is used. {@code scene}: what the viewer of a
+     * molecule, protein or program shows (only on a single visualization, not in the list); {@code audioUrl}: its
+     * narration track; {@code structureUrl}: a protein's mmCIF.
+     */
+    public record View(UUID id, String request, UUID documentId, VisualizationStore.Status status,
+                       VisualizationEngine engineChoice, VisualizationEngine engine, String title, String kind,
+                       List<VisualizeAi.Beat> beats, String code, int attempts, String error, Double durationSeconds,
+                       boolean narrated, String videoUrl, String thumbnailUrl, String audioUrl, String structureUrl,
+                       JsonNode scene, Instant createdAt, Instant completedAt) {
     }
 
     private final VisualizationStore store;
@@ -66,7 +72,8 @@ public class VisualizationService {
         this.clock = clock;
     }
 
-    public View create(UUID userId, String request, UUID documentId, String context) {
+    public View create(UUID userId, String request, UUID documentId, String context, VisualizationEngine engine) {
+        VisualizationEngine choice = engine == null ? VisualizationEngine.AUTO : engine;
         String text = request == null ? "" : request.strip();
         if (text.isEmpty() || text.length() > MAX_REQUEST) {
             throw new ApplicationException(ErrorCode.VALIDATION_FAILED,
@@ -77,10 +84,10 @@ public class VisualizationService {
         }
         String trimmedContext = context == null || context.isBlank() ? null
                 : context.strip().substring(0, Math.min(context.strip().length(), MAX_CONTEXT));
-        String hash = hash(text, trimmedContext);
+        String hash = hash(text, trimmedContext, choice);
         var existing = store.reusable(userId, hash);
         if (existing.isPresent()) {
-            return view(existing.get());
+            return view(existing.get(), true);
         }
         Instant now = clock.instant();
         if (store.countSince(userId, now.minus(Duration.ofDays(1))) >= properties.dailyLimit()) {
@@ -88,17 +95,17 @@ public class VisualizationService {
                     + " visualizations today. More tomorrow!");
         }
         UUID id = UUID.randomUUID();
-        store.insert(id, userId, text, hash, documentId, trimmedContext, now);
+        store.insert(id, userId, text, hash, documentId, trimmedContext, choice, now);
         job.run(id);
         return get(userId, id);
     }
 
     public List<View> list(UUID userId) {
-        return store.list(userId, LIST_LIMIT).stream().map(this::view).toList();
+        return store.list(userId, LIST_LIMIT).stream().map(r -> view(r, false)).toList();
     }
 
     public View get(UUID userId, UUID id) {
-        return view(require(userId, id));
+        return view(require(userId, id), true);
     }
 
     /** Makes a failed one again from the start; does not count toward the daily limit. */
@@ -117,15 +124,22 @@ public class VisualizationService {
         store.delete(id);
         removeFile(row.videoKey());
         removeFile(row.thumbnailKey());
+        removeFile(row.audioKey());
+        removeFile(row.structureKey());
     }
 
-    /** The video or thumbnail behind a signed URL (404 when the signature is wrong or expired). */
+    /** A file behind a signed URL (404 when the signature is wrong or expired). */
     Resource asset(UUID id, VisualizationUrlSigner.Asset asset, long exp, String sig) {
         if (!signer.verify(id, asset, exp, sig)) {
             throw ApplicationException.notFound("Visualization");
         }
         VisualizationStore.Row row = store.find(id).orElseThrow(() -> ApplicationException.notFound("Visualization"));
-        String key = asset == VisualizationUrlSigner.Asset.video ? row.videoKey() : row.thumbnailKey();
+        String key = switch (asset) {
+            case video -> row.videoKey();
+            case thumbnail -> row.thumbnailKey();
+            case audio -> row.audioKey();
+            case structure -> row.structureKey();
+        };
         if (key == null) {
             throw ApplicationException.notFound("Visualization");
         }
@@ -148,16 +162,23 @@ public class VisualizationService {
         return store.find(userId, id).orElseThrow(() -> ApplicationException.notFound("Visualization"));
     }
 
-    private View view(VisualizationStore.Row r) {
+    private View view(VisualizationStore.Row r, boolean withScene) {
         List<VisualizeAi.Beat> beats = r.storyboardJson() == null ? List.of()
                 : json.readValue(r.storyboardJson(), new TypeReference<List<VisualizeAi.Beat>>() { });
         boolean ready = r.status() == VisualizationStore.Status.READY;
-        return new View(r.id(), r.request(), r.documentId(), r.status(), r.title(), r.kind(), beats, r.code(),
+        return new View(r.id(), r.request(), r.documentId(), r.status(), r.engineChoice(),
+                r.engine() != null ? r.engine() : r.engineChoice(), r.title(), r.kind(), beats, r.code(),
                 r.attempts(), r.status() == VisualizationStore.Status.FAILED ? r.error() : null, r.durationSeconds(),
-                r.narrated(),
-                ready && r.videoKey() != null ? signer.url(r.id(), VisualizationUrlSigner.Asset.video) : null,
-                ready && r.thumbnailKey() != null ? signer.url(r.id(), VisualizationUrlSigner.Asset.thumbnail) : null,
+                r.narrated(), url(r, ready, r.videoKey(), VisualizationUrlSigner.Asset.video),
+                url(r, ready, r.thumbnailKey(), VisualizationUrlSigner.Asset.thumbnail),
+                url(r, ready, r.audioKey(), VisualizationUrlSigner.Asset.audio),
+                url(r, ready, r.structureKey(), VisualizationUrlSigner.Asset.structure),
+                withScene && ready && r.sceneJson() != null ? json.readTree(r.sceneJson()) : null,
                 r.createdAt(), r.completedAt());
+    }
+
+    private String url(VisualizationStore.Row r, boolean ready, String key, VisualizationUrlSigner.Asset asset) {
+        return ready && key != null ? signer.url(r.id(), asset) : null;
     }
 
     private void removeFile(String key) {
@@ -171,8 +192,14 @@ public class VisualizationService {
         }
     }
 
-    static String hash(String request, String context) {
-        String normal = request.toLowerCase(Locale.ROOT).replaceAll("\\s+", " ").strip() + "\n"
+    /**
+     * Words are compared ignoring case and spacing; code and single tokens (SMILES, PDB IDs) exactly, since case
+     * and indentation change their meaning there.
+     */
+    static String hash(String request, String context, VisualizationEngine choice) {
+        boolean exact = EngineRouter.looksLikeCode(request) || !request.strip().contains(" ");
+        String text = exact ? request.strip() : request.toLowerCase(Locale.ROOT).replaceAll("\\s+", " ").strip();
+        String normal = choice.name() + "\n" + text + "\n"
                 + (context == null ? "" : context.replaceAll("\\s+", " ").strip());
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")

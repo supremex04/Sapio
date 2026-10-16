@@ -73,3 +73,8 @@ def test_the_narration_helper_may_be_imported():
 def test_nothing_else_of_the_narration_module_is_reachable(line):
     with pytest.raises(safety.Rejected):
         safety.check(NARRATED.replace("from sapio_narration import narrate", line))
+
+
+def test_dunder_names_are_refused_in_scenes_too():
+    with pytest.raises(safety.Rejected):
+        safety.check(GOOD.replace("self.wait(1)", "x = __builtins__['op' + 'en']"))

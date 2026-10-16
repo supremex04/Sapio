@@ -36,13 +36,14 @@ class VisualizationController {
         this.visualizations = visualizations;
     }
 
+    /** {@code engine}: AUTO (default) or the engine the learner chose. */
     record CreateRequest(@NotBlank @Size(max = VisualizationService.MAX_REQUEST) String request, UUID documentId,
-                         @Size(max = 20_000) String context) {
+                         @Size(max = 20_000) String context, VisualizationEngine engine) {
     }
 
     @PostMapping
     VisualizationService.View create(@CurrentUserId UUID userId, @Valid @RequestBody CreateRequest body) {
-        return visualizations.create(userId, body.request(), body.documentId(), body.context());
+        return visualizations.create(userId, body.request(), body.documentId(), body.context(), body.engine());
     }
 
     @GetMapping
@@ -73,7 +74,20 @@ class VisualizationController {
 
     @GetMapping("/{id}/thumbnail")
     ResponseEntity<Resource> thumbnail(@PathVariable UUID id, @RequestParam long exp, @RequestParam String sig) {
-        return file(visualizations.asset(id, VisualizationUrlSigner.Asset.thumbnail, exp, sig), "image/png");
+        Resource image = visualizations.asset(id, VisualizationUrlSigner.Asset.thumbnail, exp, sig);
+        String name = image.getFilename() == null ? "" : image.getFilename();
+        return file(image, name.endsWith(".jpg") ? "image/jpeg" : "image/png"); // proteins: the PDB's own picture
+    }
+
+    @GetMapping("/{id}/audio")
+    ResponseEntity<Resource> audio(@PathVariable UUID id, @RequestParam long exp, @RequestParam String sig) {
+        return file(visualizations.asset(id, VisualizationUrlSigner.Asset.audio, exp, sig), "audio/mp4");
+    }
+
+    /** A protein's structure (mmCIF text), for the 3D viewer. */
+    @GetMapping("/{id}/structure")
+    ResponseEntity<Resource> structure(@PathVariable UUID id, @RequestParam long exp, @RequestParam String sig) {
+        return file(visualizations.asset(id, VisualizationUrlSigner.Asset.structure, exp, sig), "text/plain");
     }
 
     private static ResponseEntity<Resource> file(Resource content, String type) {

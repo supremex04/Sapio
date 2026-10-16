@@ -7,6 +7,7 @@ BOARD = {
     "reason": "",
     "title": "Why a^2 + b^2 = c^2",
     "kind": "geometry",
+    "engine": "animation",
     "beats": [
         {"shows": "A right triangle with sides a, b, c", "says": "Start with a right triangle."},
         {"shows": "Squares on each side, coloured", "says": "Build a square on each side."},
@@ -57,3 +58,43 @@ def test_scenes_are_asked_to_narrate_every_beat_and_captions_to_be_speakable():
     assert "from sapio_narration import narrate" in code
     assert "Block: with narrate(self, 1) as seconds:" in code
     assert "read aloud" in prompts.storyboard_prompt("a^2 + b^2 = c^2", None)
+
+
+ASPIRIN = {
+    **BOARD,
+    "title": "Aspirin",
+    "kind": "chemistry",
+    "engine": "molecule",
+    "molecule": {"name": "aspirin", "smiles": " CC(=O)Oc1ccccc1C(=O)O "},
+    "beats": [{"shows": "The whole molecule", "says": "This is aspirin.", "focus": "C(=O)O"}],
+}
+
+
+def test_the_storyboard_routes_and_carries_the_engine_data_in_the_same_call():
+    llm = FakeLlm(ASPIRIN)
+    out = VisualizeService(llm).storyboard(v.StoryboardRequest(request="aspirin"))
+    assert out.feasible and out.engine == "molecule"
+    assert out.molecule.smiles == "CC(=O)Oc1ccccc1C(=O)O" and out.beats[0].focus == "C(=O)O"
+    assert out.protein is None and out.program == ""
+    assert len(llm.prompts) == 1 and "Choose the engine" in llm.prompts[0]
+
+
+def test_missing_engine_data_falls_back_to_an_animation_unless_the_learner_chose_the_engine():
+    board = {**ASPIRIN, "molecule": None}
+    auto = VisualizeService(FakeLlm(board)).storyboard(v.StoryboardRequest(request="aspirin"))
+    assert auto.feasible and auto.engine == "animation"
+
+    llm = FakeLlm(board)
+    chosen = VisualizeService(llm).storyboard(v.StoryboardRequest(request="aspirin", engine="molecule"))
+    assert not chosen.feasible and "molecule" in chosen.reason
+    assert "Use the engine molecule" in llm.prompts[0]
+
+
+def test_code_storyboards_carry_the_program_and_protein_ids_are_normalised():
+    code = {**BOARD, "engine": "code", "program": "```python\nx = 1\nprint(x)\n```"}
+    out = VisualizeService(FakeLlm(code)).storyboard(v.StoryboardRequest(request="assignment"))
+    assert out.engine == "code" and out.program == "x = 1\nprint(x)\n"
+
+    protein = {**BOARD, "engine": "protein", "protein": {"pdb_id": "1hho", "name": "haemoglobin"}}
+    out = VisualizeService(FakeLlm(protein)).storyboard(v.StoryboardRequest(request="haemoglobin"))
+    assert out.engine == "protein" and out.protein.pdb_id == "1HHO"
