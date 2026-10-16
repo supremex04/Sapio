@@ -1,5 +1,6 @@
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { uiZoom } from "../../app/sidebarState";
 import { cx } from "./cx";
 import { combine, minutesOf, monthGrid, sameDay, timeLabel, timeOptions, valueLabel } from "./dateTime";
 import "./dateTimePicker.css";
@@ -30,8 +31,9 @@ interface Props {
 
 /**
  * Date (and time) picker in the design system's style, replacing the browser's native control: a button with the
- * chosen value; it opens a month grid and quick times in place (no floating layer, so it is never clipped inside
- * dialogs). Escape or a click outside closes it.
+ * chosen value, opening a floating panel (month grid, quick times) over the page. The panel lives in the browser's
+ * top layer (Popover API), so it also floats above dialogs without being clipped; it sits under the button, or
+ * above it when there is no room below. Escape or a click outside closes it.
  */
 export function DateTimePicker({ value, onChange, placeholder = "Pick a date", withTime = true, defaultMinutes = 23 * 60 + 59, min, clearable = true, label }: Props) {
   const [open, setOpen] = useState(false);
@@ -41,6 +43,8 @@ export function DateTimePicker({ value, onChange, placeholder = "Pick a date", w
     return { year: base.getFullYear(), month: base.getMonth() };
   });
   const ref = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
   const panelId = useId();
   const today = new Date();
   const minDay = min ? new Date(min.getFullYear(), min.getMonth(), min.getDate()) : null;
@@ -64,6 +68,37 @@ export function DateTimePicker({ value, onChange, placeholder = "Pick a date", w
     };
   }, [open]);
 
+  // Float the panel next to the button; the page is laid out at the interface zoom, rectangles are on screen.
+  const place = useCallback(() => {
+    const t = trigger.current;
+    const p = panel.current;
+    if (!t || !p) return;
+    const zoom = uiZoom();
+    const r = t.getBoundingClientRect();
+    const width = p.offsetWidth;
+    const height = p.offsetHeight;
+    const viewW = window.innerWidth / zoom;
+    const viewH = window.innerHeight / zoom;
+    const below = r.bottom / zoom + 6;
+    const top = below + height > viewH - 8 && r.top / zoom - height - 6 > 8 ? r.top / zoom - height - 6 : below;
+    p.style.top = `${Math.max(8, top)}px`;
+    p.style.left = `${Math.min(Math.max(8, r.left / zoom), viewW - width - 8)}px`;
+  }, []);
+
+  useLayoutEffect(() => {
+    const p = panel.current;
+    if (!open || !p) return;
+    if (typeof p.showPopover === "function" && !p.matches(":popover-open")) p.showPopover();
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+      if (typeof p.hidePopover === "function" && p.matches(":popover-open")) p.hidePopover();
+    };
+  }, [open, place, view, withTime]);
+
   const step = (delta: number) =>
     setView((v) => {
       const d = new Date(v.year, v.month + delta, 1);
@@ -77,6 +112,7 @@ export function DateTimePicker({ value, onChange, placeholder = "Pick a date", w
     <div className="dtp" ref={ref}>
       <div className="dtp-field">
         <button
+          ref={trigger}
           type="button"
           className={cx("dtp-trigger", !value && "is-empty", open && "is-open")}
           aria-expanded={open}
@@ -95,7 +131,7 @@ export function DateTimePicker({ value, onChange, placeholder = "Pick a date", w
       </div>
 
       {open && (
-        <div className="dtp-panel" id={panelId} role="dialog" aria-label={label ?? "Choose a date"}>
+        <div className="dtp-panel" id={panelId} ref={panel} popover="manual" role="dialog" aria-label={label ?? "Choose a date"}>
           <div className="dtp-head">
             <strong>{monthLabel.format(new Date(view.year, view.month, 1))}</strong>
             <span className="dtp-steps">

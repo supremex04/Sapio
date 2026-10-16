@@ -539,6 +539,14 @@ a.cls-row:hover {
 .cls-action-title {
   font-size: var(--text-h3);
 }
+.cls-actions a.cls-action {
+  text-decoration: none;
+}
+/* Shared with everyone: a status, not a button. */
+.cls-actions .cls-action.is-done {
+  cursor: default;
+  background: color-mix(in srgb, var(--green-main) 7%, var(--surface));
+}
 
 /* ---------- class tests ---------- */
 .cls-test-head {

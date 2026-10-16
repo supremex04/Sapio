@@ -3,9 +3,11 @@ package com.sapio.classroom;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -19,6 +21,7 @@ import com.sapio.study.assess.AssessmentDifficulty;
 import com.sapio.study.assess.AssessmentService;
 import com.sapio.study.question.QuestionType;
 import com.sapio.user.User;
+import com.sapio.user.UserService;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
@@ -82,10 +85,15 @@ public class ClassTestService {
     private final TransactionTemplate tx;
     private final JsonMapper json;
     private final Clock clock;
+    private final UserService users;
+
+    /** "Sat, Oct 18, 11:59 PM", in the student's own time zone. */
+    private static final DateTimeFormatter DUE = DateTimeFormatter.ofPattern("EEE, MMM d, h:mm a", Locale.ENGLISH);
 
     ClassTestService(JdbcTemplate jdbc, RosterService roster, ClassShareService shares, DocumentService documents,
                      AssessmentService assessments, NotificationService notifications, TransactionTemplate tx,
-                     JsonMapper json, Clock clock) {
+                     JsonMapper json, Clock clock, UserService users) {
+        this.users = users;
         this.jdbc = jdbc;
         this.roster = roster;
         this.shares = shares;
@@ -243,7 +251,8 @@ public class ClassTestService {
                     UUID.randomUUID(), testId, studentId, assessment, Timestamp.from(clock.instant()));
             notifications.post(studentId, NotificationService.Type.TEST_ASSIGNED,
                     teacher.getFullName() + " set you a test: " + summary.title(),
-                    due == null ? questions.size() + " questions" : questions.size() + " questions, due " + due,
+                    questions.size() + " questions" + (due == null ? "" : ", due " + DUE.withZone(
+                            users.getById(studentId).zoneId()).format(due) + ". It is in your calendar."),
                     "/assessments/" + assessment, teacher.getFullName());
             sent++;
         }

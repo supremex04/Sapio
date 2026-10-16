@@ -16,24 +16,28 @@ import { formatPercent, formatRelative } from "../../shared/lib/format";
 import { GeneratingState } from "../study/components/GeneratingState";
 import { classroomApi } from "./api";
 import { ShareDialog } from "./ShareDialog";
+import { shareCoverage } from "./shareCoverage";
 import { DocumentCard } from "./StudentProfilePage";
 import { scoreTone } from "./TeacherHome";
 import type { ClassTestSummary, Difficulty, DocumentProgress, TestFormat } from "./types";
 import "./classroom.css";
 
 /** A teacher's two big actions on a ready document, in place of the learner's Learn / Test cards. */
-export function TeacherActions({ documentId, onShared }: { documentId: string; onShared: () => void }) {
+export function TeacherActions({ documentId, onShared, version }: { documentId: string; onShared: () => void; version: number }) {
   const [sharing, setSharing] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [coverage, setCoverage] = useState<{ students: number; missing: number } | null>(null);
+
+  useEffect(() => {
+    Promise.all([classroomApi.roster(), classroomApi.documentStudents(documentId)]).then(
+      ([members, shared]) => setCoverage(shareCoverage(members, shared)),
+      () => setCoverage(null),
+    );
+  }, [documentId, version]);
+
   return (
     <div className="hub-modes cls-actions">
-      <button type="button" className="card card-interactive cls-action" onClick={() => setSharing(true)}>
-        <Emoji name="share" size={52} />
-        <span>
-          <strong className="cls-action-title">Share with students</strong>
-          <span className="small muted">Each student gets their own copy in their library. Follow their progress in the Students tab.</span>
-        </span>
-      </button>
+      <ShareAction coverage={coverage} onShare={() => setSharing(true)} />
       <button type="button" className="card card-interactive cls-action" onClick={() => setCreating(true)}>
         <Emoji name="class-test" size={52} />
         <span>
@@ -44,6 +48,48 @@ export function TeacherActions({ documentId, onShared }: { documentId: string; o
       <ShareDialog documentId={documentId} open={sharing} onClose={() => setSharing(false)} onShared={onShared} />
       {creating && <CreateTestDialog documentId={documentId} onClose={() => setCreating(false)} />}
     </div>
+  );
+}
+
+/** Sharing, as far as it still applies: with the students who lack the document, else where things stand. */
+function ShareAction({ coverage, onShare }: { coverage: { students: number; missing: number } | null; onShare: () => void }) {
+  if (coverage && coverage.students === 0) {
+    return (
+      <Link to="/students" className="card card-interactive cls-action">
+        <Emoji name="students" size={52} />
+        <span>
+          <strong className="cls-action-title">Invite students first</strong>
+          <span className="small muted">Once they accept, share this document with them in one click.</span>
+        </span>
+      </Link>
+    );
+  }
+  if (coverage && coverage.missing === 0) {
+    return (
+      <div className="card cls-action is-done" role="status">
+        <Emoji name="share" size={52} />
+        <span>
+          <strong className="cls-action-title">Shared with {coverage.students === 1 ? "your student" : `all ${coverage.students} students`}</strong>
+          <span className="small muted">Everyone has it in their library. New students can be added from here once they join.</span>
+        </span>
+      </div>
+    );
+  }
+  const more = coverage && coverage.missing < coverage.students;
+  return (
+    <button type="button" className="card card-interactive cls-action" onClick={onShare}>
+      <Emoji name="share" size={52} />
+      <span>
+        <strong className="cls-action-title">
+          {coverage ? (more ? `Share with ${coverage.missing} more student${coverage.missing === 1 ? "" : "s"}` : "Share with students") : "Share with students"}
+        </strong>
+        <span className="small muted">
+          {more
+            ? `${coverage!.students - coverage!.missing} of ${coverage!.students} already have it. Each student gets their own copy in their library.`
+            : "Each student gets their own copy in their library. Follow their progress in the Students tab."}
+        </span>
+      </span>
+    </button>
   );
 }
 

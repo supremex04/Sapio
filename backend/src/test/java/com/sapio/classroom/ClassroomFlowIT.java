@@ -175,6 +175,8 @@ class ClassroomFlowIT {
         // The student got the document, a notification and the test, which they take like any other.
         JsonNode inbox = getJson(student, "/api/notifications");
         assertThat(inbox.findValuesAsString("type")).contains("DOCUMENT_SHARED", "TEST_ASSIGNED");
+        // The due date reads naturally and points to the calendar.
+        assertThat(inbox.toString()).contains("3 questions, due ").contains("It is in your calendar.");
         String assessmentId = inbox.get("items").findValues("link").stream().map(JsonNode::asString)
                 .filter(l -> l.startsWith("/assessments/")).findFirst().orElseThrow().substring("/assessments/".length());
         JsonNode assessment = getJson(student, "/api/assessments/" + assessmentId);

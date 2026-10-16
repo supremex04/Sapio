@@ -153,7 +153,7 @@ export function StudyHubPage() {
         )}
 
         {ready && material && !teacher && <ModeCards documentId={id} material={material} />}
-        {ready && teacher && <TeacherActions documentId={id} onShared={() => setShareVersion((v) => v + 1)} />}
+        {ready && teacher && <TeacherActions documentId={id} version={shareVersion} onShared={() => setShareVersion((v) => v + 1)} />}
 
         {(ready || hasExtractedText(doc.status)) && (
           <section>
