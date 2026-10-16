@@ -25,7 +25,8 @@ class VisualizationStore {
 
     record Row(UUID id, UUID userId, String request, String requestHash, UUID documentId, String context, Status status,
                String title, String kind, String storyboardJson, String code, int attempts, String error,
-               String videoKey, String thumbnailKey, Double durationSeconds, String model, Instant createdAt,
+               String videoKey, String thumbnailKey, Double durationSeconds, boolean narrated, String model,
+               Instant createdAt,
                Instant updatedAt, Instant completedAt) {
     }
 
@@ -88,12 +89,12 @@ class VisualizationStore {
                 Timestamp.from(now), id);
     }
 
-    void ready(UUID id, String videoKey, String thumbnailKey, double duration, Instant now) {
+    void ready(UUID id, String videoKey, String thumbnailKey, double duration, boolean narrated, Instant now) {
         jdbc.update("""
                         UPDATE visualizations SET status = 'READY', attempts = attempts + 1, error = NULL, video_key = ?,
-                               thumbnail_key = ?, duration_seconds = ?, updated_at = ?, completed_at = ?
+                               thumbnail_key = ?, duration_seconds = ?, narrated = ?, updated_at = ?, completed_at = ?
                         WHERE id = ?""",
-                videoKey, thumbnailKey, duration, Timestamp.from(now), Timestamp.from(now), id);
+                videoKey, thumbnailKey, duration, narrated, Timestamp.from(now), Timestamp.from(now), id);
     }
 
     void failed(UUID id, String reason, Instant now) {
@@ -106,7 +107,7 @@ class VisualizationStore {
         jdbc.update("""
                         UPDATE visualizations SET status = 'PLANNING', title = NULL, kind = NULL, storyboard_json = NULL,
                                code = NULL, attempts = 0, error = NULL, video_key = NULL, thumbnail_key = NULL,
-                               duration_seconds = NULL, completed_at = NULL, updated_at = ?
+                               duration_seconds = NULL, narrated = FALSE, completed_at = NULL, updated_at = ?
                         WHERE id = ?""", Timestamp.from(now), id);
     }
 
@@ -123,7 +124,8 @@ class VisualizationStore {
                 rs.getString("request_hash"), rs.getObject("document_id", UUID.class), rs.getString("context"),
                 Status.valueOf(rs.getString("status")), rs.getString("title"), rs.getString("kind"),
                 rs.getString("storyboard_json"), rs.getString("code"), rs.getInt("attempts"), rs.getString("error"),
-                rs.getString("video_key"), rs.getString("thumbnail_key"), d, rs.getString("model"),
+                rs.getString("video_key"), rs.getString("thumbnail_key"), d, rs.getBoolean("narrated"),
+                rs.getString("model"),
                 rs.getTimestamp("created_at").toInstant(), rs.getTimestamp("updated_at").toInstant(),
                 rs.getTimestamp("completed_at") == null ? null : rs.getTimestamp("completed_at").toInstant());
     }

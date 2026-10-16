@@ -19,6 +19,8 @@ def storyboard_prompt(request: str, context: str | None) -> str:
 Rules:
 - 3-6 beats. Each beat says concretely what appears or moves (shapes, axes, labels, formulas, colours) and gives one
   caption sentence.
+- The caption is read aloud as the narration and shown as a subtitle, so write it the way a teacher would say it:
+  plain words, no LaTeX or symbols ("a squared plus b squared equals c squared", "x of t"), at most about 25 words.
 - Visual first: show the quantity, the geometry or the motion, not paragraphs of text. Formulas appear as LaTeX.
 - Two dimensions unless depth is essential. Nothing that needs images, photos, sound or real-world footage.
 - If the request is not something an animation can show (e.g. an opinion, a list of facts with no structure, a
@@ -30,12 +32,24 @@ listed below, exactly as written. Output strictly the requested JSON with the co
 
 MANIM_GUIDE = r"""
 FILE CONTRACT (the renderer rejects anything else)
-- First line: from manim import *   (optionally also: import numpy as np, import math, import random)
+- First lines: from manim import *
+               from sapio_narration import narrate
+  (optionally also: import numpy as np, import math, import random)
 - Exactly one class: class Visualization(Scene):  (or MovingCameraScene / ThreeDScene when truly needed)
   with def construct(self): ... All code inside construct (helpers may be nested functions).
-- No other imports. No files, images (ImageMobject, SVGMobject), sounds, internet, or reading/writing anything.
+- No other imports. No files, images (ImageMobject, SVGMobject), sounds of your own (add_sound), internet, or
+  reading/writing anything.
 - Never use: open, eval, exec, getattr, setattr, globals, __anything__, os, sys, subprocess.
-- Total length 20-45 seconds. 480-720p, 16:9. Default background (black).
+- Default background (black). The length follows the narration (below).
+
+NARRATION (every beat is spoken; the voice is prepared for you)
+- Wrap each beat, in storyboard order, in its own block with its own number, exactly as listed with the beats:
+  beat 1 in  with narrate(self, 1) as seconds:  beat 2 in  with narrate(self, 2) as seconds:  and so on.
+  seconds is how long that beat's spoken caption lasts. Pace the beat's animations to it, e.g.
+  self.play(Create(circle), run_time=seconds * 0.5), and then the next step with the rest. When the block ends it waits
+  for the voice to finish, so never add a long self.wait() at the end of a beat, and never let a beat's animations
+  run much longer than seconds.
+- An optional title before beat 1 (1-2 s) and a short self.wait(1) after the last beat are fine.
 
 MANIM 0.19 API THAT WORKS
 - Text: Text("caption", font_size=28). Formulas: MathTex(r"E = mc^2"), multi-part MathTex(r"a^2", "+", r"b^2", "=", r"c^2")
@@ -65,15 +79,19 @@ DO NOT USE (removed or wrong in 0.19): ShowCreation, TextMobject, TexMobject, ge
 self.camera.frame in a plain Scene, config changes, Code(), Paragraph() with odd fonts, external LaTeX packages.
 
 STYLE
-- Show each beat's caption at the bottom: caption = Text(beat_text, font_size=26).to_edge(DOWN); replace the previous
-  caption with FadeOut(old), FadeIn(new) (keep captions short so they fit in one or two lines; break long lines with "\n").
+- Show each beat's caption as a subtitle at the bottom, inside its narrate block: caption = Text(beat_text,
+  font_size=26).to_edge(DOWN); replace the previous caption with FadeOut(old), FadeIn(new) at the start of the beat
+  (break long lines with "\n" so they fit in one or two lines).
 - Title for 1-2 s at the start, then the idea. Use colour to link a symbol in a formula to the shape it describes.
 - Clean up (FadeOut) objects you no longer need so the frame never gets crowded.
 """
 
 
 def code_prompt(title: str, beats: list[tuple[str, str]]) -> str:
-    board = "\n".join(f"{i}. Shows: {shows}\n   Caption: {says}" for i, (shows, says) in enumerate(beats, 1))
+    board = "\n".join(
+        f"{i}. Shows: {shows}\n   Caption (spoken): {says}\n   Block: with narrate(self, {i}) as seconds:"
+        for i, (shows, says) in enumerate(beats, 1)
+    )
     return f"""Write the Manim scene for this storyboard.
 
 Title: {title}

@@ -45,3 +45,31 @@ def test_the_scene_class_is_required():
         safety.check(GOOD.replace("(Scene)", "(object)"))
     with pytest.raises(safety.Rejected, match="Syntax error"):
         safety.check("class Visualization(Scene)\n  pass")
+
+
+NARRATED = """
+from manim import *
+from sapio_narration import narrate
+
+class Visualization(Scene):
+    def construct(self):
+        with narrate(self, 1) as seconds:
+            self.play(Write(MathTex("x")), run_time=seconds)
+"""
+
+
+def test_the_narration_helper_may_be_imported():
+    safety.check(NARRATED)
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "import sapio_narration",
+        "from sapio_narration import _load",
+        "from sapio_narration import narrate as n",
+    ],
+)
+def test_nothing_else_of_the_narration_module_is_reachable(line):
+    with pytest.raises(safety.Rejected):
+        safety.check(NARRATED.replace("from sapio_narration import narrate", line))

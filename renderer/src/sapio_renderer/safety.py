@@ -14,6 +14,9 @@ SCENE_CLASS = "Visualization"
 SCENE_BASES = {"Scene", "MovingCameraScene", "ThreeDScene", "ZoomedScene"}
 
 ALLOWED_IMPORTS = {"manim", "math", "numpy", "random", "typing", "itertools", "functools", "colorsys"}
+#: Our narration helper, importable only as ``from sapio_narration import narrate`` (its module has file access).
+NARRATION_MODULE = "sapio_narration"
+NARRATION_NAMES = {"narrate"}
 
 FORBIDDEN_NAMES = {
     "__import__",
@@ -86,6 +89,12 @@ def check(code: str) -> None:
         elif isinstance(node, ast.ImportFrom):
             if node.level:
                 raise Rejected("Relative imports are not allowed.")
+            if node.module == NARRATION_MODULE:
+                if {a.name for a in node.names} - NARRATION_NAMES or any(a.asname for a in node.names):
+                    raise Rejected(
+                        f"Import only this from {NARRATION_MODULE}: from {NARRATION_MODULE} import narrate"
+                    )
+                continue
             _allowed_module(node.module or "")
         elif isinstance(node, ast.Name) and node.id in FORBIDDEN_NAMES:
             raise Rejected(f"'{node.id}' is not allowed in scene code.")

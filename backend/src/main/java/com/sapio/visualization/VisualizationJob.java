@@ -75,15 +75,16 @@ class VisualizationJob {
             }
 
             String code = row.code() != null ? row.code() : ai.code(new VisualizeAi.CodeSpec(title, beats, null, null)).code();
+            List<String> narration = beats.stream().map(VisualizeAi.Beat::says).toList();
             String lastError = null;
             for (int attempt = row.attempts() + 1; attempt <= properties.maxAttempts(); attempt++) {
                 store.code(id, code, clock.instant());
                 try {
-                    RendererClient.Rendered video = renderer.render(code);
+                    RendererClient.Rendered video = renderer.render(code, narration);
                     String videoKey = storage.store(new ByteArrayInputStream(video.video()), "mp4");
                     String thumbKey = video.thumbnail().length == 0 ? null
                             : storage.store(new ByteArrayInputStream(video.thumbnail()), "png");
-                    store.ready(id, videoKey, thumbKey, video.durationSeconds(), clock.instant());
+                    store.ready(id, videoKey, thumbKey, video.durationSeconds(), video.narrated(), clock.instant());
                     return;
                 } catch (RendererClient.RenderFailed e) {
                     if ("unavailable".equals(e.kind)) {

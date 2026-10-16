@@ -28,6 +28,12 @@ needs heavy native dependencies (Cairo, Pango, FFmpeg, LaTeX) and minutes of CPU
   process limits, and a wall-clock timeout; one render at a time per instance; a non-root user in a container.
   In the cloud the renderer runs as a service account that can read only its own key, with egress only into the
   VPC (no Cloud NAT, so no internet).
+- **Narration with a small local voice**: each caption is spoken by Kokoro-82M (int8 ONNX, CPU) inside the
+  renderer, before the scene runs, so no text leaves for a speech API and the renderer still needs no internet. The
+  scene starts each line with `narrate(self, n)`, which also waits for it to finish, so voice and picture stay in
+  step without the AI guessing durations. Piper was faster but sounds flatter; Kokoro is the best quality at this
+  size. Its phonemiser (espeak-ng via phonemizer) is GPL-3.0: fine for a service we run, to review before shipping
+  the renderer to anyone else.
 - **Cost control**: the same request (case and spacing aside) reuses the finished or in-progress visualization;
   each learner may start `daily-limit` (15) a day; videos are capped at 90 s and rendered at 720p30. The renderer
   scales to zero.
@@ -38,5 +44,7 @@ needs heavy native dependencies (Cairo, Pango, FFmpeg, LaTeX) and minutes of CPU
   $0.003 in Cloud Run compute; idle cost is zero. The first render after a quiet spell waits for a cold start.
 - The static check is not a sandbox on its own; the container and its missing network and secrets are what make
   an escape harmless. A stronger sandbox (gVisor is already Cloud Run gen2's) or a per-render job can come later.
+- Speech adds about 10 s per video on 2 vCPU and about 120 MB to the image.
 - Not yet: a "Visualize this" action in the reading view (the API already takes `documentId` and `context`),
-  narration audio, sharing visualizations to Explore, choosing quality.
+  narration in other languages (Kokoro has a few), a choice of voice, sharing visualizations to Explore, choosing
+  quality.

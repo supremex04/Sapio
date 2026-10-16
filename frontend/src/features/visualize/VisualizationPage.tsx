@@ -78,7 +78,7 @@ export function VisualizationPage() {
 
             <div className="viz-stage">
               {v.status === "READY" && v.videoUrl ? (
-                <VideoPlayer src={v.videoUrl} poster={v.thumbnailUrl ?? undefined} />
+                <VideoPlayer src={v.videoUrl} poster={v.thumbnailUrl ?? undefined} narrated={v.narrated} />
               ) : working ? (
                 <div className="viz-making" role="status" aria-live="polite">
                   <Sage mood="thinking" size={88} />
@@ -97,7 +97,7 @@ export function VisualizationPage() {
 
             <div className="row-between">
               <span className="small muted">
-                {v.status === "READY" && v.durationSeconds != null && `${videoLength(v.durationSeconds)} long`}
+                {v.status === "READY" && v.durationSeconds != null && `${videoLength(v.durationSeconds)} long${v.narrated ? ", narrated" : ""}`}
                 {v.attempts > 1 && v.status === "READY" && ` · drawn on try ${v.attempts}`}
               </span>
               <div className="row">

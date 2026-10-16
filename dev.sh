@@ -128,7 +128,7 @@ RENDERER_CONTAINER=sapio-renderer-dev
 
 install_renderer() {
   local dir="$ROOT/renderer" sources
-  sources=$(find "$dir/Dockerfile" "$dir/pyproject.toml" "$dir/src" -type f -not -path '*/__pycache__/*' | sort)
+  sources=$(find "$dir/Dockerfile" "$dir/pyproject.toml" "$dir/src" "$dir/scripts" -type f -not -path '*/__pycache__/*' | sort)
   # shellcheck disable=SC2086
   if ! docker image inspect "$RENDERER_IMAGE" >/dev/null 2>&1 || needs_install renderer "$STAMP_DIR/renderer" $sources; then
     step "Building the renderer image (Manim; the first build takes a few minutes)"

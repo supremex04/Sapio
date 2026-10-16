@@ -10,6 +10,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         texlive-latex-base texlive-latex-recommended texlive-latex-extra dvisvgm cm-super-minimal \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
+# Narration voice: Kokoro-82M, int8 ONNX (about 120 MB with the voices), run on the CPU. Checked by hash; its own
+# layer, so code changes do not download it again.
+COPY scripts/fetch_models.py /tmp/fetch_models.py
+RUN python /tmp/fetch_models.py && rm /tmp/fetch_models.py
 COPY pyproject.toml ./
 COPY src src
 RUN pip install ".[manim]" \

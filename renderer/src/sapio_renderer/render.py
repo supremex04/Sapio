@@ -16,7 +16,7 @@ import threading
 from dataclasses import dataclass
 from pathlib import Path
 
-from sapio_renderer import safety
+from sapio_renderer import safety, speech
 
 QUALITY = {"preview": "l", "final": "m"}  # Manim: l = 480p15, m = 720p30
 TEMPLATE = Path(__file__).with_name("tex_template.tex")
@@ -30,6 +30,7 @@ class Rendered:
     video: bytes
     thumbnail: bytes
     duration_seconds: float
+    narrated: bool = False
 
 
 @dataclass
@@ -54,15 +55,36 @@ class Limits:
 DEFAULT_LIMITS = Limits()
 
 
-def render(code: str, quality: str = "final", limits: Limits = DEFAULT_LIMITS) -> Rendered:
+def render(
+    code: str, quality: str = "final", narration: list[str] | None = None, limits: Limits = DEFAULT_LIMITS
+) -> Rendered:
+    """``narration``: the spoken line of each beat, in order; the scene plays them with sapio_narration.narrate."""
     safety.check(code)  # raises safety.Rejected
     if not _one_at_a_time.acquire(timeout=limits.timeout_seconds):
         raise RenderFailed("timeout", "The renderer is busy; please retry.")
     try:
         with tempfile.TemporaryDirectory(prefix="scene-") as tmp:
-            return _render_in(Path(tmp), code, QUALITY.get(quality, "m"), limits)
+            narrated = _prepare_narration(Path(tmp), narration or [])
+            result = _render_in(Path(tmp), code, QUALITY.get(quality, "m"), limits)
+            result.narrated = narrated and result.narrated  # prepared, and actually in the video
+            return result
     finally:
         _one_at_a_time.release()
+
+
+def _prepare_narration(tmp: Path, lines: list[str]) -> bool:
+    """Speaks each line into the scene folder and lists them in narration.json (read by sapio_narration)."""
+    manifest = []
+    for i, text in enumerate(lines, 1):
+        clip = speech.synthesize(text)
+        if clip is None:
+            return False  # all or nothing: half a narration is worse than none
+        name = f"beat-{i}.wav"
+        (tmp / name).write_bytes(clip.wav)
+        manifest.append({"file": str(tmp / name), "seconds": round(clip.seconds, 3)})
+    if manifest:
+        (tmp / "narration.json").write_text(json.dumps(manifest), encoding="utf-8")
+    return bool(manifest)
 
 
 def _render_in(tmp: Path, code: str, quality: str, limits: Limits) -> Rendered:
@@ -123,6 +145,7 @@ def _render_in(tmp: Path, code: str, quality: str, limits: Limits) -> Rendered:
         raise RenderFailed("output", "The scene rendered no video. Make sure construct() plays animations.")
     video = videos[0]
     duration = _duration(video)
+    _trim_audio(video, duration, env)
     if duration <= 0.2:
         raise RenderFailed("output", "The video is empty. Add animations (self.play) or waits (self.wait).")
     if duration > MAX_SECONDS:
@@ -148,7 +171,12 @@ def _render_in(tmp: Path, code: str, quality: str, limits: Limits) -> Rendered:
         timeout=30,
         env=env,
     )
-    return Rendered(video.read_bytes(), thumb.read_bytes() if thumb.exists() else b"", duration)
+    return Rendered(
+        video.read_bytes(),
+        thumb.read_bytes() if thumb.exists() else b"",
+        duration,
+        narrated=_has_audio(video),
+    )
 
 
 def _limit(limits: Limits) -> None:
@@ -161,20 +189,86 @@ def _limit(limits: Limits) -> None:
 
 
 def _duration(video: Path) -> float:
+    """Length of the picture (the video stream), not of the file: audio must not make the video look longer."""
     probe = shutil.which("ffprobe")
     if not probe:
         return 1.0
     out = subprocess.run(
-        [probe, "-v", "error", "-show_entries", "format=duration", "-of", "json", str(video)],
+        [
+            probe,
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=duration",
+            "-of",
+            "json",
+            str(video),
+        ],
         check=False,
         capture_output=True,
         text=True,
         timeout=30,
     )
     try:
-        return float(json.loads(out.stdout)["format"]["duration"])
-    except (ValueError, KeyError, json.JSONDecodeError):
+        return float(json.loads(out.stdout)["streams"][0]["duration"])
+    except (ValueError, KeyError, IndexError, json.JSONDecodeError):
         return 0.0
+
+
+def _has_audio(video: Path) -> bool:
+    probe = shutil.which("ffprobe")
+    if not probe or not video.exists():
+        return False
+    out = subprocess.run(
+        [
+            probe,
+            "-v",
+            "error",
+            "-select_streams",
+            "a",
+            "-show_entries",
+            "stream=index",
+            "-of",
+            "csv=p=0",
+            str(video),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    return bool(out.stdout.strip())
+
+
+def _trim_audio(video: Path, duration: float, env: dict) -> None:
+    """Cuts any sound that runs past the last frame, so players show the same length as the picture."""
+    if duration <= 0 or not shutil.which("ffmpeg"):
+        return
+    trimmed = video.with_name("trimmed.mp4")
+    done = subprocess.run(
+        [
+            "ffmpeg",
+            "-loglevel",
+            "error",
+            "-i",
+            str(video),
+            "-t",
+            f"{duration:.3f}",
+            "-c",
+            "copy",
+            "-movflags",
+            "+faststart",
+            "-y",
+            str(trimmed),
+        ],
+        check=False,
+        timeout=60,
+        env=env,
+    )
+    if done.returncode == 0 and trimmed.exists() and trimmed.stat().st_size > 0:
+        trimmed.replace(video)
 
 
 def _error_tail(log: str) -> str:

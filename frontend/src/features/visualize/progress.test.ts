@@ -14,6 +14,7 @@ const base: Visualization = {
   attempts: 0,
   error: null,
   durationSeconds: null,
+  narrated: false,
   videoUrl: null,
   thumbnailUrl: null,
   createdAt: "2026-10-16T10:00:00Z",

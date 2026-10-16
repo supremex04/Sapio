@@ -39,7 +39,8 @@ public class VisualizationService {
 
     public record View(UUID id, String request, UUID documentId, VisualizationStore.Status status, String title,
                        String kind, List<VisualizeAi.Beat> beats, String code, int attempts, String error,
-                       Double durationSeconds, String videoUrl, String thumbnailUrl, Instant createdAt,
+                       Double durationSeconds, boolean narrated, String videoUrl, String thumbnailUrl,
+                       Instant createdAt,
                        Instant completedAt) {
     }
 
@@ -153,6 +154,7 @@ public class VisualizationService {
         boolean ready = r.status() == VisualizationStore.Status.READY;
         return new View(r.id(), r.request(), r.documentId(), r.status(), r.title(), r.kind(), beats, r.code(),
                 r.attempts(), r.status() == VisualizationStore.Status.FAILED ? r.error() : null, r.durationSeconds(),
+                r.narrated(),
                 ready && r.videoKey() != null ? signer.url(r.id(), VisualizationUrlSigner.Asset.video) : null,
                 ready && r.thumbnailKey() != null ? signer.url(r.id(), VisualizationUrlSigner.Asset.thumbnail) : null,
                 r.createdAt(), r.completedAt());

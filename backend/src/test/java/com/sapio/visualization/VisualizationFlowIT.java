@@ -71,8 +71,8 @@ class VisualizationFlowIT {
 
     @Test
     void aFailedRenderIsRepairedAndTheVideoIsServed() throws Exception {
-        when(renderer.render("broken")).thenThrow(new RendererClient.RenderFailed("error", "NameError: Foo"));
-        when(renderer.render("fixed")).thenReturn(new RendererClient.Rendered(new byte[] {1, 2, 3}, FakeAi.PNG, 4.5));
+        when(renderer.render(eq("broken"), any())).thenThrow(new RendererClient.RenderFailed("error", "NameError: Foo"));
+        when(renderer.render(eq("fixed"), any())).thenReturn(new RendererClient.Rendered(new byte[] {1, 2, 3}, FakeAi.PNG, 4.5, true));
 
         String id = create("a^2 + b^2 = c^2").get("id").asString();
         JsonNode done = await(id);
@@ -82,6 +82,9 @@ class VisualizationFlowIT {
         assertThat(done.get("code").asString()).isEqualTo("fixed");
         assertThat(done.get("attempts").asInt()).isEqualTo(2);
         assertThat(done.get("durationSeconds").asDouble()).isEqualTo(4.5);
+        assertThat(done.get("narrated").asBoolean()).isTrue();
+        // Each beat's caption is what the renderer speaks.
+        verify(renderer).render(eq("fixed"), eq(List.of("Look", "Areas add up")));
         verify(ai).code(argThat(s -> s != null && "broken".equals(s.previousCode()) && "NameError: Foo".equals(s.error())));
 
         // The signed URL plays without a login; a tampered one does not.
@@ -109,29 +112,30 @@ class VisualizationFlowIT {
         JsonNode done = await(create("what is love").get("id").asString());
         assertThat(done.get("status").asString()).isEqualTo("FAILED");
         assertThat(done.get("error").asString()).contains("Feelings");
-        verify(renderer, never()).render(any());
+        verify(renderer, never()).render(any(), any());
     }
 
     @Test
     void codeThatNeverRendersFailsAfterTheLastAttemptAndCanBeRetried() throws Exception {
-        when(renderer.render(any())).thenThrow(new RendererClient.RenderFailed("error", "boom"));
+        when(renderer.render(any(), any())).thenThrow(new RendererClient.RenderFailed("error", "boom"));
         String id = create("sine wave").get("id").asString();
         JsonNode done = await(id);
         assertThat(done.get("status").asString()).isEqualTo("FAILED");
         assertThat(done.get("attempts").asInt()).isEqualTo(3);
         assertThat(done.get("error").asString()).contains("3 tries");
 
-        doReturn(new RendererClient.Rendered(new byte[] {9}, new byte[0], 2)).when(renderer).render(eq("fixed"));
+        doReturn(new RendererClient.Rendered(new byte[] {9}, new byte[0], 2, false)).when(renderer).render(eq("fixed"), any());
         call(learner, post("/api/visualizations/" + id + "/retry"), null).andExpect(status().isOk());
         JsonNode again = await(id);
         assertThat(again.get("status").asString()).isEqualTo("READY");
         assertThat(again.get("thumbnailUrl").isNull()).isTrue();
+        assertThat(again.get("narrated").asBoolean()).isFalse();
         assertThat(getJson("/api/visualizations").findValuesAsString("id")).containsExactly(id);
     }
 
     @Test
     void theRendererBeingDownIsNotBlamedOnTheCode() throws Exception {
-        when(renderer.render(any())).thenThrow(new RendererClient.RenderFailed("unavailable", "down"));
+        when(renderer.render(any(), any())).thenThrow(new RendererClient.RenderFailed("unavailable", "down"));
         JsonNode done = await(create("a circle").get("id").asString());
         assertThat(done.get("status").asString()).isEqualTo("FAILED");
         assertThat(done.get("error").asString()).contains("unavailable");

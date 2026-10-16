@@ -3,6 +3,7 @@ package com.sapio.visualization;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.Base64;
+import java.util.List;
 
 import com.sapio.common.web.RequestId;
 import org.slf4j.Logger;
@@ -21,7 +22,8 @@ class RendererClient {
 
     private static final Logger log = LoggerFactory.getLogger(RendererClient.class);
 
-    record Rendered(byte[] video, byte[] thumbnail, double durationSeconds) {
+    /** {@code narrated}: the video has spoken narration. */
+    record Rendered(byte[] video, byte[] thumbnail, double durationSeconds, boolean narrated) {
     }
 
     /**
@@ -37,10 +39,11 @@ class RendererClient {
         }
     }
 
-    private record RenderRequest(String code, String quality) {
+    private record RenderRequest(String code, String quality, List<String> narration) {
     }
 
-    private record RenderResponse(String videoBase64, String thumbnailBase64, double durationSeconds) {
+    private record RenderResponse(String videoBase64, String thumbnailBase64, double durationSeconds,
+                                  boolean narrated) {
     }
 
     private record RenderError(String kind, String message) {
@@ -66,9 +69,10 @@ class RendererClient {
                 .build();
     }
 
-    Rendered render(String code) throws RenderFailed {
+    /** @param narration the spoken line of each beat, in order (the scene plays them with narrate) */
+    Rendered render(String code, List<String> narration) throws RenderFailed {
         try {
-            RenderResponse response = client.post().uri("/v1/render").body(new RenderRequest(code, "final"))
+            RenderResponse response = client.post().uri("/v1/render").body(new RenderRequest(code, "final", narration))
                     .retrieve().body(RenderResponse.class);
             if (response == null || response.videoBase64() == null) {
                 throw new RenderFailed("unavailable", "The renderer returned nothing");
@@ -76,7 +80,7 @@ class RendererClient {
             Base64.Decoder b64 = Base64.getDecoder();
             return new Rendered(b64.decode(response.videoBase64()),
                     response.thumbnailBase64() == null ? new byte[0] : b64.decode(response.thumbnailBase64()),
-                    response.durationSeconds());
+                    response.durationSeconds(), response.narrated());
         } catch (RestClientResponseException e) {
             if (e.getStatusCode().isSameCodeAs(HttpStatusCode.valueOf(422))) {
                 RenderError error = json.readValue(e.getResponseBodyAsString(), RenderError.class);

@@ -48,3 +48,12 @@ def test_code_and_repairs_use_the_storyboard_and_the_error():
 def test_fences_are_stripped():
     assert strip_fences("```\nx = 1\n```") == "x = 1\n"
     assert strip_fences("x = 1") == "x = 1\n"
+
+
+def test_scenes_are_asked_to_narrate_every_beat_and_captions_to_be_speakable():
+    from sapio_inference.visualize import prompts
+
+    code = prompts.code_prompt("Pythagoras", [("A triangle", "Start with a right triangle.")])
+    assert "from sapio_narration import narrate" in code
+    assert "Block: with narrate(self, 1) as seconds:" in code
+    assert "read aloud" in prompts.storyboard_prompt("a^2 + b^2 = c^2", None)

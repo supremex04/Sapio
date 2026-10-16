@@ -14,9 +14,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Manim needs system libraries (Cairo, Pango, ffmpeg, LaTeX): installed in the Docker image.
-manim = ["manim==0.19.0"]
-dev = ["pytest>=8", "ruff>=0.6", "httpx>=0.27"]
+# Manim needs system libraries (Cairo, Pango, ffmpeg, LaTeX) and Kokoro its model files: both in the Docker image.
+manim = ["manim==0.19.0", "kokoro-onnx==0.6.1"]
+dev = ["pytest>=8", "ruff>=0.6", "httpx>=0.27", "numpy>=2"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

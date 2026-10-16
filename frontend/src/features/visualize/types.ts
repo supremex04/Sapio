@@ -18,6 +18,8 @@ export interface Visualization {
   attempts: number;
   error: string | null;
   durationSeconds: number | null;
+  /** The video speaks each beat's caption. */
+  narrated: boolean;
   /** Signed, expiring; null until READY. */
   videoUrl: string | null;
   thumbnailUrl: string | null;
