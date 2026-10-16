@@ -19,12 +19,17 @@ ENGINES = """How to show it (engine):
   group:pyrimidine. Otherwise a specific SMARTS of just those atoms (aromatic ring atoms are lowercase: c, n, o).
   Highlight only what the caption talks about, never most of the molecule.
 - protein: a protein, nucleic acid or complex from the Protein Data Bank shown in 3D. Give the 4-character PDB ID
-  of a well-known entry you are sure of (e.g. 1HHO haemoglobin, 1BNA DNA, 1LYZ lysozyme, 4HHB haemoglobin, 2HHB);
-  each beat's focus is chain and residues (A:58-63), a ligand (ligand:HEM), or empty for the whole structure.
+  of a well-known entry you are sure of, in the state the narration describes (e.g. 1HHO oxyhaemoglobin, 4HHB
+  deoxyhaemoglobin, 1BNA DNA, 1LYZ lysozyme). Each beat's focus is a chain (A), one residue with its name
+  (A:HIS87), a residue range (A:58-63), a ligand (ligand:HEM), or empty for the whole structure. Mind which chain
+  is which: residue numbers differ between chains (the proximal histidine is alpha His87 but beta His92).
 - code: a short Python program run line by line, showing variables change. Use for questions about how code
   behaves (loops, recursion, sorting, data structures). Put the program in program (at most 40 lines, with a small
   example input, printing its result; if the learner gave Python, copy it exactly; if they gave another language,
-  write the equivalent Python and say so in the first beat); each beat's focus is the lines it explains (3-5)."""
+  write the equivalent Python and say so in the first beat). Each beat's focus is the exact text of the line it
+  explains, copied from the program (if arr[j] > arr[j + 1]:), or of the first and last lines of a block joined
+  with " | " (for i in range(n): | arr[j], arr[j + 1] = arr[j + 1], arr[j]). Point at the lines the caption is
+  about: a sentence about each pass points at the loop that makes the passes."""
 
 
 def storyboard_prompt(request: str, context: str | None, engine: str = "auto") -> str:

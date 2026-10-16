@@ -55,9 +55,18 @@ describe("narrated scenes", () => {
     expect(beatAt(timing, 99)).toBe(1);
   });
 
-  it("gives each code beat the steps on its lines, forward in time only", () => {
+  it("gives each code beat the steps on its lines; a later beat never starts before the one before it", () => {
     const steps = [1, 2, 3, 2, 3, 4].map((line) => ({ line }));
-    expect(stepsPerBeat([lineRange("1"), lineRange("2-3"), lineRange(""), lineRange("2-4")], steps)).toEqual([[0], [1, 2, 3, 4], [], [5]]);
+    expect(stepsPerBeat([lineRange("1"), lineRange("2-3"), lineRange(""), lineRange("2-4")], steps)).toEqual([[0], [1, 2, 3, 4], [], [2, 3, 4, 5]]);
+  });
+
+  it("does not jump to the end for a line that also runs at the end (a final print)", () => {
+    // print(sort(...)) on line 9 runs first, then 75 steps of sorting, then prints on line 9 again.
+    const steps = [9, ...Array.from({ length: 75 }, (_, i) => 3 + (i % 4)), 9].map((line) => ({ line }));
+    const [start, loop] = stepsPerBeat([lineRange("9"), lineRange("3")], steps);
+    expect(start).toEqual([0]);
+    expect(loop?.[0]).toBe(1); // the loop beat starts at the beginning of the run, not after the final print
+    expect(loop?.length).toBeLessThanOrEqual(12);
   });
 
   it("reads protein focus", () => {
@@ -66,5 +75,7 @@ describe("narrated scenes", () => {
     expect(proteinFocus("b")).toEqual({ chain: "B" });
     expect(proteinFocus("")).toBeNull();
     expect(proteinFocus("the active site")).toBeNull();
+    expect(proteinFocus("A:HIS87")).toEqual({ chain: "A", resi: ["87"] });
+    expect(proteinFocus("B:92:HIS")).toEqual({ chain: "B", resi: ["92"] });
   });
 });

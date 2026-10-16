@@ -22,9 +22,9 @@ class Beat(BaseModel):
     )
     focus: str = Field(
         default="",
-        description="What to point at, by engine. molecule: a SMARTS pattern of the atoms to highlight (e.g. "
-        "C(=O)O); protein: chain and residues like A:58-63, or a ligand like ligand:HEM; code: the lines like 3-5; "
-        "animation: empty",
+        description="What to point at, by engine. molecule: group:name or a SMARTS of the atoms to highlight; "
+        "protein: a chain (A), a residue with its name (A:HIS87), a range (A:58-63) or a ligand (ligand:HEM); "
+        "code: the exact text of the line(s) explained, first | last for a block; animation: empty",
     )
 
 

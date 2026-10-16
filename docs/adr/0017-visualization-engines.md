@@ -48,5 +48,11 @@ AI call.
   which a focus can name (`group:methyl`); a SMARTS that lights up nothing or more than 60% of the molecule gives
   way to a group the caption names; other patterns that match nothing are retried by element and connectivity. A
   group's hydrogens light up with it in 3D, and highlighted atoms keep their element colours inside a glow.
+- The AI's pointers into proteins and code are checked against what is shown. A protein focus is read against the
+  structure's own residues, ligands and chains (mmCIF): a residue that is not what the focus or caption names is
+  moved to the chain where it is (alpha 92 is arginine; the proximal histidine is beta 92 or alpha 87), and
+  dropped when that is not unambiguous; the viewer labels the part from the structure ("His87, chain A (hemoglobin
+  subunit alpha)") and names the entry and its state (deoxy or oxy). Code is pointed at by the text of its lines,
+  found in the program actually traced, since the AI miscounts line numbers.
 - The backend now calls the RCSB (public) for protein entries; structures over 15 MiB are refused.
 - Later: other languages in the tracer, more than one molecule (reactions), physics templates in the browser.

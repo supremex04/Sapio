@@ -29,8 +29,8 @@ interrupted by a restart is resumed at startup.
 |---|---|---|---|
 | `ANIMATION` | narrated video | the AI's Manim scene, rendered | (none) |
 | `MOLECULE` | 3D model (3Dmol.js), 2D drawing, formula and mass | RDKit from SMILES | a named group (`group:methyl`, see `renderer/src/sapio_renderer/groups.py`) or a SMARTS of the atoms to highlight |
-| `PROTEIN` | 3D cartoon (3Dmol.js) | RCSB Protein Data Bank entry (title, mmCIF, picture), stored | `A:58-63`, `A`, `ligand:HEM` |
-| `CODE` | listing, running line, call stack with variables, output | the renderer's tracer (Python) | line range, `3-5` |
+| `PROTEIN` | 3D cartoon (3Dmol.js), a colour per chain with a legend, the entry and its state named | RCSB Protein Data Bank entry (title, mmCIF, picture), stored | `A`, `A:HIS87`, `A:58-63`, `ligand:HEM`, checked against the structure |
+| `CODE` | listing, running line, call stack with variables, output | the renderer's tracer (Python) | the text of the line(s) explained (`first \| last` for a block), found in the program traced; or `3-5` |
 
 **Routing**, cheapest first and never a separate AI call: the learner's choice (`engine` on create: `AUTO`
 default); rules for obvious requests (pasted code; a single SMILES token, once RDKit reads it; a PDB ID on its own
@@ -70,8 +70,17 @@ A visualization: `{id, request, documentId, status, engineChoice, engine, title,
 focus}], code, attempts, error (when FAILED), durationSeconds, narrated, videoUrl, thumbnailUrl, audioUrl,
 structureUrl (signed, when READY), scene (single visualization only), createdAt, completedAt}`. `scene` by engine:
 molecule `{name, smiles, formula, weight, heavyAtoms, threeD, molBlock, highlights[[atom]], drawings[png], timing}`;
-protein `{pdbId, name, entryTitle, timing}`; code `{program, trace:{steps:[{line, event, stack:[{name, line,
-vars}], output, value?}], output, error, truncated}, timing}`; `timing: [{start, seconds}]` per beat.
+protein `{pdbId, name, entryTitle, focus[checked], labels[from the structure], chains[{id, description}], timing}`;
+code `{program, trace:{steps:[{line, event, stack:[{name, line, vars}], output, value?}], output, error,
+truncated}, lines["a-b" per beat], timing}`; `timing: [{start, seconds}]` per beat.
+
+**Checks against what is shown.** A protein focus is read against the structure (`StructureIndex`, from the
+mmCIF): when the residue there is not the one the focus or the caption names, it moves to the chain where that
+residue is at that number, or is dropped; chains, ranges and ligands that are not in the entry are dropped. Code
+foci are found in the program traced; ranges past its end, or on blank lines only, are dropped. A dropped focus
+shows the whole structure or program, never something else. In the code view each beat walks one stretch of the
+run on its lines (a long jump ends it, so a final print does not skip to the end), at most 12 steps, and never
+starts before the previous beat started.
 
 The player has its own controls (play, time, seek, sound, full screen); narrated videos start with sound when the
 browser allows autoplay with sound (after a click in the app), otherwise muted with the sound button showing it.

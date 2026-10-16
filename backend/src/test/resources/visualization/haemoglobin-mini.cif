@@ -1,0 +1,35 @@
+data_MINI
+#
+_struct.title 'A FEW RESIDUES OF HUMAN DEOXYHAEMOGLOBIN, FOR TESTS'
+#
+loop_
+_entity.id
+_entity.type
+_entity.src_method
+_entity.pdbx_description
+1 polymer man 'Hemoglobin subunit alpha'
+2 polymer man 'Hemoglobin subunit beta'
+3 non-polymer syn 'PROTOPORPHYRIN IX CONTAINING FE'
+4 water nat water
+#
+loop_
+_atom_site.group_PDB
+_atom_site.id
+_atom_site.type_symbol
+_atom_site.label_atom_id
+_atom_site.label_comp_id
+_atom_site.label_asym_id
+_atom_site.label_entity_id
+_atom_site.label_seq_id
+_atom_site.auth_seq_id
+_atom_site.auth_comp_id
+_atom_site.auth_asym_id
+ATOM   1  N  N    HIS A 1 87  87  HIS A
+ATOM   2  C  CA   HIS A 1 87  87  HIS A
+ATOM   3  N  N    ARG A 1 92  92  ARG A
+ATOM   4  C  CA   ARG A 1 92  92  ARG A
+ATOM   5  N  N    HIS B 2 92  92  HIS B
+ATOM   6  C  "C5'" HIS B 2 92  92  HIS B
+HETATM 7  FE FE   HEM E 3 .   142 HEM A
+HETATM 8  O  O    HOH G 4 .   201 HOH A
+#

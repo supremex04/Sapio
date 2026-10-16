@@ -13,6 +13,7 @@ import { ProgressBar } from "../../shared/ui/Progress";
 import { SkeletonText } from "../../shared/ui/Skeleton";
 import { Sage } from "../../shared/illustrations/Sage";
 import { visualizeApi } from "./api";
+import { chainColour } from "./chains";
 import { CodeView } from "./CodeView";
 import { MoleculeView } from "./MoleculeView";
 import { NarratedScene } from "./NarratedScene";
@@ -216,6 +217,21 @@ function ProteinFacts({ scene }: { scene: ProteinScene }) {
   return (
     <Card>
       <dl className="viz-fact-list">
+        {scene.chains && scene.chains.length > 0 && (
+          <div>
+            <dt>Chains</dt>
+            <dd>
+              <ul className="viz-legend">
+                {scene.chains.map((c, i) => (
+                  <li key={c.id}>
+                    <span className="viz-swatch" style={{ background: chainColour(i) }} aria-hidden />
+                    {c.id}: {c.description}
+                  </li>
+                ))}
+              </ul>
+            </dd>
+          </div>
+        )}
         <div>
           <dt>Structure</dt>
           <dd>{scene.name}</dd>

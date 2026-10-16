@@ -201,17 +201,24 @@ class VisualizationFlowIT {
 
     @Test
     void aProteinComesFromTheProteinDataBankAndItsStructureIsServed() throws Exception {
+        byte[] cif;
+        try (var in = getClass().getResourceAsStream("/visualization/haemoglobin-mini.cif")) {
+            cif = in.readAllBytes();
+        }
         when(proteinBank.fetch("4HHB")).thenReturn(new ProteinBank.Entry("4HHB", "THE CRYSTAL STRUCTURE OF HUMAN "
-                + "DEOXYHAEMOGLOBIN", "data_4HHB\n".getBytes(), FakeAi.PNG));
+                + "DEOXYHAEMOGLOBIN", cif, FakeAi.PNG));
         when(proteinBank.fetch("9ZZZ")).thenThrow(new ProteinBank.NotFound("There is no entry 9ZZZ"));
 
         JsonNode done = await(create("haemoglobin", "PROTEIN").get("id").asString());
         assertThat(done.get("status").asString()).isEqualTo("READY");
         assertThat(done.at("/scene/pdbId").asString()).isEqualTo("4HHB");
         assertThat(done.at("/scene/entryTitle").asString()).contains("HAEMOGLOBIN");
-        String cif = mvc.perform(get(done.get("structureUrl").asString())).andExpect(status().isOk())
+        String served = mvc.perform(get(done.get("structureUrl").asString())).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
-        assertThat(cif).startsWith("data_4HHB");
+        assertThat(served).startsWith("data_MINI");
+        // Foci are checked against the structure: the storyboard's SMARTS-like focus is no residue, so it is dropped.
+        assertThat(done.at("/scene/focus/1").asString()).isEmpty();
+        assertThat(done.at("/scene/chains/1/description").asString()).isEqualTo("Hemoglobin subunit beta");
 
         // The learner's own ID comes first; when it does not exist the AI's is used.
         JsonNode mine = await(create("show 9ZZZ protein").get("id").asString());
@@ -229,6 +236,8 @@ class VisualizationFlowIT {
         assertThat(done.get("engine").asString()).isEqualTo("CODE");
         assertThat(done.at("/scene/program").asString()).isEqualTo(program);
         assertThat(done.at("/scene/trace/output").asString()).isEqualTo("6\n");
+        assertThat(done.at("/scene/lines/0").asString()).isEmpty(); // "" focus: no lines
+        assertThat(done.at("/scene/lines/1").asString()).isEmpty(); // a SMARTS is no line of this program
 
         String java = "int x = 2;\nx = x * 3;\nSystem.out.println(x);";
         when(renderer.trace(eq(java + "\n"), any())).thenThrow(new RendererClient.RenderFailed("code", "Syntax error"));

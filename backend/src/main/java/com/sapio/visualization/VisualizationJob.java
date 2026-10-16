@@ -1,6 +1,7 @@
 package com.sapio.visualization;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -229,6 +230,14 @@ class VisualizationJob {
                     return;
                 }
                 structureKey = storage.store(new ByteArrayInputStream(entry.structure()), "cif");
+                // What each beat points at, checked against the structure itself (residue names, chains, ligands).
+                StructureIndex structure = StructureIndex.parse(new String(entry.structure(), StandardCharsets.UTF_8));
+                List<SceneChecks.ProteinFocus> focus = planned.beats().stream()
+                        .map(b -> SceneChecks.protein(structure, b.focus(), b.says())).toList();
+                scene.put("focus", focus.stream().map(SceneChecks.ProteinFocus::focus).toList());
+                scene.put("labels", focus.stream().map(SceneChecks.ProteinFocus::label).toList());
+                scene.put("chains", structure.chains().stream()
+                        .map(c -> Map.of("id", c.id(), "description", c.description())).toList());
                 if (entry.image() != null) {
                     thumbKey = storage.store(new ByteArrayInputStream(entry.image()), "jpg");
                 }
@@ -258,6 +267,9 @@ class VisualizationJob {
                 }
                 scene.put("program", program);
                 scene.put("trace", trace);
+                String traced = program;
+                // The lines each beat explains, found in the program actually traced (it may be the learner's).
+                scene.put("lines", planned.beats().stream().map(b -> SceneChecks.lines(traced, b.focus())).toList());
             }
             default -> throw new IllegalStateException("Not a scene engine: " + planned.engine());
         }

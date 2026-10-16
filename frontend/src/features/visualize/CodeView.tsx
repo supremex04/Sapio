@@ -12,7 +12,8 @@ import type { Beat, CodeScene } from "./types";
 export function CodeView({ scene, beats, clock }: { scene: CodeScene; beats: Beat[]; clock: SceneClock }) {
   const steps = scene.trace.steps;
   const lines = useMemo(() => scene.program.replace(/\n$/, "").split("\n"), [scene.program]);
-  const ranges = useMemo(() => beats.map((b) => lineRange(b.focus)), [beats]);
+  // Line ranges checked against the program traced (older visualizations: the storyboard's own).
+  const ranges = useMemo(() => (scene.lines ? scene.lines.map((l) => lineRange(l)) : beats.map((b) => lineRange(b.focus))), [scene.lines, beats]);
   const perBeat = useMemo(() => stepsPerBeat(ranges, steps), [ranges, steps]);
   const [manual, setManual] = useState<number | null>(null);
 
@@ -84,7 +85,7 @@ export function CodeView({ scene, beats, clock }: { scene: CodeScene; beats: Bea
         </div>
         <div className="viz-output">
           <span className="xs muted">Output</span>
-          <pre>{step ? step.output : ""}</pre>
+          <pre>{step?.output ? step.output : <span className="muted">nothing printed yet</span>}</pre>
           {scene.trace.error && index === steps.length - 1 && <p className="xs viz-error-text">{scene.trace.error}</p>}
         </div>
       </div>

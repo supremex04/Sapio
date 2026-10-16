@@ -35,6 +35,12 @@ export interface ProteinScene {
   pdbId: string;
   name: string;
   entryTitle: string;
+  /** Per beat: the focus checked against the structure ("B:92", "ligand:HEM", "" when it could not be confirmed). */
+  focus?: string[];
+  /** Per beat: what the focus is, from the structure ("His92, chain B (hemoglobin subunit beta)"). */
+  labels?: (string | null)[];
+  /** The polymer chains and what each is, as the entry names them. */
+  chains?: { id: string; description: string }[];
   timing: Timing[];
 }
 
@@ -55,6 +61,8 @@ export interface TraceStep {
 export interface CodeScene {
   program: string;
   trace: { steps: TraceStep[]; output: string; error: string | null; truncated: boolean };
+  /** Per beat: the lines it explains ("3-6"), found in the program traced; "" when they could not be. */
+  lines?: string[];
   timing: Timing[];
 }
 
