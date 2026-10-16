@@ -77,9 +77,12 @@ function Shell() {
       </main>
       {!fullWidth && (
         <aside className="rail" aria-label={teacher ? "Your class" : "Your progress"}>
-          {/* Teachers do not collect XP or recall cards: their rail is the class calendar. */}
-          {!teacher && <ProgressPanel />}
-          <CalendarCard />
+          {/* One sticky stack, so everything in the rail stays in view while the page scrolls. */}
+          <div className="rail-stack">
+            {/* Teachers do not collect XP or recall cards: their rail is the class calendar. */}
+            {!teacher && <ProgressPanel />}
+            <CalendarCard />
+          </div>
         </aside>
       )}
       <TabBar nav={nav} reviewsDue={reviews?.dueNow ?? 0} />
