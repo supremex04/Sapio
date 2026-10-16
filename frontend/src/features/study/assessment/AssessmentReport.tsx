@@ -58,7 +58,7 @@ export function AssessmentReportView({ assessment, fresh, observer }: { assessme
             {fresh && <p className="eyebrow">Test complete · {assessment.documentTitle}</p>}
             {observer && (
               <p className="eyebrow">
-                {observer.studentName} · {assessment.assignment?.title ?? "Self-practice test"} · {assessment.documentTitle}
+                {observer.studentName} · {assessment.assignment?.title ?? "Class test"} · {assessment.documentTitle}
               </p>
             )}
             <h1>{title}</h1>

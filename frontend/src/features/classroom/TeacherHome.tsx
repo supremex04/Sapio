@@ -46,13 +46,13 @@ export function TeacherHome() {
               <Stat icon="students" value={overview.students} label="Students" sub={overview.pendingInvites ? `${overview.pendingInvites} invited` : undefined} to="/students" />
               <Stat icon="share" value={overview.documentsShared} label="Documents shared" to="/library" />
               <Stat icon="class-test" value={overview.testsSent} label="Class tests sent" />
-              <Stat icon="insights" value={overview.testsCompleted} label="Tests completed" sub="theirs and yours" />
+              <Stat icon="insights" value={overview.testsCompleted} label="Class tests completed" />
             </div>
 
             <Card>
               <h2 className="card-title">Test scores</h2>
               {overview.testsCompleted === 0 ? (
-                <p className="muted small">No completed tests yet. Send a class test from a document, or wait for students to test themselves on what you shared.</p>
+                <p className="muted small">No completed class tests yet. Send one from a document to see how your class does.</p>
               ) : (
                 <div className="cls-scores">
                   <Score label="Average" value={overview.averageScore} />
@@ -97,7 +97,7 @@ export function TeacherHome() {
                           <span className="cls-row-main">
                             <strong>{r.studentName}</strong>
                             <span className="small muted">
-                              {r.testTitle ?? "Self-practice test"} · {r.documentTitle} · {formatRelative(r.completedAt)}
+                              {r.testTitle ?? "Class test"} · {r.documentTitle} · {formatRelative(r.completedAt)}
                             </span>
                           </span>
                         </Link>

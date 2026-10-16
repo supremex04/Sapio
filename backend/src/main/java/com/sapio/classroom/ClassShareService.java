@@ -173,8 +173,10 @@ public class ClassShareService {
                 FROM class_shares s
                 JOIN class_memberships m ON m.teacher_id = s.teacher_id AND m.student_id = s.student_id
                                          AND m.status = 'ACCEPTED'
-                LEFT JOIN study_materials sm ON sm.document_id = s.copy_document_id
-                LEFT JOIN assessments a ON a.material_id = sm.id AND a.user_id = s.student_id AND a.status = 'COMPLETED'
+                -- Only the teacher's class tests on this document; students' own tests are not counted.
+                LEFT JOIN class_tests ct ON ct.document_id = s.source_document_id AND ct.teacher_id = s.teacher_id
+                LEFT JOIN class_test_assignments x ON x.test_id = ct.id AND x.student_id = s.student_id
+                LEFT JOIN assessments a ON a.id = x.assessment_id AND a.status = 'COMPLETED'
                 WHERE s.teacher_id = ? AND s.copy_document_id IS NOT NULL
                 GROUP BY s.source_document_id""", rs -> {
                     double avg = rs.getDouble("average");

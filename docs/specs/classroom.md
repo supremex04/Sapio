@@ -9,9 +9,11 @@ and post notices and calendar events. Design decisions: [ADR-0015](../adr/0015-c
 - A **teacher** account (role `TEACHER`, chosen at sign-up) gets the classroom instead of the learner's
   gamification: no XP, streaks, recall or activity chart; Home is the class overview and the right rail the class
   calendar. Teachers can still read documents and use Explore.
-- A teacher sees a student's work **only on what the teacher gave them**: the documents the teacher shared (the
-  student's copies) and every test on those copies (the teacher's class tests and the student's own practice
-  tests). Their private uploads are never visible. Anything else answers `404`.
+- A teacher sees a student's work **only on what the teacher gave them**: progress on the documents the teacher
+  shared (lessons), and the results of the teacher's class tests. Everything else is the student's own and never
+  visible: their uploads, the tests they set themselves (even on a shared document) and those tests' results.
+  Topic mastery shown to the teacher counts only lesson checks and class-test questions (also when answered again
+  in recall), so a student's own tests do not show through it. Anything else answers `404`.
 - Teacher endpoints refuse other roles with `403 ACCESS_DENIED`.
 
 ## Roster
@@ -50,11 +52,12 @@ and their tests.
 
 ## Insights
 
-- **Student profile**: progress on every shared document, all their tests on them, the average score, and
-  **topics to work on**: practice mastery under 50 %, or rated weak in a test report.
-- **Home overview**: students (and pending invitations), documents shared, class tests sent, tests completed;
-  average, lowest and highest score over every completed test on shared documents; students needing attention
-  (average under 50 %, with the topics their latest report flagged); the latest results.
+- **Student profile**: progress on every shared document, their class tests (status, score, report), the average
+  score, and **topics to work on**: mastery under 50 % (from lessons and class tests), or rated weak in a class
+  test's report.
+- **Home overview**: students (and pending invitations), documents shared, class tests sent and completed;
+  average, lowest and highest score over completed class tests; students needing attention (average under 50 %,
+  with the topics their latest report flagged); the latest results.
 
 ## Notices and calendar
 
@@ -76,7 +79,7 @@ marks them read.
 | `GET /classroom/overview` | teacher home |
 | `GET /classroom/students`, `POST /classroom/students/invite {emails}`, `DELETE /classroom/students/members/{id}` | roster |
 | `GET /classroom/students/{studentId}` | student profile |
-| `GET /classroom/assessments/{assessmentId}` | a student's test with its report (teacher, shared documents only) |
+| `GET /classroom/assessments/{assessmentId}` | a student's result on one of the teacher's class tests, with its report (anything else: 404) |
 | `GET /classroom/documents/stats`, `POST /classroom/documents/{id}/share {studentIds}`, `GET /classroom/documents/{id}/students` | sharing |
 | `GET /classroom/tests?documentId=`, `POST /classroom/documents/{id}/tests`, `GET/PUT/DELETE /classroom/tests/{id}` | class tests |
 | `POST /classroom/tests/{id}/questions`, `PUT/DELETE /classroom/tests/{id}/questions/{qid}` | editing a draft |

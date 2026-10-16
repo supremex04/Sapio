@@ -76,7 +76,7 @@ export function StudentProfilePage() {
             <Card tone={profile.needsWork.length ? "amber" : undefined}>
               <h2 className="card-title">Topics to work on</h2>
               {profile.needsWork.length === 0 ? (
-                <p className="small muted">Nothing flagged. Topics show up here when practice accuracy stays under 50% or a test rates them weak.</p>
+                <p className="small muted">Nothing flagged. Topics show up here when accuracy in lessons and your tests stays under 50%, or one of your tests rates them weak.</p>
               ) : (
                 <ul className="cls-weak">
                   {profile.needsWork.map((w, i) => (
@@ -146,8 +146,7 @@ export function DocumentCard({ progress: d, studentId, heading = "document" }: {
                             : `In progress · ${t.answered}/${t.questionCount} answered`}
                       </span>
                     </span>
-                    {/* Class tests are the ones you set; the others the student took on their own to practise. */}
-                    {t.assigned ? <Badge tone="mastery">Class test</Badge> : <Badge>Self-practice</Badge>}
+                    <Badge tone="mastery">Class test</Badge>
                   </Link>
                 </li>
               ))}
@@ -180,7 +179,7 @@ export function StudentReportPage() {
           <ArrowLeft size={16} /> {name || "Student"}
         </Link>
         <Card>
-          <h1 className="card-title">{assessment.assignment?.title ?? "Self-practice test"}</h1>
+          <h1 className="card-title">{assessment.assignment?.title ?? "Class test"}</h1>
           <p className="muted">
             In progress: {assessment.answeredCount} of {assessment.questionCount} answered. The report appears once {name || "the student"} finishes.
           </p>

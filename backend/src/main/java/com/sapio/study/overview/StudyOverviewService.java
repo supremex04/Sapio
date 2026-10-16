@@ -59,12 +59,27 @@ public class StudyOverviewService {
 
     @Transactional(readOnly = true)
     public MaterialResponse material(UUID userId, UUID documentId) {
+        return material(userId, documentId, false);
+    }
+
+    /**
+     * The learner's material as their teacher may see it (classroom): topic progress and mastery from lessons and
+     * the teacher's tests only; the learner's own tests and their results are left out.
+     */
+    @Transactional(readOnly = true)
+    public MaterialResponse materialForTeacher(UUID userId, UUID documentId) {
+        return material(userId, documentId, true);
+    }
+
+    private MaterialResponse material(UUID userId, UUID documentId, boolean forTeacher) {
         StudyMaterial material = access.requireByDocument(userId, documentId);
         List<StudyTopic> path = topics.findByMaterialIdOrderByPosition(material.getId());
         Map<UUID, TopicProgress> state = progressOf(userId, path);
         Map<UUID, TopicStatus> status = new HashMap<>();
         state.forEach((id, p) -> status.put(id, p.getStatus()));
-        Map<UUID, Double> mastery = Mastery.byTopic(attempts.findTopicScores(userId, material.getId()));
+        Map<UUID, Double> mastery = Mastery.byTopic(forTeacher
+                ? attempts.findTeacherVisibleTopicScores(userId, material.getId())
+                : attempts.findTopicScores(userId, material.getId()));
         Optional<UUID> recommended = TopicRecommender.recommend(path, status, mastery);
 
         List<MaterialResponse.TopicView> views = path.stream().map(t -> new MaterialResponse.TopicView(
@@ -72,8 +87,14 @@ public class StudyOverviewService {
                 status.getOrDefault(t.getId(), TopicStatus.NOT_STARTED),
                 state.containsKey(t.getId()) ? state.get(t.getId()).getCompletedAt() : null,
                 mastery.get(t.getId()), recommended.map(t.getId()::equals).orElse(false))).toList();
-        AssessmentService.Stats stats = assessments.stats(userId, material.getId());
         int completed = (int) status.values().stream().filter(s -> s == TopicStatus.COMPLETED).count();
+        if (forTeacher) {
+            // The learner's own tests and recall are theirs: the teacher reads results from their class tests.
+            return new MaterialResponse(material.getDocumentId(), material.getTitle(), material.getSummary(),
+                    material.getLanguage(), material.getKind(), views,
+                    new MaterialResponse.Stats(path.size(), completed, 0, null, 0));
+        }
+        AssessmentService.Stats stats = assessments.stats(userId, material.getId());
         return new MaterialResponse(material.getDocumentId(), material.getTitle(), material.getSummary(),
                 material.getLanguage(), material.getKind(), views, new MaterialResponse.Stats(path.size(), completed,
                 stats.completed(), stats.bestScore(),

@@ -222,31 +222,47 @@ class ClassroomFlowIT {
     @Test
     void aStudentsOwnWorkStaysPrivate() throws Exception {
         UUID studentId = join();
-        // The student's own upload, with a practice test on it: not the teacher's business.
+        // The student's own upload, with a test on it: not the teacher's business.
         UUID own = DocumentFlowIT.upload(mvc, json, student, "mine.png", DocumentFlowIT.PNG_BYTES);
         assertThat(DocumentFlowIT.awaitTerminal(mvc, json, student, own).get("status").asString()).isEqualTo("READY");
-        String privateTest = call(student, post("/api/documents/" + own + "/assessments"),
-                Map.of("questionCount", 3, "difficulty", "MIXED")).andExpect(status().isCreated()).andReturn()
-                .getResponse().getContentAsString().transform(json::readTree).get("id").asString();
+        String privateTest = createTest(own.toString());
 
-        // A document the teacher shares, with a practice test the student starts on it: visible, as self-practice.
+        // On the document the teacher shared, the student also tests themselves (and gets everything wrong): still
+        // theirs. Neither the test, nor its result, nor its answers' effect on mastery reach the teacher.
         call(teacher, post("/api/classroom/documents/" + documentId + "/share"), Map.of()).andExpect(status().isOk());
         String copy = getJson(student, "/api/documents").findValuesAsString("id").stream()
                 .filter(id -> !id.equals(own.toString())).findFirst().orElseThrow();
-        call(student, post("/api/documents/" + copy + "/assessments"), Map.of("questionCount", 3, "difficulty", "MIXED"))
-                .andExpect(status().isCreated());
+        String selfTest = createTest(copy);
+        for (JsonNode item : getJson(student, "/api/assessments/" + selfTest).get("items")) {
+            Map<String, Object> answer = item.at("/question/type").asString().equals("SHORT_ANSWER")
+                    ? Map.of("text", "No idea") : Map.of("optionIndex", 1);
+            call(student, post("/api/assessments/" + selfTest + "/items/" + item.get("position").asInt() + "/answer"),
+                    answer).andExpect(status().isOk());
+        }
+        call(student, post("/api/assessments/" + selfTest + "/complete"), null).andExpect(status().isOk());
 
         JsonNode profile = getJson(teacher, "/api/classroom/students/" + studentId);
         assertThat(profile.get("documents").size()).isEqualTo(1);
-        JsonNode tests = profile.at("/documents/0/tests");
-        assertThat(tests.size()).isEqualTo(1);
-        assertThat(tests.at("/0/assigned").asBoolean()).isFalse();
-        assertThat(tests.at("/0/title").asString()).isEqualTo("Self-practice test");
-        assertThat(tests.at("/0/answered").asInt()).isZero();
-        assertThat(profile.toString()).doesNotContain(own.toString()).doesNotContain(privateTest);
-        mvc.perform(get("/api/classroom/assessments/" + privateTest).header("Authorization", teacher.bearer()))
-                .andExpect(status().isNotFound());
-        assertThat(getJson(teacher, "/api/classroom/documents/stats").size()).isEqualTo(1);
+        assertThat(profile.at("/documents/0/tests").size()).isZero();
+        assertThat(profile.at("/documents/0/averageMastery").isNull()).isTrue();
+        assertThat(profile.get("testsCompleted").asInt()).isZero();
+        assertThat(profile.get("needsWork").size()).isZero();
+        assertThat(profile.toString()).doesNotContain(own.toString()).doesNotContain(privateTest).doesNotContain(selfTest);
+        for (String test : List.of(privateTest, selfTest)) {
+            mvc.perform(get("/api/classroom/assessments/" + test).header("Authorization", teacher.bearer()))
+                    .andExpect(status().isNotFound());
+        }
+        JsonNode stats = getJson(teacher, "/api/classroom/documents/stats");
+        assertThat(stats.size()).isEqualTo(1);
+        assertThat(stats.at("/0/testsCompleted").asInt()).isZero();
+        assertThat(getJson(teacher, "/api/classroom/overview").get("testsCompleted").asInt()).isZero();
+        assertThat(getJson(teacher, "/api/classroom/documents/" + documentId + "/students").at("/0/tests").size()).isZero();
+    }
+
+    private String createTest(String documentId) throws Exception {
+        return call(student, post("/api/documents/" + documentId + "/assessments"),
+                Map.of("questionCount", 3, "difficulty", "MIXED")).andExpect(status().isCreated()).andReturn()
+                .getResponse().getContentAsString().transform(json::readTree).get("id").asString();
     }
 
     @Test

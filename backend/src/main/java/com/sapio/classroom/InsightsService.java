@@ -25,8 +25,10 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * What a teacher learns about their students, always limited to the documents the teacher shared with them (their
- * own uploads stay private): progress per document, test results, and the topics each one should work on.
+ * What a teacher learns about their students, limited to what the teacher gave them: progress on the documents the
+ * teacher shared (from lessons and the teacher's tests), the results of the teacher's class tests, and the topics
+ * each one should work on. The student's own uploads, the tests they set themselves (even on a shared document)
+ * and those tests' results stay private.
  */
 @Service
 public class InsightsService {
@@ -117,7 +119,7 @@ public class InsightsService {
         for (DocumentProgress d : docs) {
             for (TopicProgress t : d.topics()) {
                 if (t.mastery() != null && t.mastery() < WEAK) {
-                    weak.add(new WeakTopic(d.documentTitle(), t.title(), t.mastery(), "low accuracy in practice"));
+                    weak.add(new WeakTopic(d.documentTitle(), t.title(), t.mastery(), "low accuracy in lessons and your tests"));
                 }
             }
             for (TestResult r : d.tests()) {
@@ -135,21 +137,18 @@ public class InsightsService {
                 scores.size());
     }
 
-    /** A student's test (with its report), for their teacher: only on a document the teacher shared. */
+    /** A student's result on one of this teacher's class tests (with its report). Their own tests: not found. */
     public AssessmentResponse assessment(UUID teacherId, UUID assessmentId) {
         roster.requireTeacher(teacherId);
-        List<Map<String, Object>> owner = jdbc.queryForList("""
-                SELECT a.user_id, m.document_id FROM assessments a JOIN study_materials m ON m.id = a.material_id
-                WHERE a.id = ?""", assessmentId);
-        if (owner.isEmpty()) {
+        List<UUID> student = jdbc.queryForList("""
+                SELECT x.student_id FROM class_test_assignments x JOIN class_tests t ON t.id = x.test_id
+                JOIN class_memberships m ON m.teacher_id = t.teacher_id AND m.student_id = x.student_id
+                                         AND m.status = 'ACCEPTED'
+                WHERE x.assessment_id = ? AND t.teacher_id = ?""", UUID.class, assessmentId, teacherId);
+        if (student.isEmpty()) {
             throw ApplicationException.notFound("Test");
         }
-        UUID studentId = (UUID) owner.getFirst().get("user_id");
-        UUID documentId = (UUID) owner.getFirst().get("document_id");
-        if (!shares.isSharedCopy(teacherId, documentId)) {
-            throw ApplicationException.notFound("Test");
-        }
-        return assessments.get(studentId, assessmentId);
+        return assessments.get(student.getFirst(), assessmentId);
     }
 
     /** The teacher's home: the class at a glance. */
@@ -163,18 +162,18 @@ public class InsightsService {
         Integer tests = jdbc.queryForObject("SELECT count(*) FROM class_tests WHERE teacher_id = ? AND status = 'SENT'",
                 Integer.class, teacherId);
 
-        // Every completed test on a document the teacher shared: their own tests and the teacher's.
+        // Every completed class test of this teacher's (students' own tests are not counted).
         List<RecentResult> completed = jdbc.query("""
                         SELECT a.id, a.user_id, u.full_name, coalesce(d.title, d.original_filename) AS document_title,
                                a.title, a.score, a.completed_at
-                        FROM class_shares s
-                        JOIN class_memberships m ON m.teacher_id = s.teacher_id AND m.student_id = s.student_id
+                        FROM class_tests t
+                        JOIN class_test_assignments x ON x.test_id = t.id
+                        JOIN class_memberships m ON m.teacher_id = t.teacher_id AND m.student_id = x.student_id
                                                  AND m.status = 'ACCEPTED'
-                        JOIN study_materials sm ON sm.document_id = s.copy_document_id
-                        JOIN assessments a ON a.material_id = sm.id AND a.user_id = s.student_id AND a.status = 'COMPLETED'
+                        JOIN assessments a ON a.id = x.assessment_id AND a.status = 'COMPLETED'
                         JOIN users u ON u.id = a.user_id
-                        JOIN documents d ON d.id = s.source_document_id
-                        WHERE s.teacher_id = ? ORDER BY a.completed_at DESC""",
+                        JOIN documents d ON d.id = t.document_id
+                        WHERE t.teacher_id = ? ORDER BY a.completed_at DESC""",
                 (rs, i) -> new RecentResult(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getString(3),
                         rs.getString(4), rs.getString(5), rs.getDouble(6), rs.getTimestamp(7).toInstant()),
                 teacherId);
@@ -211,7 +210,7 @@ public class InsightsService {
         }
         MaterialResponse material;
         try {
-            material = overview.material(studentId, copyId);
+            material = overview.materialForTeacher(studentId, copyId);
         } catch (ApplicationException e) {
             return new DocumentProgress(sourceId, title, studentId, name, email, false, sharedAt, firstOpened,
                     lastOpened, 0, 0, null, List.of(), List.of(), null, List.of());
@@ -219,7 +218,13 @@ public class InsightsService {
         List<TopicProgress> topics = material.topics().stream()
                 .map(t -> new TopicProgress(t.position(), t.title(), t.status(), t.mastery())).toList();
         List<Double> masteries = topics.stream().map(TopicProgress::mastery).filter(Objects::nonNull).toList();
-        List<TestResult> tests = assessments.list(studentId, copyId).stream().map(InsightsService::result).toList();
+        // Only the tests this teacher set; the student's own tests stay theirs.
+        List<UUID> classTests = jdbc.queryForList("""
+                SELECT x.assessment_id FROM class_test_assignments x JOIN class_tests t ON t.id = x.test_id
+                WHERE x.student_id = ? AND t.document_id = ? AND x.assessment_id IS NOT NULL""", UUID.class, studentId,
+                sourceId);
+        List<TestResult> tests = assessments.list(studentId, copyId).stream()
+                .filter(a -> classTests.contains(a.id())).map(InsightsService::result).toList();
         List<Double> scores = tests.stream().map(TestResult::score).filter(Objects::nonNull).toList();
         List<String> weak = topics.stream().filter(t -> t.mastery() != null && t.mastery() < WEAK)
                 .map(TopicProgress::title).toList();
@@ -232,7 +237,7 @@ public class InsightsService {
 
     private static TestResult result(AssessmentSummary a) {
         boolean assigned = a.assignment() != null;
-        return new TestResult(a.id(), assigned && a.assignment().title() != null ? a.assignment().title() : "Self-practice test",
+        return new TestResult(a.id(), assigned && a.assignment().title() != null ? a.assignment().title() : "Class test",
                 assigned, a.status(), a.score(), a.answeredCount(), a.questionCount(), a.createdAt(), a.completedAt());
     }
 

@@ -22,8 +22,10 @@ set tests, see progress and results, find who needs help on which topic, and pos
   identical in every copy) and copied into each student's assessment on sending. Students therefore get the usual
   runner, sealed answers, AI grading, report, recall cards and XP, and the teacher reads the same reports. The AI
   question call gained an optional `format` (objective, subjective, mixed), enforced after generation too.
-- **Privacy by construction**: every teacher query starts from the teacher's class shares and accepted
-  memberships, so a teacher can only ever reach work on documents they gave the student.
+- **Privacy by construction**: every teacher query starts from the teacher's class shares, class tests and
+  accepted memberships, so a teacher only reaches what they gave the student: lesson progress on shared documents
+  and results of their class tests. Tests a student sets themselves, even on a shared document, stay private, and
+  are left out of the mastery the teacher sees.
 - **Notifications** are a small generic inbox (`notifications` table) any module can post to, polled by the
   client; no push channel yet.
 - **Teachers do not get gamification** (XP, streaks, recall, activity): their Home is class analytics and their
