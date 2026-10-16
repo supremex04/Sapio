@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # Sapio local development runner: one command to install (when needed) and run everything.
 #
-#   ./dev.sh              install what changed, start db + inference + backend + frontend, stream logs
+#   ./dev.sh              install what changed, start db + inference + renderer + backend + frontend,
+#                         stream logs
 #                         (Ctrl+C stops everything)
 #   ./dev.sh -d | up -d   same, but run in the background
 #   ./dev.sh setup        force a full (re)install of all dependencies, then exit
 #   ./dev.sh stop         stop services started by this script (database keeps running)
 #   ./dev.sh down         stop services and the database container
 #   ./dev.sh status       show what is running
-#   ./dev.sh logs [name]  follow logs (inference | backend | frontend; default all)
+#   ./dev.sh logs [name]  follow logs (inference | renderer | backend | frontend; default all)
 #   ./dev.sh test         run all test suites
 #
 # Options (combine with up / -d):
@@ -16,8 +17,8 @@
 #                         Gemini API: loads inference/settings.local-embedding.yaml over settings.yaml
 #
 # Dependencies are reinstalled automatically when their manifest changes
-# (inference/pyproject.toml, frontend/package*.json, backend/pom.xml): a hash of each is
-# remembered in .dev/stamps. See docs/guides/local-development.md.
+# (inference/pyproject.toml, frontend/package*.json, backend/pom.xml; the renderer image is rebuilt when
+# renderer/ changes): a hash of each is remembered in .dev/stamps. See docs/guides/local-development.md.
 
 set -Eeuo pipefail
 
@@ -26,17 +27,18 @@ DEV_DIR="$ROOT/.dev"
 LOG_DIR="$DEV_DIR/logs"
 PID_DIR="$DEV_DIR/pids"
 STAMP_DIR="$DEV_DIR/stamps"
-SERVICES=(inference backend frontend)
+SERVICES=(inference renderer backend frontend)
 
-declare -A PORT=([inference]=8000 [backend]=8080 [frontend]=5173)
+declare -A PORT=([inference]=8000 [renderer]=8100 [backend]=8080 [frontend]=5173)
 declare -A HEALTH=(
   [inference]="http://localhost:8000/health"
+  [renderer]="http://localhost:8100/health"
   [backend]="http://localhost:8080/actuator/health"
   [frontend]="http://localhost:5173/"
 )
-declare -A COLOR=([inference]=35 [backend]=34 [frontend]=32)
+declare -A COLOR=([inference]=35 [renderer]=36 [backend]=34 [frontend]=32)
 # Seconds to wait for a service to become healthy (the backend compiles on first start).
-declare -A TIMEOUT=([inference]=90 [backend]=240 [frontend]=60)
+declare -A TIMEOUT=([inference]=90 [renderer]=60 [backend]=240 [frontend]=60)
 
 # ----------------------------------------------------------------------------- output helpers
 
@@ -120,9 +122,27 @@ install_backend() {
   fi
 }
 
+# The renderer (Manim, LaTeX, Cairo, FFmpeg) runs in Docker, so nothing heavy is installed on the host.
+RENDERER_IMAGE=sapio-renderer:dev
+RENDERER_CONTAINER=sapio-renderer-dev
+
+install_renderer() {
+  local dir="$ROOT/renderer" sources
+  sources=$(find "$dir/Dockerfile" "$dir/pyproject.toml" "$dir/src" -type f -not -path '*/__pycache__/*' | sort)
+  # shellcheck disable=SC2086
+  if ! docker image inspect "$RENDERER_IMAGE" >/dev/null 2>&1 || needs_install renderer "$STAMP_DIR/renderer" $sources; then
+    step "Building the renderer image (Manim; the first build takes a few minutes)"
+    docker build -q -t "$RENDERER_IMAGE" "$dir" >/dev/null
+    # shellcheck disable=SC2086
+    mark_installed renderer $sources
+    ok "renderer ready"
+  fi
+}
+
 install_all() {
   mkdir -p "$STAMP_DIR"
   install_inference
+  install_renderer
   install_frontend
   install_backend
 }
@@ -168,6 +188,8 @@ start_service() {
   fi
   case $name in
     inference) dir="$ROOT/inference"; cmd=".venv/bin/uvicorn sapio_inference.main:app --port 8000 --reload --reload-dir src" ;;
+    renderer)  dir="$ROOT/renderer";  docker rm -f "$RENDERER_CONTAINER" >/dev/null 2>&1 || true
+               cmd="docker run --rm --name $RENDERER_CONTAINER -p 8100:8100 $RENDERER_IMAGE" ;;
     backend)   dir="$ROOT/backend";   cmd="mvn -q -B spring-boot:run" ;;
     frontend)  dir="$ROOT/frontend";  cmd="npx vite --port 5173 --strictPort" ;;
   esac
@@ -212,6 +234,7 @@ stop_services() {
     fi
     rm -f "$PID_DIR/$name"
   done
+  docker rm -f "$RENDERER_CONTAINER" >/dev/null 2>&1 || true
   ((stopped)) || info "no services were running"
 }
 
@@ -261,6 +284,7 @@ cmd_up() {
   info "App        http://localhost:5173"
   info "Backend    http://localhost:8080   ${DIM}(API under /api)${RESET}"
   info "Inference  http://localhost:8000   ${DIM}(internal)${RESET}"
+  info "Renderer   http://localhost:8100   ${DIM}(internal, Docker)${RESET}"
   local embedding
   embedding=$(curl -sf http://localhost:8000/health | sed -n 's/.*"embeddingModel":"\([^"]*\)".*/\1/p' || true)
   if [[ "$(cat "$PID_DIR/inference.mode" 2>/dev/null || echo api)" == local ]]; then
@@ -298,7 +322,7 @@ cmd_status() {
 cmd_logs() {
   local names=("${SERVICES[@]}")
   if [[ $# -gt 0 ]]; then
-    [[ -n ${PORT[$1]:-} ]] || die "unknown service '$1' (inference | backend | frontend)"
+    [[ -n ${PORT[$1]:-} ]] || die "unknown service '$1' (inference | renderer | backend | frontend)"
     names=("$1")
   fi
   for name in "${names[@]}"; do [[ -f $LOG_DIR/$name.log ]] && tail -n 30 "$LOG_DIR/$name.log" | sed "s/^/$name | /"; done
@@ -313,6 +337,10 @@ cmd_test() {
   (cd "$ROOT/backend" && mvn -q -B verify) && ok "backend"
   step "Inference tests"
   (cd "$ROOT/inference" && .venv/bin/ruff check -q src tests && .venv/bin/pytest -q) && ok "inference"
+  step "Renderer tests"
+  (cd "$ROOT/renderer"
+   [[ -x .venv/bin/pytest ]] || { "$PYTHON" -m venv .venv && .venv/bin/pip install -q -e '.[dev]'; }
+   .venv/bin/ruff check -q src tests && .venv/bin/pytest -q) && ok "renderer"
   step "Frontend checks"
   (cd "$ROOT/frontend" && npx tsc --noEmit && npx vitest run --silent && npx vite build --logLevel error) && ok "frontend"
 }

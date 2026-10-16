@@ -114,6 +114,24 @@
         "title": "AnswerResponse",
         "type": "object"
       },
+      "BeatIo": {
+        "properties": {
+          "says": {
+            "title": "Says",
+            "type": "string"
+          },
+          "shows": {
+            "title": "Shows",
+            "type": "string"
+          }
+        },
+        "required": [
+          "shows",
+          "says"
+        ],
+        "title": "BeatIo",
+        "type": "object"
+      },
       "Body_extract_v1_extract_post": {
         "properties": {
           "file": {
@@ -827,7 +845,7 @@
       "HealthResponse": {
         "properties": {
           "contractVersion": {
-            "default": "1.3",
+            "default": "1.4",
             "title": "Contractversion",
             "type": "string"
           },
@@ -1712,6 +1730,72 @@
         "title": "QuestionsResponse",
         "type": "object"
       },
+      "SceneCodeRequest": {
+        "properties": {
+          "beats": {
+            "items": {
+              "$ref": "#/components/schemas/BeatIo"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Beats",
+            "type": "array"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "maxLength": 6000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "previousCode": {
+            "anyOf": [
+              {
+                "maxLength": 30000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previouscode"
+          },
+          "title": {
+            "maxLength": 300,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "beats"
+        ],
+        "title": "SceneCodeRequest",
+        "type": "object"
+      },
+      "SceneCodeResponse": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "model"
+        ],
+        "title": "SceneCodeResponse",
+        "type": "object"
+      },
       "SectionIn": {
         "description": "One retrieved section. ``id`` is the citation id the model must use, e.g. \"\u00a72.3\".",
         "properties": {
@@ -1808,6 +1892,97 @@
           "markdown"
         ],
         "title": "SegmentOut",
+        "type": "object"
+      },
+      "StoryboardRequest": {
+        "properties": {
+          "context": {
+            "anyOf": [
+              {
+                "maxLength": 8000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context"
+          },
+          "language": {
+            "default": "en",
+            "title": "Language",
+            "type": "string"
+          },
+          "learner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LearnerIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "request": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Request",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "title": "StoryboardRequest",
+        "type": "object"
+      },
+      "StoryboardResponse": {
+        "properties": {
+          "beats": {
+            "items": {
+              "$ref": "#/components/schemas/BeatIo"
+            },
+            "title": "Beats",
+            "type": "array"
+          },
+          "feasible": {
+            "title": "Feasible",
+            "type": "boolean"
+          },
+          "kind": {
+            "enum": [
+              "formula",
+              "graph",
+              "geometry",
+              "physics",
+              "process",
+              "other"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "feasible",
+          "reason",
+          "title",
+          "kind",
+          "beats",
+          "model"
+        ],
+        "title": "StoryboardResponse",
         "type": "object"
       },
       "SummarizeNode": {
@@ -3501,6 +3676,218 @@
           }
         },
         "summary": "Transcribe"
+      }
+    },
+    "/v1/visualize/code": {
+      "post": {
+        "operationId": "code_v1_visualize_code_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SceneCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SceneCodeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Code"
+      }
+    },
+    "/v1/visualize/storyboard": {
+      "post": {
+        "operationId": "storyboard_v1_visualize_storyboard_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StoryboardRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoryboardResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Storyboard"
       }
     }
   }

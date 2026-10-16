@@ -1,4 +1,4 @@
-# Builds the three images in Cloud Build and pushes them to Artifact Registry.
+# Builds the four images in Cloud Build and pushes them to Artifact Registry.
 # Used by deploy.sh: gcloud builds submit --config deploy/gcp/cloudbuild.yaml --substitutions=...
 substitutions:
   _REGISTRY: ""          # REGION-docker.pkg.dev/PROJECT/REPO
@@ -13,6 +13,10 @@ steps:
     name: gcr.io/cloud-builders/docker
     args: ["build", "-t", "${_REGISTRY}/inference:${_TAG}", "inference"]
     waitFor: ["-"]
+  - id: renderer
+    name: gcr.io/cloud-builders/docker
+    args: ["build", "-t", "${_REGISTRY}/renderer:${_TAG}", "renderer"]
+    waitFor: ["-"]
   - id: web
     name: gcr.io/cloud-builders/docker
     args: ["build", "-t", "${_REGISTRY}/web:${_TAG}", "--build-arg", "VITE_MAX_MEDIA_BYTES=${_MAX_MEDIA_BYTES}", "frontend"]
@@ -20,6 +24,7 @@ steps:
 images:
   - ${_REGISTRY}/backend:${_TAG}
   - ${_REGISTRY}/inference:${_TAG}
+  - ${_REGISTRY}/renderer:${_TAG}
   - ${_REGISTRY}/web:${_TAG}
 # The default build machine: covered by Cloud Build's free minutes (a faster machine is billed per minute).
 timeout: 3600s

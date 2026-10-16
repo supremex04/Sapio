@@ -213,7 +213,9 @@
   bottom: 0;
   z-index: 20;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* One row, however many destinations: each gets an equal share. */
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   height: calc(var(--tabbar-height) + env(safe-area-inset-bottom, 0px));
   padding-bottom: env(safe-area-inset-bottom, 0px);
   border-top: var(--border-width) solid var(--border);
@@ -231,6 +233,12 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   text-decoration: none !important;
+}
+.tab-item > span:last-child {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .tab-icon {
   position: relative;

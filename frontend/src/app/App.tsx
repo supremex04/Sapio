@@ -27,6 +27,8 @@ const StudentReportPage = lazy(() => import("../features/classroom/StudentProfil
 const ClassTestPage = lazy(() => import("../features/classroom/ClassTestPage").then((m) => ({ default: m.ClassTestPage })));
 const NoticesPage = lazy(() => import("../features/classroom/NoticesPage").then((m) => ({ default: m.NoticesPage })));
 const CalendarPage = lazy(() => import("../features/classroom/CalendarPage").then((m) => ({ default: m.CalendarPage })));
+const VisualizePage = lazy(() => import("../features/visualize/VisualizePage").then((m) => ({ default: m.VisualizePage })));
+const VisualizationPage = lazy(() => import("../features/visualize/VisualizationPage").then((m) => ({ default: m.VisualizationPage })));
 const RecallPage = lazy(() => import("../features/study/recall/RecallPage").then((m) => ({ default: m.RecallPage })));
 
 /** Route table. New features add their routes inside the authenticated layout. */
@@ -47,6 +49,8 @@ export function App() {
                   <Route path="explore" element={<ExplorePage />} />
                   <Route path="explore/:shareId" element={<SharedItemPage />} />
                   <Route path="recall" element={<RecallPage />} />
+                  <Route path="visualize" element={<VisualizePage />} />
+                  <Route path="visualize/:id" element={<VisualizationPage />} />
                   <Route path="personalize" element={<PersonalizePage />} />
                   <Route path="review" element={<RedirectToRecall />} />
                   <Route path="documents/:id" element={<StudyHubPage />} />

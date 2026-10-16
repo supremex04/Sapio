@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Builds Sapio in Cloud Build and deploys it to Cloud Run: sapio-inference, sapio-backend and sapio-web (the
-# public URL). One-time setup (APIs, Artifact Registry, bucket, secrets, IAM, database) is in the deployment guide.
+# Builds Sapio in Cloud Build and deploys it to Cloud Run: sapio-inference, sapio-renderer, sapio-backend and
+# sapio-web (the public URL). One-time setup (APIs, Artifact Registry, bucket, secrets, IAM, database) is in the deployment guide.
 #
 #   PROJECT_ID=my-project REGION=asia-south1 deploy/gcp/deploy.sh
 #
@@ -49,6 +49,21 @@ gcloud run deploy sapio-inference --region "$REGION" --image "$REGISTRY/inferenc
   --set-secrets "SAPIO_INFERENCE_API_KEY=sapio-inference-key:latest,SAPIO_INFERENCE_GEMINI_API_KEY=sapio-gemini-key:latest"
 INFERENCE_URL=$(gcloud run services describe sapio-inference --region "$REGION" --format='value(status.url)')
 
+echo "==> Renderer"
+# Runs AI-written Manim code: its own service account that may read only its render key (no other Google API),
+# no other secrets, egress only into the VPC (no Cloud NAT, so no internet), one render per instance, scales to zero.
+RENDERER_SA="sapio-renderer@$PROJECT_ID.iam.gserviceaccount.com"
+gcloud iam service-accounts describe "$RENDERER_SA" >/dev/null 2>&1 \
+  || gcloud iam service-accounts create sapio-renderer --display-name "Sapio renderer (render key only)"
+gcloud secrets add-iam-policy-binding sapio-renderer-key --member "serviceAccount:$RENDERER_SA" \
+  --role roles/secretmanager.secretAccessor >/dev/null
+gcloud run deploy sapio-renderer --region "$REGION" --image "$REGISTRY/renderer:$TAG" \
+  --service-account "$RENDERER_SA" --allow-unauthenticated --execution-environment gen2 \
+  --cpu 2 --memory 2Gi --timeout 300 --concurrency 1 --min-instances 0 --max-instances 2 \
+  --network default --subnet default --vpc-egress all-traffic \
+  --set-secrets "SAPIO_RENDERER_API_KEY=sapio-renderer-key:latest"
+RENDERER_URL=$(gcloud run services describe sapio-renderer --region "$REGION" --format='value(status.url)')
+
 echo "==> Backend"
 # Background work (document processing, retries) runs outside requests: CPU always on (billed while the
 # instance runs, not per request).
@@ -57,8 +72,8 @@ gcloud run deploy sapio-backend --region "$REGION" --image "$REGISTRY/backend:$T
   --cpu 1 --memory 1Gi --timeout 900 --no-cpu-throttling \
   --min-instances "$BACKEND_MIN_INSTANCES" --max-instances 1 \
   --add-volume "name=files,type=cloud-storage,bucket=$BUCKET" --add-volume-mount "volume=files,mount-path=/data" \
-  --set-env-vars "^@^SAPIO_DB_URL=jdbc:postgresql:///$DB_NAME?cloudSqlInstance=$CONNECTION&socketFactory=com.google.cloud.sql.postgres.SocketFactory@SAPIO_DB_USERNAME=$DB_USER@SAPIO_INFERENCE_URL=$INFERENCE_URL@SAPIO_MAX_MEDIA_BYTES=$MAX_MEDIA_BYTES" \
-  --set-secrets "SAPIO_DB_PASSWORD=sapio-db-password:latest,SAPIO_JWT_SECRET=sapio-jwt-secret:latest,SAPIO_INFERENCE_API_KEY=sapio-inference-key:latest,SAPIO_MEDIA_URL_SECRET=sapio-media-url-secret:latest,SAPIO_FIGURE_URL_SECRET=sapio-figure-url-secret:latest"
+  --set-env-vars "^@^SAPIO_DB_URL=jdbc:postgresql:///$DB_NAME?cloudSqlInstance=$CONNECTION&socketFactory=com.google.cloud.sql.postgres.SocketFactory@SAPIO_DB_USERNAME=$DB_USER@SAPIO_INFERENCE_URL=$INFERENCE_URL@SAPIO_RENDERER_URL=$RENDERER_URL@SAPIO_MAX_MEDIA_BYTES=$MAX_MEDIA_BYTES" \
+  --set-secrets "SAPIO_DB_PASSWORD=sapio-db-password:latest,SAPIO_JWT_SECRET=sapio-jwt-secret:latest,SAPIO_INFERENCE_API_KEY=sapio-inference-key:latest,SAPIO_MEDIA_URL_SECRET=sapio-media-url-secret:latest,SAPIO_FIGURE_URL_SECRET=sapio-figure-url-secret:latest,SAPIO_RENDERER_API_KEY=sapio-renderer-key:latest,SAPIO_VISUALIZATION_URL_SECRET=sapio-visualization-url-secret:latest"
 BACKEND_URL=$(gcloud run services describe sapio-backend --region "$REGION" --format='value(status.url)')
 
 echo "==> Web"

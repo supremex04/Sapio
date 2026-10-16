@@ -19,6 +19,7 @@ frontend routes, inference endpoints) as of 2026-10-10. Details live in the link
 | Personalize: academic level, occupation, field, depth, preferences, goal; lessons, notes, tests and tutor written for it | Available |
 | Gamification & analytics | Available |
 | Classroom: roster by email invitation, sharing to students' libraries, class tests (AI-drafted, teacher-reviewed), results and insights, notices, calendar, notifications | Available ([spec](specs/classroom.md)) |
+| Visualize: a formula or idea in, a short animated video (Manim) out; storyboard and code shown, failed renders repaired by the AI | Available ([spec](specs/visualizations.md)) |
 | Design system (light/dark, Diya v2, `/styleguide`) | Available |
 | AI vendor-neutrality (providers, per-task routes, fallbacks) | Available (config) |
 | Operations (`dev.sh`, auto-retries, config) | Available |
@@ -160,8 +161,8 @@ Guide: [guides/configuration.md](guides/configuration.md), [ADR-0010](adr/0010-v
 
 ## Operations
 
-- `./dev.sh` installs what changed and starts Postgres (pgvector, port 5433), inference, backend and
-  frontend; also `-d`, `stop`, `down`, `status`, `logs`, `setup`, `test`.
+- `./dev.sh` installs what changed and starts Postgres (pgvector, port 5433), inference, the renderer (Docker),
+  backend and frontend; also `-d`, `stop`, `down`, `status`, `logs`, `setup`, `test`.
 - Resilience: provider retries honour server hints (`Retry-After`, `RetryInfo`), model fallbacks,
   automatic document retries (`sapio.documents.processing.auto-retry-delays`), resumable, idempotent
   pipeline stages; retries wait for the AI's quota-reset hint; unfinished documents resume after a restart or
@@ -195,4 +196,4 @@ Guides: [guides/local-development.md](guides/local-development.md), [guides/conf
 
 Full list: [roadmap.md](roadmap.md). Specs: [auth](specs/auth.md) · [ocr](specs/ocr.md) ·
 [knowledge](specs/knowledge.md) · [study](specs/study.md) · [progress](specs/progress.md) ·
-[classroom](specs/classroom.md) · [design system](specs/design-system.md) · [inference API](specs/inference-api.md) · [API conventions](specs/api-conventions.md).
+[classroom](specs/classroom.md) · [visualizations](specs/visualizations.md) · [design system](specs/design-system.md) · [inference API](specs/inference-api.md) · [API conventions](specs/api-conventions.md).

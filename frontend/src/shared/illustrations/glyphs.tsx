@@ -329,6 +329,15 @@ const GLYPHS = {
       </g>
     </>
   ),
+  /** Visualize: a curve being drawn on a screen, with a play button. */
+  visualize: () => (
+    <>
+      <Tile tone="purple" />
+      <path d="M10 29c4-11 8-14 11.5-8s7.5 6.5 11-2.5" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" />
+      <circle cx="33.5" cy="18.5" r="3" fill="#fff" />
+      <path d="M29 26.5v9.5l8-4.75Z" fill="#fff" opacity="0.8" strokeLinejoin="round" />
+    </>
+  ),
 } satisfies Record<string, () => ReactElement>;
 
 export type GlyphName = keyof typeof GLYPHS;

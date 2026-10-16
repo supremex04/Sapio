@@ -166,6 +166,15 @@ Guarantees the service enforces on LLM output:
 - Grades: `score` is clamped into the verdict band (CORRECT 0.8–1, PARTIAL 0.3–0.7, INCORRECT 0–0.2);
   blank answers are INCORRECT without calling the LLM.
 
+## Visualize endpoints (`/v1/visualize/*`, contract 1.4)
+
+| Endpoint | Task | Request | Response |
+|---|---|---|---|
+| `POST /storyboard` | `visualize_plan` | `{request (formula or words, at most 2000), language, context?, learner?}` | `{feasible, reason, title, kind, beats:[{shows, says}] (2-8), model}` |
+| `POST /code` | `visualize_code` | `{title, beats, previousCode?, error?}` (both set: repair code the renderer refused or could not run) | `{code (one Visualization(Scene) class, Manim CE 0.19), model}` |
+
+The service does not run the code; the renderer does ([visualizations.md](visualizations.md)).
+
 ## Contract file
 
 `contracts/inference-openapi.json` (repo root) is the OpenAPI document generated from the FastAPI app by

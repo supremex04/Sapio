@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from sapio_inference.api import index_routes, media_routes, routes, study_routes
+from sapio_inference.api import index_routes, media_routes, routes, study_routes, visualize_routes
 from sapio_inference.api.errors import install_error_handlers
 from sapio_inference.config import Settings, get_settings
 from sapio_inference.engines.base import OcrEngine
@@ -18,6 +18,7 @@ from sapio_inference.speech.base import SpeechEngine
 from sapio_inference.speech.notes import LectureNotes
 from sapio_inference.speech.registry import build_speech
 from sapio_inference.study.service import StudyService
+from sapio_inference.visualize.service import VisualizeService
 
 log = logging.getLogger("sapio_inference")
 
@@ -47,6 +48,7 @@ def create_app(
         app.state.llm = llm
         app.state.embedder = embedder
         app.state.study_service = StudyService(llm, config=settings.study)
+        app.state.visualize_service = VisualizeService(llm)
         app.state.indexing_service = IndexingService(llm, embedder, settings.indexing)
         app.state.speech = speech_factory(settings)
         app.state.lecture_notes = LectureNotes(llm, settings.lecture_notes, settings.parsing)
@@ -63,6 +65,7 @@ def create_app(
     app.include_router(study_routes.router)
     app.include_router(index_routes.router)
     app.include_router(media_routes.router)
+    app.include_router(visualize_routes.router)
     return app
 
 
