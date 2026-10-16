@@ -37,8 +37,9 @@ public class InsightsService {
     public record TopicProgress(int position, String title, TopicStatus status, Double mastery) {
     }
 
+    /** @param assigned a class test the teacher set (otherwise the student's own practice test on the document) */
     public record TestResult(UUID assessmentId, String title, boolean assigned, AssessmentStatus status, Double score,
-                             Instant createdAt, Instant completedAt) {
+                             long answered, int questionCount, Instant createdAt, Instant completedAt) {
     }
 
     /** One student on one document the teacher shared. {@code topics} is empty when the copy was deleted. */
@@ -231,8 +232,8 @@ public class InsightsService {
 
     private static TestResult result(AssessmentSummary a) {
         boolean assigned = a.assignment() != null;
-        return new TestResult(a.id(), assigned && a.assignment().title() != null ? a.assignment().title() : "Practice test",
-                assigned, a.status(), a.score(), a.createdAt(), a.completedAt());
+        return new TestResult(a.id(), assigned && a.assignment().title() != null ? a.assignment().title() : "Self-practice test",
+                assigned, a.status(), a.score(), a.answeredCount(), a.questionCount(), a.createdAt(), a.completedAt());
     }
 
     /** Topics a completed test's report rated weak. */

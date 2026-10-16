@@ -220,6 +220,36 @@ class ClassroomFlowIT {
     }
 
     @Test
+    void aStudentsOwnWorkStaysPrivate() throws Exception {
+        UUID studentId = join();
+        // The student's own upload, with a practice test on it: not the teacher's business.
+        UUID own = DocumentFlowIT.upload(mvc, json, student, "mine.png", DocumentFlowIT.PNG_BYTES);
+        assertThat(DocumentFlowIT.awaitTerminal(mvc, json, student, own).get("status").asString()).isEqualTo("READY");
+        String privateTest = call(student, post("/api/documents/" + own + "/assessments"),
+                Map.of("questionCount", 3, "difficulty", "MIXED")).andExpect(status().isCreated()).andReturn()
+                .getResponse().getContentAsString().transform(json::readTree).get("id").asString();
+
+        // A document the teacher shares, with a practice test the student starts on it: visible, as self-practice.
+        call(teacher, post("/api/classroom/documents/" + documentId + "/share"), Map.of()).andExpect(status().isOk());
+        String copy = getJson(student, "/api/documents").findValuesAsString("id").stream()
+                .filter(id -> !id.equals(own.toString())).findFirst().orElseThrow();
+        call(student, post("/api/documents/" + copy + "/assessments"), Map.of("questionCount", 3, "difficulty", "MIXED"))
+                .andExpect(status().isCreated());
+
+        JsonNode profile = getJson(teacher, "/api/classroom/students/" + studentId);
+        assertThat(profile.get("documents").size()).isEqualTo(1);
+        JsonNode tests = profile.at("/documents/0/tests");
+        assertThat(tests.size()).isEqualTo(1);
+        assertThat(tests.at("/0/assigned").asBoolean()).isFalse();
+        assertThat(tests.at("/0/title").asString()).isEqualTo("Self-practice test");
+        assertThat(tests.at("/0/answered").asInt()).isZero();
+        assertThat(profile.toString()).doesNotContain(own.toString()).doesNotContain(privateTest);
+        mvc.perform(get("/api/classroom/assessments/" + privateTest).header("Authorization", teacher.bearer()))
+                .andExpect(status().isNotFound());
+        assertThat(getJson(teacher, "/api/classroom/documents/stats").size()).isEqualTo(1);
+    }
+
+    @Test
     void noticesAndEventsReachTheClass() throws Exception {
         join();
         call(teacher, post("/api/classroom/notices"), Map.of("title", "Lab moved", "body", "Room 4 on Friday."))

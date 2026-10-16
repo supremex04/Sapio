@@ -97,7 +97,7 @@ export function TeacherHome() {
                           <span className="cls-row-main">
                             <strong>{r.studentName}</strong>
                             <span className="small muted">
-                              {r.testTitle ?? "Practice test"} · {r.documentTitle} · {formatRelative(r.completedAt)}
+                              {r.testTitle ?? "Self-practice test"} · {r.documentTitle} · {formatRelative(r.completedAt)}
                             </span>
                           </span>
                         </Link>

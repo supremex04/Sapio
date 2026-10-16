@@ -72,6 +72,8 @@ export interface TestResult {
   assigned: boolean;
   status: AssessmentStatus;
   score: number | null;
+  answered: number;
+  questionCount: number;
   createdAt: string;
   completedAt: string | null;
 }

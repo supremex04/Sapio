@@ -138,9 +138,16 @@ export function DocumentCard({ progress: d, studentId, heading = "document" }: {
                     <span className={cx("cls-score", scoreTone(t.score))}>{t.score == null ? "…" : formatPercent(t.score)}</span>
                     <span className="cls-row-main">
                       <strong>{t.title}</strong>
-                      <span className="small muted">{t.status === "COMPLETED" ? `Finished ${formatRelative(t.completedAt ?? t.createdAt)}` : "In progress"}</span>
+                      <span className="small muted">
+                        {t.status === "COMPLETED"
+                          ? `Finished ${formatRelative(t.completedAt ?? t.createdAt)}`
+                          : t.answered === 0
+                            ? "Not started"
+                            : `In progress · ${t.answered}/${t.questionCount} answered`}
+                      </span>
                     </span>
-                    {t.assigned && <Badge tone="mastery">Your test</Badge>}
+                    {/* Class tests are the ones you set; the others the student took on their own to practise. */}
+                    {t.assigned ? <Badge tone="mastery">Class test</Badge> : <Badge>Self-practice</Badge>}
                   </Link>
                 </li>
               ))}
@@ -173,7 +180,7 @@ export function StudentReportPage() {
           <ArrowLeft size={16} /> {name || "Student"}
         </Link>
         <Card>
-          <h1 className="card-title">{assessment.assignment?.title ?? "Practice test"}</h1>
+          <h1 className="card-title">{assessment.assignment?.title ?? "Self-practice test"}</h1>
           <p className="muted">
             In progress: {assessment.answeredCount} of {assessment.questionCount} answered. The report appears once {name || "the student"} finishes.
           </p>
