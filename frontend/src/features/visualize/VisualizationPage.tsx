@@ -13,6 +13,7 @@ import { ProgressBar } from "../../shared/ui/Progress";
 import { SkeletonText } from "../../shared/ui/Skeleton";
 import { Sage } from "../../shared/illustrations/Sage";
 import { visualizeApi } from "./api";
+import { VideoPlayer } from "./VideoPlayer";
 import { fraction, stage, videoLength } from "./progress";
 import { isWorking, type Visualization } from "./types";
 import "./visualize.css";
@@ -77,7 +78,7 @@ export function VisualizationPage() {
 
             <div className="viz-stage">
               {v.status === "READY" && v.videoUrl ? (
-                <video className="viz-video" src={v.videoUrl} poster={v.thumbnailUrl ?? undefined} controls autoPlay playsInline />
+                <VideoPlayer src={v.videoUrl} poster={v.thumbnailUrl ?? undefined} />
               ) : working ? (
                 <div className="viz-making" role="status" aria-live="polite">
                   <Sage mood="thinking" size={88} />
