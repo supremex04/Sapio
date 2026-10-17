@@ -41,7 +41,7 @@ def storyboard_prompt(request: str, context: str | None, engine: str = "auto") -
         if engine == "auto"
         else f"Use the engine {engine} (the learner chose it)."
     )
-    return f"""Plan a short visualization (20-45 seconds of narration) that helps a learner understand this:
+    return f"""Plan a short visualization (25-60 seconds of narration) that helps a learner understand this:
 
 \"\"\"{request.strip()[:4000]}\"\"\"{context_block}
 

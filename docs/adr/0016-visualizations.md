@@ -35,7 +35,7 @@ needs heavy native dependencies (Cairo, Pango, FFmpeg, LaTeX) and minutes of CPU
   size. Its phonemiser (espeak-ng via phonemizer) is GPL-3.0: fine for a service we run, to review before shipping
   the renderer to anyone else.
 - **Cost control**: the same request (case and spacing aside) reuses the finished or in-progress visualization;
-  each learner may start `daily-limit` (15) a day; videos are capped at 90 s and rendered at 720p30. The renderer
+  each learner may start `daily-limit` (15) a day; videos are capped at 120 s and rendered at 720p30. The renderer
   scales to zero.
 
 ## Consequences

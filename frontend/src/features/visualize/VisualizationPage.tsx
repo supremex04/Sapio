@@ -15,6 +15,7 @@ import { Sage } from "../../shared/illustrations/Sage";
 import { visualizeApi } from "./api";
 import { chainColour } from "./chains";
 import { CodeView } from "./CodeView";
+import { ChemicalFormula, isFormula } from "./formula";
 import { MoleculeView } from "./MoleculeView";
 import { NarratedScene } from "./NarratedScene";
 import { ProteinView } from "./ProteinView";
@@ -79,7 +80,7 @@ export function VisualizationPage() {
             <header className="page-head">
               <h1>{v.title ?? "Visualization"}</h1>
               {/* Code is shown in the viewer, line by line; as Markdown it would collapse into one line. */}
-              {v.engine !== "CODE" && <Markdown className="viz-request muted">{v.request}</Markdown>}
+              {v.engine !== "CODE" && <Markdown className="viz-request muted">{isFormula(v.request) ? `$${v.request.trim()}$` : v.request}</Markdown>}
             </header>
 
             {v.status === "READY" && v.scene ? (
@@ -182,7 +183,9 @@ function MoleculeFacts({ scene, drawing }: { scene: MoleculeScene; drawing: stri
           </div>
           <div>
             <dt>Formula</dt>
-            <dd>{scene.formula}</dd>
+            <dd>
+              <ChemicalFormula formula={scene.formula} />
+            </dd>
           </div>
           <div>
             <dt>Molar mass</dt>

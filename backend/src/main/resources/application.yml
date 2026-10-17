@@ -122,7 +122,7 @@ sapio:
     # The renderer service (renderer/): checked Manim code in, video out. No AI, no secrets; no internet in the cloud.
     renderer-url: ${SAPIO_RENDERER_URL:http://localhost:8100}
     renderer-api-key: ${SAPIO_RENDERER_API_KEY:dev-renderer-key}
-    render-timeout: 4m
+    render-timeout: 6m # speech, then up to 4 minutes of rendering
     max-attempts: 3 # renders per visualization; each failure goes back to the AI with the error to fix
     daily-limit: ${SAPIO_VISUALIZATIONS_PER_DAY:15} # per user: rendering costs CPU time
     # Signs video / thumbnail URLs. MUST be overridden outside local development.

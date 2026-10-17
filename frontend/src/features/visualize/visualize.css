@@ -523,3 +523,10 @@
   height: 0.8rem;
   border-radius: 3px;
 }
+
+/* Chemical formulas: subscripts and charges small, without pushing the line apart. */
+.viz-formula sub,
+.viz-formula sup {
+  font-size: 0.72em;
+  line-height: 0;
+}

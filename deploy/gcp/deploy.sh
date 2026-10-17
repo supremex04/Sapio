@@ -59,7 +59,7 @@ gcloud secrets add-iam-policy-binding sapio-renderer-key --member "serviceAccoun
   --role roles/secretmanager.secretAccessor >/dev/null
 gcloud run deploy sapio-renderer --region "$REGION" --image "$REGISTRY/renderer:$TAG" \
   --service-account "$RENDERER_SA" --allow-unauthenticated --execution-environment gen2 \
-  --cpu 2 --memory 2Gi --timeout 300 --concurrency 1 --min-instances 0 --max-instances 2 \
+  --cpu 2 --memory 2Gi --timeout 600 --concurrency 1 --min-instances 0 --max-instances 2 \
   --network default --subnet default --vpc-egress all-traffic \
   --set-secrets "SAPIO_RENDERER_API_KEY=sapio-renderer-key:latest"
 RENDERER_URL=$(gcloud run services describe sapio-renderer --region "$REGION" --format='value(status.url)')

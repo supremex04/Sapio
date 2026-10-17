@@ -15,7 +15,7 @@ inference: `sapio_inference.visualize`; renderer: `renderer/`; frontend: `featur
    `with narrate(self, n) as seconds:` and paced to the length of its spoken line.
 3. **Render** (renderer `POST /v1/render`): the renderer speaks each caption (Kokoro-82M), then runs the checked
    scene with limits; `narrate` starts a beat's line and waits until it is finished, so voice and picture stay in
-   step. Returns the MP4 (720p30, AAC narration, at most 90 s) and a thumbnail (a frame near the end).
+   step. Returns the MP4 (720p30, AAC narration, at most 120 s) and a thumbnail (a frame near the end).
 4. **Repair**: if the render fails because of the code, the AI receives its code and the renderer's error and
    writes a fix; up to `sapio.visualization.max-attempts` renders (default 3). If the renderer is unreachable the
    visualization fails at once with "unavailable", and can be retried.
@@ -89,6 +89,9 @@ the renderer, not a description of what it drew, so it is not shown either. The
 code view, like the 3D viewers, has a fixed-size stage: the listing and the state panel scroll inside it, keeping
 the running line and the newest output in view.
 
+A molecule's formula shows counts as subscripts and the charge as a superscript (C₈H₁₀N₄O₂, O₄S²⁻); a request that
+is a formula on its own (`a^2 + b^2 = c^2`) is typeset under the title, while one in words stays as written.
+
 The player has its own controls (play, time, seek, sound, full screen); narrated videos start with sound when the
 browser allows autoplay with sound (after a click in the app), otherwise muted with the sound button showing it.
 
@@ -102,7 +105,9 @@ of the traceback), `timeout` or `output` (no video, empty, or too long). `GET /h
 **Narration.** Kokoro-82M (int8 ONNX, about 120 MB with its voices, baked into the image by
 `scripts/fetch_models.py` and checked by SHA-256) runs in the renderer's own process, before the scene, at roughly
 twice real time on a CPU; clips are peak-normalised, end with a short pause and are cached by text. Voice
-`af_heart` (env `SAPIO_RENDERER_TTS_VOICE`), US English. Scene code may import exactly
+`af_heart` (env `SAPIO_RENDERER_TTS_VOICE`), US English, at speed 0.8 (env `SAPIO_RENDERER_TTS_SPEED`; 1.0 is the
+voice's own rate), with 0.4 s between lines. Animations and viewers are timed to the narration, so this one setting
+paces everything. Scene code may import exactly
 `from sapio_narration import narrate`; each line plays once and in order (a wrong or repeated beat number takes
 the next unspoken line). Without the model, or if speech fails, the video renders silently (`narrated: false`).
 `durationSeconds` is the picture's length, and any sound past the last frame is cut.
@@ -110,7 +115,7 @@ the next unspoken line). Without the model, or if speech fails, the video render
 The static check allows imports of `manim`, `math`, `numpy`, `random`, `typing`, `itertools`, `functools`,
 `colorsys` and `narrate` from `sapio_narration` only, and refuses dunder attributes, strings containing `__`, `global`/`nonlocal`, and names such as
 `eval`, `exec`, `open`, `getattr`, `os`, `sys`, `subprocess`. The render runs in a child process with an empty
-environment, limits on CPU time (180 s), memory (3 GiB), file size (300 MiB) and wall-clock time (150 s), one at
+environment, limits on CPU time (300 s), memory (3 GiB), file size (300 MiB) and wall-clock time (240 s), one at
 a time per instance, as a non-root user.
 
 Locally `./dev.sh` builds the image `sapio-renderer:dev` (rebuilt when `renderer/` changes) and runs it with
@@ -128,6 +133,6 @@ like scenes but for teaching Python (`collections`, `heapq`, `dataclasses` and t
 
 ## Configuration (`sapio.visualization` in `application.yml`)
 
-`renderer-url` (`SAPIO_RENDERER_URL`), `renderer-api-key` (`SAPIO_RENDERER_API_KEY`), `render-timeout` (4m),
+`renderer-url` (`SAPIO_RENDERER_URL`), `renderer-api-key` (`SAPIO_RENDERER_API_KEY`), `render-timeout` (6m),
 `max-attempts` (3), `daily-limit` (15), `url-secret` (`SAPIO_VISUALIZATION_URL_SECRET`, must be set outside
 local development), `url-ttl` (6h), `protein-bank.*` (RCSB URLs, `max-structure-bytes` 15 MiB).

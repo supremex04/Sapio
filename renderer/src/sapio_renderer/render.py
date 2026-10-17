@@ -20,7 +20,7 @@ from sapio_renderer import safety, speech
 
 QUALITY = {"preview": "l", "final": "m"}  # Manim: l = 480p15, m = 720p30
 TEMPLATE = Path(__file__).with_name("tex_template.tex")
-MAX_SECONDS = 90.0  # longest video accepted
+MAX_SECONDS = 120.0  # longest video accepted (six narrated steps at a calm pace run to about 75 s)
 
 _one_at_a_time = threading.Semaphore(1)
 
@@ -46,8 +46,8 @@ class RenderFailed(Exception):
 
 @dataclass(frozen=True)
 class Limits:
-    timeout_seconds: float = 150.0
-    cpu_seconds: int = 180
+    timeout_seconds: float = 240.0
+    cpu_seconds: int = 300
     memory_bytes: int = 3 * 1024**3
     file_bytes: int = 300 * 1024**2
 
