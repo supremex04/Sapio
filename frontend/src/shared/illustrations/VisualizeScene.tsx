@@ -57,11 +57,13 @@ export function VisualizeScene({ className, label }: { className?: string; label
         <path d={sparkle(128, 12, 2.6)} />
       </g>
 
-      {/* The thought, rising from Sapi's thought bubbles and branching across the sky */}
+      {/* The thought, rising from Sapi's thought bubbles in dotted trails toward what it pictures */}
+      <g fill="none" stroke="#fff" strokeOpacity="0.7" strokeWidth="2" strokeLinecap="round" strokeDasharray="0.1 5">
+        <path d="M181 108 C172 90 146 80 116 72" />
+        <path d="M184 106 C192 88 170 66 160 40" />
+        <path d="M187 108 C202 88 236 76 262 58" />
+      </g>
       <g fill="none" stroke="#fff" strokeOpacity="0.88" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M183 113 C196 100 172 92 187 79 C199 68 182 60 168 52 C158 46 162 36 156 30" />
-        <path d="M187 79 C164 76 134 82 116 68 C100 56 110 40 92 30" />
-        <path d="M187 79 C214 74 234 82 250 66 C262 54 252 40 264 30" />
 
         {/* A wave and a formula */}
         <path d="M62 46 q7 -11 14 0 t14 0 t14 0" />

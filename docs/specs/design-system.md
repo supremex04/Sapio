@@ -87,8 +87,8 @@ Nunito Variable (OFL), one family only. Hierarchy via weight and size:
   `cheer`, `thinking`, `encourage`, `oops`, `sleepy`. Sapi appears at moments that matter: onboarding,
   empty states, answer feedback, celebrations, loading. Never more than once per screen.
   Code: `shared/illustrations/Sage.tsx` (hand-made SVG, ours).
-  **Sapi visualizing** (`shared/illustrations/VisualizeScene.tsx`, ours): Sapi on the shore at dusk, its thought
-  rising as a chalk stream into doodles of what Sapio shows (a wave and a formula, an idea, an atom, a molecule ring,
+  **Sapi visualizing** (`shared/illustrations/VisualizeScene.tsx`, ours): Sapi on the shore at dusk, its thoughts
+  rising in dotted trails toward chalk doodles of what Sapio shows (a wave and a formula, an idea, an atom, a molecule ring,
   code). The 16:9 cover of a visualization with no picture of its own (traced programs, ones still being made); the
   sky stays dusk in both themes, the accents are tokens. A thumbnail, so the once-per-screen rule does not apply.
 - **Avatars**: DiceBear *notionists* (CC0), seeded by user id: friendly, consistent, no uploads needed.
