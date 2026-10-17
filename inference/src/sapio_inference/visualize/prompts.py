@@ -83,9 +83,12 @@ NARRATION (every beat is spoken; the voice is prepared for you)
   for the voice to finish, so never add a long self.wait() at the end of a beat, and never let a beat's animations
   run much longer than seconds.
 - An optional title before beat 1 (1-2 s) and a short self.wait(1) after the last beat are fine.
+- SUBTITLES ARE AUTOMATIC: narrate() shows each beat's spoken caption at the bottom of the frame. Never draw
+  captions, subtitles or narration text yourself (no Text of the caption anywhere), and keep the bottom 1.3 units of
+  the frame (y below -2.7) clear of your objects so the subtitle never covers them.
 
 MANIM 0.19 API THAT WORKS
-- Text: Text("caption", font_size=28). Formulas: MathTex(r"E = mc^2"), multi-part MathTex(r"a^2", "+", r"b^2", "=", r"c^2")
+- Text: Text("label", font_size=28). Formulas: MathTex(r"E = mc^2"), multi-part MathTex(r"a^2", "+", r"b^2", "=", r"c^2")
   (LaTeX: only amsmath / amssymb; use \text{...} for words inside formulas). Tex(r"...") for text with inline maths.
 - Shapes: Dot, Circle, Square, Rectangle, Triangle, Polygon(*points), Line(a, b), Arrow(a, b, buff=0), DashedLine,
   Arc(radius, start_angle, angle), Sector, Annulus, Brace(mobject, direction), BraceLabel, SurroundingRectangle,
@@ -103,7 +106,7 @@ MANIM 0.19 API THAT WORKS
   m.animate.shift(RIGHT).set_color(RED), Rotate(m, angle=PI/2), MoveAlongPath(dot, path), LaggedStart(*anims, lag_ratio=0.2),
   AnimationGroup(*anims), Succession(*anims). self.wait(1). run_time=... on self.play.
 - Layout: m.to_edge(UP), m.to_corner(UL), m.next_to(other, DOWN, buff=0.3), m.move_to(ORIGIN), m.shift(2*LEFT),
-  m.scale(0.8), m.arrange(DOWN, buff=0.4) on VGroup, VGroup(a, b). Keep everything inside the frame (x in [-7, 7], y in [-4, 4]).
+  m.scale(0.8), m.arrange(DOWN, buff=0.4) on VGroup, VGroup(a, b). Keep everything inside the frame (x in [-7, 7], y in [-2.7, 4]; the bottom is for subtitles).
 - Colours: WHITE, GREY, BLUE, TEAL, GREEN, YELLOW, GOLD, ORANGE, RED, PINK, PURPLE (and _A.._E shades, e.g. BLUE_C).
 - Constants: PI, TAU, DEGREES, UP, DOWN, LEFT, RIGHT, UL, UR, DL, DR, ORIGIN.
 - 3D (ThreeDScene only): self.set_camera_orientation(phi=70*DEGREES, theta=-45*DEGREES); ThreeDAxes(); Surface(lambda u, v: axes.c2p(u, v, f(u, v)), u_range=[-2, 2], v_range=[-2, 2]).
@@ -112,9 +115,8 @@ DO NOT USE (removed or wrong in 0.19): ShowCreation, TextMobject, TexMobject, ge
 self.camera.frame in a plain Scene, config changes, Code(), Paragraph() with odd fonts, external LaTeX packages.
 
 STYLE
-- Show each beat's caption as a subtitle at the bottom, inside its narrate block: caption = Text(beat_text,
-  font_size=26).to_edge(DOWN); replace the previous caption with FadeOut(old), FadeIn(new) at the start of the beat
-  (break long lines with "\n" so they fit in one or two lines).
+- Words on screen are labels and formulas only (MathTex for anything mathematical, never LaTeX inside Text); the
+  narration is shown for you.
 - Title for 1-2 s at the start, then the idea. Use colour to link a symbol in a formula to the shape it describes.
 - Clean up (FadeOut) objects you no longer need so the frame never gets crowded.
 """

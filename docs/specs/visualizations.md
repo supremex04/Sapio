@@ -12,7 +12,10 @@ inference: `sapio_inference.visualize`; renderer: `renderer/`; frontend: `featur
    A request that cannot be shown as an animation comes back `feasible: false` with a reason, and the
    visualization fails with that reason without rendering anything.
 2. **Code** (task `visualize_code`): one `Visualization(Scene)` class in Manim Community 0.19, each beat wrapped in
-   `with narrate(self, n) as seconds:` and paced to the length of its spoken line.
+   `with narrate(self, n) as seconds:` and paced to the length of its spoken line. The scene does not draw
+   subtitles: `narrate` shows each beat's spoken line itself (centred, balanced lines, at the bottom of the frame,
+   which scenes keep clear), so the video's subtitles are always exactly what is said, never the AI's own text
+   (which once put raw LaTeX on screen). Without a voice they still show, for an estimated time.
 3. **Render** (renderer `POST /v1/render`): the renderer speaks each caption (Kokoro-82M), then runs the checked
    scene with limits; `narrate` starts a beat's line and waits until it is finished, so voice and picture stay in
    step. Returns the MP4 (720p30, AAC narration, at most 120 s) and a thumbnail (a frame near the end).

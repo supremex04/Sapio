@@ -108,6 +108,11 @@ def _to_wav(samples, rate: int) -> Clip:
 WORDS_PER_SECOND = 2.6 * SPEED  # timing when there is no voice: the same pace as the voice
 
 
+def estimate(line: str) -> float:
+    """How long a line takes to say, without a voice to measure it."""
+    return max(2.5, len(line.split()) / WORDS_PER_SECOND)
+
+
 @dataclass(frozen=True)
 class Track:
     audio: bytes | None  # AAC in MP4 (m4a); None when speech is unavailable
@@ -124,7 +129,7 @@ def track(lines: list[str]) -> Track:
     if not lines or any(c is None for c in clips):
         beats, start = [], 0.0
         for line in lines:
-            seconds = max(2.5, len(line.split()) / WORDS_PER_SECOND)
+            seconds = estimate(line)
             beats.append((round(start, 3), round(seconds, 3)))
             start += seconds
         return Track(None, beats)

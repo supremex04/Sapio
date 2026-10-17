@@ -98,3 +98,11 @@ def test_code_storyboards_carry_the_program_and_protein_ids_are_normalised():
     protein = {**BOARD, "engine": "protein", "protein": {"pdb_id": "1hho", "name": "haemoglobin"}}
     out = VisualizeService(FakeLlm(protein)).storyboard(v.StoryboardRequest(request="haemoglobin"))
     assert out.engine == "protein" and out.protein.pdb_id == "1HHO"
+
+
+def test_scenes_leave_the_subtitles_to_narrate():
+    from sapio_inference.visualize import prompts
+
+    code = prompts.code_prompt("Oscillator", [("A spring", "A mass on a spring.")])
+    assert "SUBTITLES ARE AUTOMATIC" in code
+    assert "to_edge(DOWN); replace the previous caption" not in code

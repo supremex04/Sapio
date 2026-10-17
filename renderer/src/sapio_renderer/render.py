@@ -73,18 +73,22 @@ def render(
 
 
 def _prepare_narration(tmp: Path, lines: list[str]) -> bool:
-    """Speaks each line into the scene folder and lists them in narration.json (read by sapio_narration)."""
+    """Speaks each line into the scene folder and lists them in narration.json (read by sapio_narration), with their
+    text, which the scene shows as the subtitles. Returns whether there is a voice: without one (speech
+    unavailable) the subtitles still show, for an estimated time each."""
+    clips = [speech.synthesize(text) for text in lines]
+    voiced = bool(lines) and all(c is not None for c in clips)  # all or nothing: half a narration is worse
     manifest = []
-    for i, text in enumerate(lines, 1):
-        clip = speech.synthesize(text)
-        if clip is None:
-            return False  # all or nothing: half a narration is worse than none
-        name = f"beat-{i}.wav"
-        (tmp / name).write_bytes(clip.wav)
-        manifest.append({"file": str(tmp / name), "seconds": round(clip.seconds, 3)})
+    for i, (text, clip) in enumerate(zip(lines, clips, strict=True), 1):
+        entry = {"text": " ".join(text.split()), "file": None, "seconds": round(speech.estimate(text), 3)}
+        if voiced:
+            name = f"beat-{i}.wav"
+            (tmp / name).write_bytes(clip.wav)
+            entry.update(file=str(tmp / name), seconds=round(clip.seconds, 3))
+        manifest.append(entry)
     if manifest:
         (tmp / "narration.json").write_text(json.dumps(manifest), encoding="utf-8")
-    return bool(manifest)
+    return voiced
 
 
 def _render_in(tmp: Path, code: str, quality: str, limits: Limits) -> Rendered:

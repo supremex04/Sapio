@@ -20,9 +20,19 @@ class FakeScene:
         self.renderer = FakeRenderer()
         self.sounds = []
         self.waits = []
+        self.on_screen = []
 
     def add_sound(self, path):
         self.sounds.append((path, self.renderer.time))
+
+    def add_foreground_mobjects(self, mobject):
+        self.on_screen.append(mobject)
+
+    def remove_foreground_mobjects(self, mobject):
+        self.on_screen.remove(mobject)
+
+    def remove(self, mobject):
+        pass
 
     def wait(self, seconds):
         self.waits.append(seconds)
@@ -84,3 +94,43 @@ def test_clips_are_normalised_wav_with_a_pause_after():
     assert clip.seconds == pytest.approx(1.0 + speech.PAUSE_SECONDS)
     assert frames.max() == pytest.approx(speech.PEAK * 32767, rel=0.01)
     assert frames[-100:].max() == 0
+
+
+def test_the_subtitle_is_the_spoken_line_shown_for_its_beat_only(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sapio_narration, "_lines", None)
+    monkeypatch.setattr(sapio_narration, "_spoken", set())
+    monkeypatch.setattr(sapio_narration, "_subtitle", lambda text: ("subtitle", text))  # no Manim needed here
+    manifest = [
+        {"text": "Mass times acceleration plus k x equals zero.", "file": "beat-1.wav", "seconds": 2.0}
+    ]
+    (tmp_path / "narration.json").write_text(json.dumps(manifest))
+    scene = FakeScene()
+    with sapio_narration.narrate(scene, 1):
+        assert scene.on_screen == [("subtitle", "Mass times acceleration plus k x equals zero.")]
+    assert scene.on_screen == []
+
+
+def test_without_a_voice_the_subtitles_still_show_for_the_estimated_time(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sapio_narration, "_lines", None)
+    monkeypatch.setattr(sapio_narration, "_spoken", set())
+    monkeypatch.setattr(sapio_narration, "_subtitle", lambda text: ("subtitle", text))
+    (tmp_path / "narration.json").write_text(
+        json.dumps([{"text": "Hello there.", "file": None, "seconds": 2.5}])
+    )
+    scene = FakeScene()
+    with sapio_narration.narrate(scene, 1) as seconds:
+        assert scene.on_screen and seconds == 2.5
+    assert scene.sounds == [] and scene.waits == [2.5]
+
+
+def test_subtitles_wrap_into_lines_that_fit_the_frame():
+    text = "The solution is a sinusoidal function of time, oscillating at an angular frequency equal to the root."
+    lines = sapio_narration._wrap(text).split("\n")
+    assert len(lines) == 2 and all(len(line) <= sapio_narration._CHARS_PER_LINE for line in lines)
+    short = sapio_narration._wrap(
+        "Applying Newtons second law gives mass times acceleration plus k x equals zero."
+    )
+    first, second = short.split("\n")
+    assert abs(len(first) - len(second)) < 12  # balanced: no line of one or two orphan words
