@@ -54,9 +54,12 @@
   height: 100%;
   object-fit: cover;
 }
-.viz-thumb-empty {
-  display: grid;
-  place-items: center;
+/* No picture of its own (a traced program, one still being made): Sapi visualizing. */
+.viz-thumb-scene {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
   height: 100%;
 }
 .viz-length {

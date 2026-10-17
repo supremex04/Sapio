@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { errorMessage } from "../../shared/api/errors";
 import { Emoji } from "../../shared/illustrations/Emoji";
+import { VisualizeScene } from "../../shared/illustrations/VisualizeScene";
 import { Alert } from "../../shared/ui/Alert";
 import { Badge } from "../../shared/ui/Badge";
 import { Button } from "../../shared/ui/Button";
@@ -173,9 +174,7 @@ function VisualizationCard({ v }: { v: Visualization }) {
         {v.thumbnailUrl ? (
           <img src={v.thumbnailUrl} alt="" loading="lazy" />
         ) : (
-          <span className="viz-thumb-empty" aria-hidden>
-            <Emoji name="visualize" size={44} />
-          </span>
+          <VisualizeScene className="viz-thumb-scene" />
         )}
         {v.status === "READY" && v.durationSeconds != null && <span className="viz-length">{videoLength(v.durationSeconds)}</span>}
         {v.engine !== "AUTO" && v.engine !== "ANIMATION" && <span className="viz-engine-tag">{ENGINE_LABEL[v.engine]}</span>}
