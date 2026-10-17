@@ -214,8 +214,8 @@
   color: var(--purple-ink);
   font-weight: var(--weight-heading);
 }
-.viz-beats p {
-  margin: 0;
+.viz-beats li {
+  line-height: 1.6;
 }
 
 /* ---------- engines ---------- */

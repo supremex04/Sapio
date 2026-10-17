@@ -83,7 +83,9 @@ run on its lines (a long jump ends it, so a final print does not skip to the end
 starts before the previous beat started. The trace ends with an `end` step (the final variables and everything
 printed, since a last `print(...)` runs after the last traced line), which the view shows when the narration ends.
 
-The scene code of an animation stays on the server (it is what the repair loop works on) and is not shown. The
+The scene code of an animation stays on the server (it is what the repair loop works on) and is not shown. Under the
+viewer, **Narration** lists what is spoken, step by step (the subtitles); each beat's `shows` is an instruction to
+the renderer, not a description of what it drew, so it is not shown either. The
 code view, like the 3D viewers, has a fixed-size stage: the listing and the state panel scroll inside it, keeping
 the running line and the newest output in view.
 

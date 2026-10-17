@@ -127,18 +127,19 @@ export function VisualizationPage() {
               </div>
             </div>
 
-            {v.beats.length > 0 && (
+            {/* What is spoken, step by step: the same lines as the subtitles. The storyboard's notes on what each step
+                should show stay internal: they are instructions to the renderer, not a description of what it drew. */}
+            {v.beats.some((b) => b.says) && (
               <Card>
                 <h2 className="card-title row">
-                  <Emoji name="scroll" size={24} /> Storyboard
+                  <Emoji name="scroll" size={24} /> Narration
                 </h2>
                 <ol className="viz-beats">
-                  {v.beats.map((b, i) => (
-                    <li key={i}>
-                      <Markdown className="viz-beat-shows">{b.shows}</Markdown>
-                      {b.says && <Markdown className="viz-beat-says small muted">{b.says}</Markdown>}
-                    </li>
-                  ))}
+                  {v.beats
+                    .filter((b) => b.says)
+                    .map((b, i) => (
+                      <li key={i}>{b.says}</li>
+                    ))}
                 </ol>
               </Card>
             )}
