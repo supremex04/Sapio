@@ -6,7 +6,9 @@ inference: `sapio_inference.visualize`; renderer: `renderer/`; frontend: `featur
 
 ## How one is made
 
-1. **Storyboard** (inference, task `visualize_plan`): a title, a kind (`math`, `physics`, ...) and 2-8 beats, each
+1. **Storyboard** (inference, task `visualize_plan`): explanation only (no exam tips or study advice; the learner's
+   goal from Personalize is not used here, their level and depth are), a title, a kind (`math`, `physics`, ...) and
+   2-8 beats, each
    `{shows, says}`: what appears on screen and the caption, which is both spoken and shown as a subtitle (so it is
    written in plain spoken words: "a squared plus b squared"). Written for the learner's Personalize profile.
    A request that cannot be shown as an animation comes back `feasible: false` with a reason, and the
@@ -20,7 +22,12 @@ inference: `sapio_inference.visualize`; renderer: `renderer/`; frontend: `featur
    scene with limits; `narrate` starts a beat's line and waits until it is finished, so voice and picture stay in
    step. Returns the MP4 (720p30, AAC narration, at most 120 s) and a thumbnail (a frame near the end).
 4. **Repair**: if the render fails because of the code, the AI receives its code and the renderer's error and
-   writes a fix; up to `sapio.visualization.max-attempts` renders (default 3). If the renderer is unreachable the
+   writes a fix; up to `sapio.visualization.max-attempts` renders (default 3). A render that works but whose frames
+   have **layout problems** goes back the same way, with the problems in words: while each beat plays (every half
+   second and at its end) `narrate` checks for anything outside the frame, anything in the subtitle band, a large
+   new object drawn over something already on screen (axes and number planes are meant to be drawn on, so they do
+   not count as already there), and a label partly covering another object (one wholly inside a shape is fine). The
+   cleanest video so far is kept, so a repair that does not render never costs a usable video. If the renderer is unreachable the
    visualization fails at once with "unavailable", and can be retried.
 
 Status: `PLANNING` -> `CODING` -> `RENDERING` -> `READY` | `FAILED`. `attempts` counts renders tried. Work

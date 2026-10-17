@@ -31,6 +31,8 @@ class Rendered:
     thumbnail: bytes
     duration_seconds: float
     narrated: bool = False
+    #: What looked wrong in the frames (off-frame, over the subtitles, drawn over something): fixable, not fatal
+    layout_problems: list[str] | None = None
 
 
 @dataclass
@@ -175,11 +177,18 @@ def _render_in(tmp: Path, code: str, quality: str, limits: Limits) -> Rendered:
         timeout=30,
         env=env,
     )
+    layout = tmp / "layout.json"
+    try:
+        problems = json.loads(layout.read_text(encoding="utf-8")) if layout.exists() else []
+        problems = [str(p)[:300] for p in problems if isinstance(p, str)][:8]
+    except (ValueError, OSError):
+        problems = []
     return Rendered(
         video.read_bytes(),
         thumb.read_bytes() if thumb.exists() else b"",
         duration,
         narrated=_has_audio(video),
+        layout_problems=problems,
     )
 
 

@@ -27,7 +27,15 @@ class RendererClient {
     private static final Logger log = LoggerFactory.getLogger(RendererClient.class);
 
     /** {@code narrated}: the video has spoken narration. */
-    record Rendered(byte[] video, byte[] thumbnail, double durationSeconds, boolean narrated) {
+    /**
+     * {@code layoutProblems}: what looked wrong in the frames (off-frame, over the subtitles, drawn over something).
+     * The video is usable; the problems can go back to the AI to fix.
+     */
+    record Rendered(byte[] video, byte[] thumbnail, double durationSeconds, boolean narrated,
+                    List<String> layoutProblems) {
+        Rendered {
+            layoutProblems = layoutProblems == null ? List.of() : List.copyOf(layoutProblems);
+        }
     }
 
     /**
@@ -47,7 +55,7 @@ class RendererClient {
     }
 
     private record RenderResponse(String videoBase64, String thumbnailBase64, double durationSeconds,
-                                  boolean narrated) {
+                                  boolean narrated, List<String> layoutProblems) {
     }
 
     private record RenderError(String kind, String message) {
@@ -155,7 +163,7 @@ class RendererClient {
             Base64.Decoder b64 = Base64.getDecoder();
             return new Rendered(b64.decode(response.videoBase64()),
                     response.thumbnailBase64() == null ? new byte[0] : b64.decode(response.thumbnailBase64()),
-                    response.durationSeconds(), response.narrated());
+                    response.durationSeconds(), response.narrated(), response.layoutProblems());
         } catch (RestClientResponseException e) {
             throw failure(e);
         } catch (RestClientException e) {

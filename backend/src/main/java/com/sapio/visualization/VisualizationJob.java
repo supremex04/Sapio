@@ -142,35 +142,63 @@ class VisualizationJob {
 
     // ---------------------------------------------------------------------------------------------- animation
 
+    /**
+     * Scene code, then render. A render that fails because of the code goes back to the AI with the error; one that
+     * renders but whose frames have layout problems (something off the frame, over the subtitles, or drawn over
+     * what is already there) goes back with those, up to {@code max-attempts} renders in all. The cleanest video
+     * so far is kept, so a repair that does not render never costs a usable video.
+     */
     private void animate(VisualizationStore.Row row, Planned planned) throws VisualizationException {
         UUID id = row.id();
         List<VisualizeAi.Beat> beats = planned.beats();
         String code = row.code() != null ? row.code()
                 : ai.code(new VisualizeAi.CodeSpec(planned.title(), beats, null, null)).code();
         List<String> narration = says(beats);
+        RendererClient.Rendered best = null;
+        int renders = row.attempts();
         for (int attempt = row.attempts() + 1; attempt <= properties.maxAttempts(); attempt++) {
             store.code(id, code, clock.instant());
+            renders = attempt;
+            String problem;
             try {
                 RendererClient.Rendered video = renderer.render(code, narration);
-                String videoKey = storage.store(new ByteArrayInputStream(video.video()), "mp4");
-                String thumbKey = video.thumbnail().length == 0 ? null
-                        : storage.store(new ByteArrayInputStream(video.thumbnail()), "png");
-                store.ready(id, videoKey, thumbKey, video.durationSeconds(), video.narrated(), clock.instant());
-                return;
+                if (best == null || video.layoutProblems().size() < best.layoutProblems().size()) {
+                    best = video;
+                }
+                if (video.layoutProblems().isEmpty()) {
+                    break;
+                }
+                problem = "The video rendered, but its frames have layout problems:\n- "
+                        + String.join("\n- ", video.layoutProblems())
+                        + "\nMove, shrink or fade things out so each sits in free space inside the frame and above "
+                        + "the subtitles. Keep the storyboard, the narration blocks and everything that works.";
+                log.info("Visualization {} render {} has {} layout problem(s)", id, attempt,
+                        video.layoutProblems().size());
             } catch (RendererClient.RenderFailed e) {
                 if ("unavailable".equals(e.kind)) {
-                    store.failed(id, UNAVAILABLE, clock.instant());
-                    return;
+                    if (best == null) {
+                        store.failed(id, UNAVAILABLE, clock.instant());
+                        return;
+                    }
+                    break;
                 }
-                store.attemptFailed(id, e.getMessage(), clock.instant());
+                problem = e.getMessage();
                 log.info("Visualization {} render {} failed ({})", id, attempt, e.kind);
-                if (attempt < properties.maxAttempts()) {
-                    code = ai.code(new VisualizeAi.CodeSpec(planned.title(), beats, code, e.getMessage())).code();
-                }
+            }
+            store.attemptFailed(id, problem, clock.instant());
+            if (attempt < properties.maxAttempts()) {
+                code = ai.code(new VisualizeAi.CodeSpec(planned.title(), beats, code, problem)).code();
             }
         }
-        store.failed(id, "The animation could not be drawn after " + properties.maxAttempts()
-                + " tries. Try rephrasing the request or making it simpler.", clock.instant());
+        if (best == null) {
+            store.failed(id, "The animation could not be drawn after " + properties.maxAttempts()
+                    + " tries. Try rephrasing the request or making it simpler.", clock.instant());
+            return;
+        }
+        String videoKey = storage.store(new ByteArrayInputStream(best.video()), "mp4");
+        String thumbKey = best.thumbnail().length == 0 ? null
+                : storage.store(new ByteArrayInputStream(best.thumbnail()), "png");
+        store.ready(id, videoKey, thumbKey, best.durationSeconds(), best.narrated(), renders, clock.instant());
     }
 
     // ------------------------------------------------------------------------------- molecule, protein, code

@@ -106,3 +106,21 @@ def test_scenes_leave_the_subtitles_to_narrate():
     code = prompts.code_prompt("Oscillator", [("A spring", "A mass on a spring.")])
     assert "SUBTITLES ARE AUTOMATIC" in code
     assert "to_edge(DOWN); replace the previous caption" not in code
+
+
+def test_visualizations_explain_and_never_coach_for_exams():
+    from sapio_inference.study.learner import LearnerIn
+    from sapio_inference.visualize import prompts
+
+    system = prompts.storyboard_system("en", LearnerIn(academic_level="UNDERGRADUATE", goal="EXAM"))
+    assert "never gives exam or test advice" in system
+    assert "typically examined" not in system  # the exam goal steers study material, not explanations
+    assert "university undergraduate" in system  # the level still shapes how it is explained
+
+
+def test_scenes_are_told_to_keep_attached_parts_attached():
+    from sapio_inference.visualize import prompts
+
+    code = prompts.code_prompt("Oscillator", [("A mass on a spring", "It oscillates.")])
+    assert "def zigzag(start, end" in code and "always_redraw" in code
+    assert "Never move one part of a connected system on its own" in code

@@ -43,6 +43,9 @@ class RenderResponse(ApiModel):
     duration_seconds: float
     #: Whether the video has spoken narration
     narrated: bool = False
+    #: Layout problems seen at the end of the beats (off-frame, over the subtitles, drawn over something). The video
+    #: is usable; these can go back to the scene's author to fix.
+    layout_problems: list[str] = Field(default_factory=list)
 
 
 class RenderError(ApiModel):
@@ -178,4 +181,5 @@ async def render(body: RenderRequest, x_internal_api_key: Annotated[str | None, 
         thumbnail_base64=base64.b64encode(result.thumbnail).decode(),
         duration_seconds=result.duration_seconds,
         narrated=result.narrated,
+        layout_problems=result.layout_problems or [],
     ).model_dump(by_alias=True)

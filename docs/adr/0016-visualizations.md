@@ -40,6 +40,10 @@ needs heavy native dependencies (Cairo, Pango, FFmpeg, LaTeX) and minutes of CPU
 
 ## Consequences
 
+- The AI's scenes are checked beyond "does it run": the narration helper samples each beat's frames for objects
+  off the frame, in the subtitle band, drawn over what is already there, or labels colliding with objects, and the
+  findings go back to the AI like an error; the scene prompt carries a spring that stays attached and rules for
+  connected parts and real motion. Learned from an oscillator whose block drifted off its straight-line "spring".
 - A visualization costs two to four LLM calls and one to three renders (about a minute of 2 vCPU), roughly
   $0.003 in Cloud Run compute; idle cost is zero. The first render after a quiet spell waits for a cold start.
 - The static check is not a sandbox on its own; the container and its missing network and secrets are what make

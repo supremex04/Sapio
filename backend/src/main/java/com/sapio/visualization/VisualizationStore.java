@@ -106,12 +106,14 @@ class VisualizationStore {
                 Timestamp.from(now), id);
     }
 
-    void ready(UUID id, String videoKey, String thumbnailKey, double duration, boolean narrated, Instant now) {
+    /** @param renders how many renders it took (the kept video may not be the last one tried) */
+    void ready(UUID id, String videoKey, String thumbnailKey, double duration, boolean narrated, int renders,
+               Instant now) {
         jdbc.update("""
-                        UPDATE visualizations SET status = 'READY', attempts = attempts + 1, error = NULL, video_key = ?,
+                        UPDATE visualizations SET status = 'READY', attempts = ?, error = NULL, video_key = ?,
                                thumbnail_key = ?, duration_seconds = ?, narrated = ?, updated_at = ?, completed_at = ?
                         WHERE id = ?""",
-                videoKey, thumbnailKey, duration, narrated, Timestamp.from(now), Timestamp.from(now), id);
+                renders, videoKey, thumbnailKey, duration, narrated, Timestamp.from(now), Timestamp.from(now), id);
     }
 
     void ready(UUID id, Scene scene, Instant now) {

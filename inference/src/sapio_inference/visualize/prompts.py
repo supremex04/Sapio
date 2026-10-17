@@ -5,7 +5,9 @@ from sapio_inference.study.prompts import language_name
 
 STORYBOARD_SYSTEM = """You are a brilliant teacher who explains maths and science with short animations, in the style of
 3Blue1Brown. You plan animations that make one idea visibly clear: build it up step by step, show what changes and why.
-Write captions in {language}. Output strictly the requested JSON."""
+This is explanation only: the narration explains the idea and what is on screen. It never gives exam or test advice,
+"remember for your exam" lines, mnemonics, quiz questions or study tips, and it does not end with a summary of what to
+learn; the last beat finishes the explanation. Write captions in {language}. Output strictly the requested JSON."""
 
 
 ENGINES = """How to show it (engine):
@@ -50,7 +52,9 @@ def storyboard_prompt(request: str, context: str | None, engine: str = "auto") -
 {choice}
 
 Rules:
-- 3-6 beats. Each beat says concretely what appears, moves or is pointed at, and gives one caption sentence.
+- 3-6 beats. Each beat says concretely what appears, moves or is pointed at, and gives one caption sentence. Say
+  which parts are attached and how they move (a mass fixed to the end of a spring that stretches and compresses as
+  the mass oscillates), so the animation is physically right, and show the behaviour the caption talks about.
 - The caption is read aloud as the narration and shown as a subtitle, so write it the way a teacher would say it:
   plain words, no LaTeX or symbols ("a squared plus b squared equals c squared", "x of t"), at most about 25 words.
 - Visual first: show the quantity, the geometry, the structure or the motion, not paragraphs of text.
@@ -114,6 +118,41 @@ MANIM 0.19 API THAT WORKS
 DO NOT USE (removed or wrong in 0.19): ShowCreation, TextMobject, TexMobject, get_graph (use axes.plot), GraphScene,
 self.camera.frame in a plain Scene, config changes, Code(), Paragraph() with odd fonts, external LaTeX packages.
 
+GETTING THE PHYSICS AND THE PICTURE RIGHT
+- Show the behaviour, not a still: if the narration says it oscillates, rotates, falls, flows or grows, animate that
+  over time for a few cycles with a ValueTracker driving positions (rate_func=linear), not a single shift.
+- Connected things stay connected while anything moves. Build every dependent part with always_redraw or an
+  updater from the parts it hangs on: a spring from the wall to the mass, a rod from the pivot to the bob, a force
+  arrow from the object, a label next to its object. Never move one part of a connected system on its own.
+- A spring is a zigzag between its two ends that stretches and compresses, never a straight Line. Use this helper
+  (define it inside construct) and redraw it every frame:
+      def zigzag(start, end, coils=10, width=0.18):
+          start, end = np.array(start), np.array(end)
+          d = end - start
+          length = max(np.linalg.norm(d), 1e-6)
+          u = d / length
+          n = np.array([-u[1], u[0], 0])
+          points = [start, start + u * 0.15]
+          for i in range(1, 2 * coils):
+              points.append(start + u * (0.15 + (length - 0.3) * i / (2 * coils)) + n * width * (1 if i % 2 else -1))
+          points += [end - u * 0.15, end]
+          return VMobject(color=BLUE_C).set_points_as_corners(points)
+  Example: a mass oscillating on a spring.
+      t = ValueTracker(0)
+      x0, A, w = 0.5, 1.2, 2.0
+      mass.add_updater(lambda m: m.move_to([x0 + A * np.cos(w * t.get_value()), 0, 0]))
+      self.add(wall, mass)  # the mass first: it moves before the spring redraws, so no gap opens
+      spring = always_redraw(lambda: zigzag(wall.get_right(), mass.get_left()))
+      self.add(spring)
+      self.play(t.animate.set_value(2 * TAU / w), run_time=seconds * 0.8, rate_func=linear)
+- What is drawn agrees with the maths: the same amplitude, frequency, signs and directions in the motion, the graph
+  and the formula (a restoring force points back toward equilibrium; a graph of x(t) uses the motion's own A and w).
+  Label what the narration names (m, k, x, axes as t and x) with MathTex.
+- Layout: formulas at the top (y above 2.6), the main picture in the middle, nothing below y = -2.7 (subtitles).
+  Place each new thing where nothing else is (next_to, arrange, or shift the picture aside); to replace a picture,
+  FadeOut the old one first in its own play, then build the new one, so a frame never shows two half-drawn scenes.
+- Fewer objects, done right, beats many objects done loosely.
+
 STYLE
 - Words on screen are labels and formulas only (MathTex for anything mathematical, never LaTeX inside Text); the
   narration is shown for you.
@@ -154,4 +193,7 @@ The renderer reported:
 
 
 def storyboard_system(language: str, learner: LearnerIn | None = None) -> str:
-    return STORYBOARD_SYSTEM.format(language=language_name(language)) + learner_block(learner)
+    # The learner's level, field and depth shape how it is explained. Their goal does not: it steers study material
+    # (an exam goal asks for "what is typically examined"), and a visualization is explanation only.
+    explained_to = learner.model_copy(update={"goal": None}) if learner else None
+    return STORYBOARD_SYSTEM.format(language=language_name(language)) + learner_block(explained_to)

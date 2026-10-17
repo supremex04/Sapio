@@ -90,7 +90,7 @@ class VisualizationFlowIT {
     @Test
     void aFailedRenderIsRepairedAndTheVideoIsServed() throws Exception {
         when(renderer.render(eq("broken"), any())).thenThrow(new RendererClient.RenderFailed("error", "NameError: Foo"));
-        when(renderer.render(eq("fixed"), any())).thenReturn(new RendererClient.Rendered(new byte[] {1, 2, 3}, FakeAi.PNG, 4.5, true));
+        when(renderer.render(eq("fixed"), any())).thenReturn(new RendererClient.Rendered(new byte[] {1, 2, 3}, FakeAi.PNG, 4.5, true, List.of()));
 
         String id = create("a^2 + b^2 = c^2").get("id").asString();
         JsonNode done = await(id);
@@ -126,6 +126,38 @@ class VisualizationFlowIT {
     }
 
     @Test
+    void layoutProblemsGoBackToTheAiAndTheCleanestVideoIsKept() throws Exception {
+        List<String> problems = List.of("Step 2: the GREEN ParametricFunction spans x -4.4 to 9.1: part of it is "
+                + "outside the frame.");
+        when(renderer.render(eq("broken"), any())).thenReturn(
+                new RendererClient.Rendered(new byte[] {5}, FakeAi.PNG, 4, true, problems));
+        when(renderer.render(eq("fixed"), any())).thenReturn(
+                new RendererClient.Rendered(new byte[] {6}, FakeAi.PNG, 4, true, List.of()));
+
+        JsonNode done = await(create("a cosine curve").get("id").asString());
+        assertThat(done.get("status").asString()).isEqualTo("READY");
+        verify(ai).code(argThat(s -> s != null && "broken".equals(s.previousCode()) && s.error() != null
+                && s.error().contains("layout problems") && s.error().contains("outside the frame")));
+        byte[] video = mvc.perform(get(done.get("videoUrl").asString())).andReturn().getResponse()
+                .getContentAsByteArray();
+        assertThat(video).containsExactly(6); // the repaired one
+    }
+
+    @Test
+    void aRepairThatDoesNotRenderKeepsTheVideoThatDid() throws Exception {
+        when(renderer.render(eq("broken"), any())).thenReturn(new RendererClient.Rendered(new byte[] {5}, FakeAi.PNG,
+                4, true, List.of("Step 1: the RED Square reaches down to y -3.4, into the subtitle area.")));
+        when(renderer.render(eq("fixed"), any())).thenThrow(new RendererClient.RenderFailed("error", "NameError"));
+
+        JsonNode done = await(create("a red square").get("id").asString());
+        assertThat(done.get("status").asString()).isEqualTo("READY");
+        byte[] video = mvc.perform(get(done.get("videoUrl").asString())).andReturn().getResponse()
+                .getContentAsByteArray();
+        assertThat(video).containsExactly(5); // a usable video is never thrown away
+        assertThat(done.get("attempts").asInt()).isEqualTo(3); // three renders made; the first one kept
+    }
+
+    @Test
     void anInfeasibleRequestFailsWithTheReasonAndNeverRenders() throws Exception {
         JsonNode done = await(create("what is love").get("id").asString());
         assertThat(done.get("status").asString()).isEqualTo("FAILED");
@@ -142,7 +174,7 @@ class VisualizationFlowIT {
         assertThat(done.get("attempts").asInt()).isEqualTo(3);
         assertThat(done.get("error").asString()).contains("3 tries");
 
-        doReturn(new RendererClient.Rendered(new byte[] {9}, new byte[0], 2, false)).when(renderer).render(eq("fixed"), any());
+        doReturn(new RendererClient.Rendered(new byte[] {9}, new byte[0], 2, false, List.of())).when(renderer).render(eq("fixed"), any());
         call(learner, post("/api/visualizations/" + id + "/retry"), null).andExpect(status().isOk());
         JsonNode again = await(id);
         assertThat(again.get("status").asString()).isEqualTo("READY");
