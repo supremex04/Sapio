@@ -124,3 +124,48 @@ def test_scenes_are_told_to_keep_attached_parts_attached():
     code = prompts.code_prompt("Oscillator", [("A mass on a spring", "It oscillates.")])
     assert "def zigzag(start, end" in code and "always_redraw" in code
     assert "Never move one part of a connected system on its own" in code
+
+
+RC = {
+    "nodes": [
+        {"id": "g", "x": 0, "y": 0, "ground": True},
+        {"id": "t", "x": 0, "y": 3},
+        {"id": "r", "x": 4, "y": 3},
+        {"id": "b", "x": 4, "y": 0},
+    ],
+    "parts": [
+        {"id": "V1", "kind": "voltage_source", "value": 5, "a": "t", "b": "g"},
+        {"id": "R1", "kind": "resistor", "value": 1000, "a": "t", "b": "r"},
+        {"id": "C1", "kind": "capacitor", "value": 1e-6, "a": "r", "b": "b"},
+        {"id": "W1", "kind": "wire", "a": "b", "b": "g"},
+    ],
+}
+
+
+def test_a_circuit_storyboard_carries_the_circuit_and_captions_without_numbers():
+    from sapio_inference.visualize import prompts
+
+    board = {**BOARD, "engine": "circuit", "kind": "electronics", "circuit": RC}
+    llm = FakeLlm(board)
+    out = VisualizeService(llm).storyboard(v.StoryboardRequest(request="How does an RC circuit charge?"))
+    assert out.engine == "circuit" and len(out.circuit.parts) == 4 and out.circuit.nodes[0].ground
+    assert "never state calculated currents" in prompts.storyboard_prompt("RC", None)
+
+    missing = VisualizeService(FakeLlm({**board, "circuit": None})).storyboard(
+        v.StoryboardRequest(request="RC", engine="circuit")
+    )
+    assert not missing.feasible and "circuit" in missing.reason
+
+
+def test_a_refused_circuit_is_repaired_from_the_problems():
+    llm = FakeLlm({"circuit": RC})
+    request = v.CircuitRepairRequest(
+        request="RC charging",
+        title="RC",
+        beats=[v.BeatIo(shows="the loop", says="The capacitor charges.", focus="C1")],
+        circuit=v.CircuitIo.model_validate(RC),
+        problems=["R1 and W1 cross without connecting; route one around the other."],
+    )
+    out = VisualizeService(llm).repair_circuit(request)
+    assert out.circuit.parts[2].id == "C1"
+    assert "cross without connecting" in llm.prompts[-1] and "Focus: C1" in llm.prompts[-1]

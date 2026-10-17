@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-from sapio_renderer import molecule, safety, speech, trace
+from sapio_renderer import circuit, molecule, safety, speech, trace
 from sapio_renderer import render as renderer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-5s %(name)s: %(message)s")
@@ -84,6 +84,34 @@ class TraceRequest(ApiModel):
     stdin: list[Annotated[str, Field(max_length=500)]] = Field(default_factory=list, max_length=50)
 
 
+class CircuitNode(ApiModel):
+    id: str = Field(max_length=20)
+    x: int
+    y: int
+    ground: bool = False
+
+
+class CircuitPart(ApiModel):
+    id: str = Field(max_length=20)
+    kind: str = Field(max_length=20)
+    #: Ohms, farads, henries, volts or amperes; none for a wire
+    value: float | None = None
+    a: str = Field(max_length=20)
+    b: str = Field(max_length=20)
+
+
+class CircuitRequest(ApiModel):
+    nodes: list[CircuitNode] = Field(max_length=circuit.MAX_NODES)
+    parts: list[CircuitPart] = Field(max_length=circuit.MAX_PARTS)
+
+
+class CircuitError(ApiModel):
+    kind: str = "input"
+    message: str
+    #: Every problem found, each in words the circuit's author can act on
+    problems: list[str]
+
+
 class NarrateRequest(ApiModel):
     lines: list[Annotated[str, Field(max_length=speech.MAX_TEXT)]] = Field(min_length=1, max_length=8)
 
@@ -147,6 +175,20 @@ async def trace_program(body: TraceRequest, x_internal_api_key: Annotated[str | 
         return _error("code", e.reason)
     except renderer.RenderFailed as e:
         return _error(e.kind, e.message)
+
+
+@app.post("/v1/circuit", responses={422: {"model": CircuitError}})
+async def solve_circuit(body: CircuitRequest, x_internal_api_key: Annotated[str | None, Header()] = None):
+    """Checks a circuit (as a drawing and as a circuit) and solves it exactly: the DC operating point, or the
+    response from switch-on with ``times``, and node voltages and part currents and voltages at each time."""
+    _authorised(x_internal_api_key)
+    try:
+        return await run_in_threadpool(circuit.solve, body.model_dump())
+    except circuit.Invalid as e:
+        return JSONResponse(
+            status_code=422,
+            content=CircuitError(message=" ".join(e.problems), problems=e.problems).model_dump(),
+        )
 
 
 @app.post("/v1/narrate", response_model=NarrateResponse)

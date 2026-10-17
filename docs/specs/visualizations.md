@@ -40,6 +40,7 @@ interrupted by a restart is resumed at startup.
 | `ANIMATION` | narrated video | the AI's Manim scene, rendered | (none) |
 | `MOLECULE` | 3D model (3Dmol.js), 2D drawing, formula and mass | RDKit from SMILES | a named group (`group:methyl`, see `renderer/src/sapio_renderer/groups.py`) or a SMARTS of the atoms to highlight |
 | `PROTEIN` | 3D cartoon (3Dmol.js), a colour per chain with a legend, the entry and its state named | RCSB Protein Data Bank entry (title, mmCIF, picture), stored | `A`, `A:HIS87`, `A:58-63`, `ligand:HEM`, checked against the structure |
+| `CIRCUIT` | schematic with moving current and live values, the reactive part's response from switch-on, a table of values | the renderer's checker and exact solver ([ADR-0018](../adr/0018-circuit-engine.md)) | part ids, `R1,C1` |
 | `CODE` | listing, running line, call stack with variables, output | the renderer's tracer (Python) | the text of the line(s) explained (`first \| last` for a block), found in the program traced; or `3-5` |
 
 **Routing**, cheapest first and never a separate AI call: the learner's choice (`engine` on create: `AUTO`
@@ -131,6 +132,15 @@ a time per instance, as a non-root user.
 Locally `./dev.sh` builds the image `sapio-renderer:dev` (rebuilt when `renderer/` changes) and runs it with
 Docker; nothing is installed on the host. In Google Cloud it is the `sapio-renderer` Cloud Run service
 (`deploy/gcp/deploy.sh`): 2 vCPU, 2 GiB, one request per instance, scales to zero, egress only into the VPC.
+
+**Circuits.** `POST /v1/circuit {nodes:[{id, x 0-12, y 0-8 (up), ground}], parts:[{id, kind: resistor | capacitor |
+inductor | voltage_source | current_source | wire, value (ohm, F, H, V, A; none for wires), a, b}]}` -> `{kind: dc |
+transient, steady: {nodes, parts: {id: {current, voltage}}}, times?, nodes?, parts?: {id: {current[], voltage[]}}}`,
+or `422 {kind: input, message, problems}`. A part's current runs from a to b; a voltage source's a is +; a
+current source drives a to b. Refused circuits go back to inference (`POST /v1/visualize/circuit {request, title,
+beats, circuit, problems}` -> `{circuit}`, task `visualize_circuit`), up to `max-attempts` tries. The scene is
+`{circuit, solution, focus: [[part ids]] (checked), timing}`; a circuit with capacitors or inductors plays its
+response across the narration.
 
 **Molecules and traces.** `POST /v1/molecule {smiles (at most 500), highlights:[SMARTS or group:name], captions:[narration]}` -> `{canonicalSmiles,
 formula, weight, heavyAtoms, molBlock, threeD, pngBase64, highlights:[[atom]], drawingsBase64:[png]}` (at most 120

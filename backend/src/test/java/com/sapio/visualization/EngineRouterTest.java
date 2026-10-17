@@ -32,6 +32,17 @@ class EngineRouterTest {
     }
 
     @Test
+    void questionsAboutCircuitBehaviourGoToTheCircuitEngine() {
+        assertThat(engine("Explain a voltage divider")).contains(VisualizationEngine.CIRCUIT);
+        assertThat(engine("How does an RC circuit charge?")).contains(VisualizationEngine.CIRCUIT);
+        assertThat(engine("resistors in parallel")).contains(VisualizationEngine.CIRCUIT);
+        assertThat(engine("Kirchhoff's voltage law")).contains(VisualizationEngine.CIRCUIT);
+        // How a part works inside, or circuit boards, stay with the storyboard (an animation).
+        assertThat(engine("How does a capacitor store charge?")).isEmpty();
+        assertThat(engine("How is a PCB made?")).isEmpty();
+    }
+
+    @Test
     void ordinaryRequestsAreLeftToTheStoryboard() {
         assertThat(engine("Why is the area of a circle pi r squared?")).isEmpty();
         assertThat(engine("a^2 + b^2 = c^2")).isEmpty();

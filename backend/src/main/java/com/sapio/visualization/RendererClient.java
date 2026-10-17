@@ -123,6 +123,40 @@ class RendererClient {
         return post("/v1/trace", new TraceRequest(code, stdin), JsonNode.class);
     }
 
+    /** The circuit was refused: every problem, in words the AI can act on. */
+    static class CircuitRefused extends RenderFailed {
+        final List<String> problems;
+
+        CircuitRefused(List<String> problems) {
+            super("input", String.join(" ", problems));
+            this.problems = List.copyOf(problems);
+        }
+    }
+
+    private record CircuitError(String kind, String message, List<String> problems) {
+    }
+
+    /** Checked and solved exactly: {@code {kind: dc|transient, steady, times?, nodes?, parts?}}. */
+    JsonNode circuit(VisualizeAi.Circuit circuit) throws RenderFailed {
+        try {
+            JsonNode solved = client.post().uri("/v1/circuit").body(circuit).retrieve().body(JsonNode.class);
+            if (solved == null) {
+                throw new RenderFailed("unavailable", "The renderer returned nothing");
+            }
+            return solved;
+        } catch (RestClientResponseException e) {
+            if (e.getStatusCode().isSameCodeAs(HttpStatusCode.valueOf(422))) {
+                CircuitError error = json.readValue(e.getResponseBodyAsString(), CircuitError.class);
+                throw new CircuitRefused(error.problems() == null || error.problems().isEmpty()
+                        ? List.of(error.message()) : error.problems());
+            }
+            throw failure(e);
+        } catch (RestClientException e) {
+            log.warn("Renderer unreachable: {}", e.getMessage());
+            throw new RenderFailed("unavailable", "The renderer is unavailable right now");
+        }
+    }
+
     Narration narrate(List<String> lines) throws RenderFailed {
         NarrateResponse response = post("/v1/narrate", new NarrateRequest(lines), NarrateResponse.class);
         return new Narration(response.audioBase64() == null ? null : Base64.getDecoder().decode(response.audioBase64()),

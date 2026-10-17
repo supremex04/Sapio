@@ -26,6 +26,7 @@ const EXAMPLES: { text: string; engine: Engine }[] = [
   { text: "Simple harmonic motion: x(t) = A cos(wt)", engine: "AUTO" },
   { text: "Why does caffeine keep you awake? Show the molecule", engine: "AUTO" },
   { text: "How haemoglobin carries oxygen", engine: "AUTO" },
+  { text: "How does an RC circuit charge?", engine: "AUTO" },
   { text: "def fib(n):\n    if n < 2:\n        return n\n    return fib(n - 1) + fib(n - 2)\n\nprint(fib(4))", engine: "AUTO" },
 ];
 
@@ -35,14 +36,16 @@ export const ENGINE_LABEL: Record<Engine, string> = {
   MOLECULE: "Molecule",
   PROTEIN: "Protein",
   CODE: "Code",
+  CIRCUIT: "Circuit",
 };
 
 const ENGINE_HINT: Record<Engine, string> = {
-  AUTO: "Sapio picks: an animation, a 3D molecule or protein, or a program run step by step.",
+  AUTO: "Sapio picks: an animation, a 3D molecule or protein, a program run step by step, or a solved circuit.",
   ANIMATION: "An animated video: formulas, graphs, geometry, physics, processes.",
   MOLECULE: "A molecule in 3D, from its name or a SMILES string.",
   PROTEIN: "A protein or DNA structure from the Protein Data Bank, by name or ID (e.g. 4HHB).",
   CODE: "Paste Python (or describe an algorithm) and watch it run line by line.",
+  CIRCUIT: "An electric circuit, drawn and solved exactly: voltages, currents, and how capacitors and inductors charge.",
 };
 
 const POLL_MS = 3000;

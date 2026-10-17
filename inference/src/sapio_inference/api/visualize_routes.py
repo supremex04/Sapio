@@ -26,6 +26,11 @@ def storyboard(body: v.StoryboardRequest, service: Service) -> v.StoryboardRespo
     return service.storyboard(body)
 
 
+@router.post("/circuit", response_model=v.CircuitRepairResponse)
+def repair_circuit(body: v.CircuitRepairRequest, service: Service) -> v.CircuitRepairResponse:
+    return service.repair_circuit(body)
+
+
 @router.post("/code", response_model=v.SceneCodeResponse)
 def code(body: v.SceneCodeRequest, service: Service) -> v.SceneCodeResponse:
     return service.code(body)

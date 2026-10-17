@@ -31,7 +31,23 @@ ENGINES = """How to show it (engine):
   write the equivalent Python and say so in the first beat). Each beat's focus is the exact text of the line it
   explains, copied from the program (if arr[j] > arr[j + 1]:), or of the first and last lines of a block joined
   with " | " (for i in range(n): | arr[j], arr[j + 1] = arr[j + 1], arr[j]). Point at the lines the caption is
-  about: a sentence about each pass points at the loop that makes the passes."""
+  about: a sentence about each pass points at the loop that makes the passes.
+- circuit: an electric circuit of resistors, capacitors, inductors, DC voltage sources and DC current sources, drawn
+  as a schematic and solved exactly: the viewer shows live voltages and currents, current flowing along the wires, and
+  for capacitors and inductors how they change from the moment the circuit is switched on. Use it for Ohm's and
+  Kirchhoff's laws, dividers, series and parallel circuits, and RC, RL or LC behaviour (not for AC, signals,
+  semiconductors, how a part works inside, or circuit boards: those are animations). Give the circuit on a grid:
+  nodes have an id, x from 0 to 12, y from 0 to 8 (y up), and ground true on exactly one node, at the bottom;
+  parts have an id (R1, C1, L1, V1, I1, and W1, W2 for wires), a kind (resistor, capacitor, inductor,
+  voltage_source, current_source, wire), a value in ohms, farads, henries, volts or amperes (none for a wire), and
+  the node ids a and b it joins. Every part is a straight horizontal or vertical line between its two nodes; turn
+  corners with a node and a wire; no part may cross another, lie on another, or pass over a node; a voltage
+  source's a is its + terminal; a current source drives its current from a to b. Example, 5 V charging 1 uF through
+  1 kilohm: nodes g (0,0, ground), t (0,3), r (4,3), b (4,0); parts V1 voltage_source 5 a=t b=g, R1 resistor 1000
+  a=t b=r, C1 capacitor 0.000001 a=r b=b, W1 wire a=b b=g. Each beat's focus is the ids of the parts it is about
+  (R1,C1) or empty. Captions explain what happens and why; they never state calculated currents, voltages or times
+  (the viewer shows the exact values), only the part values you chose ("a one kilohm resistor"). There is no switch
+  in the drawing: the response starts when the circuit is switched on, so say that, never "the switch closes"."""
 
 
 def storyboard_prompt(request: str, context: str | None, engine: str = "auto") -> str:
@@ -197,3 +213,32 @@ def storyboard_system(language: str, learner: LearnerIn | None = None) -> str:
     # (an exam goal asks for "what is typically examined"), and a visualization is explanation only.
     explained_to = learner.model_copy(update={"goal": None}) if learner else None
     return STORYBOARD_SYSTEM.format(language=language_name(language)) + learner_block(explained_to)
+
+
+CIRCUIT_SYSTEM = """You fix circuit descriptions for a schematic viewer that also solves them exactly. Keep the idea and
+the part ids the storyboard refers to; change only what the problems require. Output strictly the requested JSON."""
+
+
+def circuit_repair_prompt(
+    request: str, title: str, beats: list[tuple[str, str, str]], circuit: str, problems: list[str]
+) -> str:
+    board = "\n".join(
+        f"{i}. Shows: {shows}\n   Caption: {says}\n   Focus: {focus}"
+        for i, (shows, says, focus) in enumerate(beats, 1)
+    )
+    listed = "\n".join(f"- {p}" for p in problems)
+    return f"""The learner asked: \"\"\"{request.strip()[:2000]}\"\"\"
+
+Visualization: {title}
+{board}
+
+This circuit could not be used:
+{circuit[:8000]}
+
+The viewer reported:
+{listed}
+
+Rules: nodes on a grid (x 0 to 12, y 0 to 8, y up), exactly one ground node; parts resistor, capacitor, inductor,
+voltage_source, current_source or wire, each a straight horizontal or vertical line between its nodes a and b, with
+corners made by a node and a wire, never crossing, overlapping or passing over a node; values in ohms, farads,
+henries, volts or amperes (none for wires); a voltage source's a is its + terminal. Return the whole fixed circuit."""

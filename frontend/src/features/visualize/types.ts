@@ -1,6 +1,6 @@
 export type VisualizationStatus = "PLANNING" | "CODING" | "RENDERING" | "READY" | "FAILED";
 /** How it is shown: AUTO lets Sapio choose (rules, then the storyboard). */
-export type Engine = "AUTO" | "ANIMATION" | "MOLECULE" | "PROTEIN" | "CODE";
+export type Engine = "AUTO" | "ANIMATION" | "MOLECULE" | "PROTEIN" | "CODE" | "CIRCUIT";
 
 /** One scene of the storyboard: what appears on screen, and the line of narration under it. */
 export interface Beat {
@@ -41,6 +41,39 @@ export interface ProteinScene {
   labels?: (string | null)[];
   /** The polymer chains and what each is, as the entry names them. */
   chains?: { id: string; description: string }[];
+  timing: Timing[];
+}
+
+export type PartKind = "resistor" | "capacitor" | "inductor" | "voltage_source" | "current_source" | "wire";
+
+export interface CircuitPart {
+  id: string;
+  kind: PartKind;
+  /** Ohms, farads, henries, volts or amperes; null for a wire. */
+  value: number | null;
+  a: string;
+  b: string;
+}
+
+export interface Reading {
+  current: number;
+  voltage: number;
+}
+
+/** Solved exactly by the renderer: the DC operating point, or the response from switch-on. */
+export interface CircuitSolution {
+  kind: "dc" | "transient";
+  steady: { nodes: Record<string, number>; parts: Record<string, Reading> };
+  times?: number[];
+  nodes?: Record<string, number[]>;
+  parts?: Record<string, { current: number[]; voltage: number[] }>;
+}
+
+export interface CircuitScene {
+  circuit: { nodes: { id: string; x: number; y: number; ground: boolean }[]; parts: CircuitPart[] };
+  solution: CircuitSolution;
+  /** Per beat: the ids of the parts it is about (checked against the circuit). */
+  focus: string[][];
   timing: Timing[];
 }
 
@@ -92,7 +125,7 @@ export interface Visualization {
   /** A protein's structure (mmCIF). */
   structureUrl: string | null;
   /** What the viewer shows; only on a single visualization. */
-  scene: MoleculeScene | ProteinScene | CodeScene | null;
+  scene: MoleculeScene | ProteinScene | CodeScene | CircuitScene | null;
   createdAt: string;
   completedAt: string | null;
 }

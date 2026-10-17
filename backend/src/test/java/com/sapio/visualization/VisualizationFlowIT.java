@@ -67,17 +67,20 @@ class VisualizationFlowIT {
             VisualizeAi.StoryboardSpec spec = inv.getArgument(0);
             if (spec.request().contains("love")) {
                 return new VisualizeAi.Storyboard(false, "Feelings are not something we can animate well.", null,
-                        null, "animation", null, null, "", List.of(), "fake");
+                        null, "animation", null, null, null, "", List.of(), "fake");
             }
             String engine = spec.engine().equals("auto") ? guess(spec.request()) : spec.engine();
             return switch (engine) {
                 case "molecule" -> new VisualizeAi.Storyboard(true, null, "Aspirin", "chemistry", "molecule",
-                        new VisualizeAi.Molecule("aspirin", "CC(=O)Oc1ccccc1C(=O)O"), null, "", FOCUSED, "fake");
+                        new VisualizeAi.Molecule("aspirin", "CC(=O)Oc1ccccc1C(=O)O"), null, null, "", FOCUSED, "fake");
                 case "protein" -> new VisualizeAi.Storyboard(true, null, "Haemoglobin", "biology", "protein", null,
-                        new VisualizeAi.Protein("4HHB", "human haemoglobin"), "", FOCUSED, "fake");
-                case "code" -> new VisualizeAi.Storyboard(true, null, "Factorial", "code", "code", null, null,
+                        new VisualizeAi.Protein("4HHB", "human haemoglobin"), null, "", FOCUSED, "fake");
+                case "code" -> new VisualizeAi.Storyboard(true, null, "Factorial", "code", "code", null, null, null,
                         "print('ai program')\n", FOCUSED, "fake");
-                default -> new VisualizeAi.Storyboard(true, null, "Pythagoras", "math", "animation", null, null, "",
+                case "circuit" -> new VisualizeAi.Storyboard(true, null, "RC charging", "electronics", "circuit",
+                        null, null, crossed(), "", List.of(new VisualizeAi.Beat("the loop", "It charges.", "C1, X9"),
+                        new VisualizeAi.Beat("the resistor", "It limits.", "R1")), "fake");
+                default -> new VisualizeAi.Storyboard(true, null, "Pythagoras", "math", "animation", null, null, null, "",
                         BEATS, "fake");
             };
         });
@@ -278,6 +281,35 @@ class VisualizationFlowIT {
     }
 
     @Test
+    void aCircuitIsSolvedByTheRendererAndARefusedOneIsRepairedFirst() throws Exception {
+        JsonNode solution = json.readTree("{\"kind\":\"transient\",\"times\":[0,0.005],\"steady\":{}}");
+        when(renderer.circuit(eq(crossed()))).thenThrow(new RendererClient.CircuitRefused(
+                List.of("R1 and W1 cross without connecting; route one around the other.")));
+        when(renderer.circuit(eq(rc()))).thenReturn(solution);
+        when(ai.repairCircuit(any())).thenReturn(new VisualizeAi.CircuitRepair(rc(), "fake"));
+
+        JsonNode done = await(create("How does an RC circuit charge?").get("id").asString());
+        assertThat(done.get("status").asString()).isEqualTo("READY");
+        assertThat(done.get("engine").asString()).isEqualTo("CIRCUIT"); // the rules routed it
+        verify(ai).storyboard(argThat(s -> s != null && s.engine().equals("circuit")));
+        verify(ai).repairCircuit(argThat(s -> s != null && s.problems().getFirst().contains("cross")));
+        assertThat(done.at("/scene/solution/kind").asString()).isEqualTo("transient");
+        assertThat(done.at("/scene/circuit/parts/1/id").asString()).isEqualTo("R1");
+        // Focus keeps only parts of the circuit: X9 does not exist.
+        assertThat(done.at("/scene/focus/0").toString()).isEqualTo("[\"C1\"]");
+        verify(ai, never()).code(any());
+    }
+
+    @Test
+    void aCircuitThatCannotBeRepairedFailsWithTheProblems() throws Exception {
+        when(renderer.circuit(any())).thenThrow(new RendererClient.CircuitRefused(List.of("Mark one node as ground.")));
+        when(ai.repairCircuit(any())).thenReturn(new VisualizeAi.CircuitRepair(crossed(), "fake"));
+        JsonNode done = await(create("Show me a series circuit").get("id").asString());
+        assertThat(done.get("status").asString()).isEqualTo("FAILED");
+        assertThat(done.get("error").asString()).contains("Could not build a working circuit").contains("ground");
+    }
+
+    @Test
     void anEngineTheLearnerChoseFailsWithTheReasonInsteadOfFallingBack() throws Exception {
         when(renderer.molecule(any(), any(), any())).thenThrow(new RendererClient.RenderFailed("input", "not a valid SMILES"));
         JsonNode done = await(create("aspirin", "MOLECULE").get("id").asString());
@@ -301,6 +333,22 @@ class VisualizationFlowIT {
 
     private static String guess(String request) {
         return request.contains("aspirin") ? "molecule" : request.contains("haemoglobin") ? "protein" : "animation";
+    }
+
+    private static VisualizeAi.Circuit rc() {
+        return new VisualizeAi.Circuit(List.of(new VisualizeAi.CircuitNode("g", 0, 0, true),
+                new VisualizeAi.CircuitNode("t", 0, 3, false), new VisualizeAi.CircuitNode("r", 4, 3, false),
+                new VisualizeAi.CircuitNode("b", 4, 0, false)),
+                List.of(new VisualizeAi.CircuitPart("V1", "voltage_source", 5.0, "t", "g"),
+                        new VisualizeAi.CircuitPart("R1", "resistor", 1000.0, "t", "r"),
+                        new VisualizeAi.CircuitPart("C1", "capacitor", 1e-6, "r", "b"),
+                        new VisualizeAi.CircuitPart("W1", "wire", null, "b", "g")));
+    }
+
+    private static VisualizeAi.Circuit crossed() {
+        VisualizeAi.Circuit good = rc();
+        return new VisualizeAi.Circuit(good.nodes(), List.of(good.parts().get(0), good.parts().get(1),
+                good.parts().get(2), new VisualizeAi.CircuitPart("W1", "wire", null, "b", "t")));
     }
 
     private static RendererClient.Molecule molecule() {

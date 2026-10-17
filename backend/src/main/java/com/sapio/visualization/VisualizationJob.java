@@ -43,7 +43,8 @@ class VisualizationJob {
     private static final String UNAVAILABLE = "The animation studio is unavailable right now. Try again in a minute.";
 
     /** The engine's data from the storyboard, plus the learner's own (from the request) when they gave some. */
-    record Plan(VisualizeAi.Molecule molecule, VisualizeAi.Protein protein, String program, String learnerData) {
+    record Plan(VisualizeAi.Molecule molecule, VisualizeAi.Protein protein, VisualizeAi.Circuit circuit, String program,
+                String learnerData) {
     }
 
     private record Planned(VisualizationEngine engine, String title, List<VisualizeAi.Beat> beats, Plan plan) {
@@ -115,7 +116,7 @@ class VisualizationJob {
         }
         VisualizationEngine engine = VisualizationEngine.fromWire(board.engine());
         String learnerData = routed.filter(r -> r.engine() == engine).map(EngineRouter.Routed::data).orElse(null);
-        Plan plan = new Plan(board.molecule(), board.protein(), board.program(), learnerData);
+        Plan plan = new Plan(board.molecule(), board.protein(), board.circuit(), board.program(), learnerData);
         store.storyboard(row.id(), engine, board.title(), board.kind(), json.writeValueAsString(board.beats()),
                 json.writeValueAsString(plan), board.model(), clock.instant());
         return Optional.of(new Planned(engine, board.title(), board.beats(), plan));
@@ -136,7 +137,8 @@ class VisualizationJob {
 
     private Planned resumed(VisualizationStore.Row row) {
         List<VisualizeAi.Beat> beats = json.readValue(row.storyboardJson(), new TypeReference<>() { });
-        Plan plan = row.planJson() == null ? new Plan(null, null, null, null) : json.readValue(row.planJson(), Plan.class);
+        Plan plan = row.planJson() == null ? new Plan(null, null, null, null, null)
+                : json.readValue(row.planJson(), Plan.class);
         return new Planned(row.engine() == null ? VisualizationEngine.ANIMATION : row.engine(), row.title(), beats, plan);
     }
 
@@ -298,6 +300,43 @@ class VisualizationJob {
                 String traced = program;
                 // The lines each beat explains, found in the program actually traced (it may be the learner's).
                 scene.put("lines", planned.beats().stream().map(b -> SceneChecks.lines(traced, b.focus())).toList());
+            }
+            case CIRCUIT -> {
+                // Checked and solved exactly by the renderer; a refused circuit goes back to the AI with every
+                // problem, up to max-attempts tries in all.
+                VisualizeAi.Circuit circuit = plan.circuit();
+                JsonNode solved = null;
+                List<String> problems = List.of("No circuit was given.");
+                for (int attempt = 1; circuit != null && attempt <= properties.maxAttempts(); attempt++) {
+                    try {
+                        solved = renderer.circuit(circuit);
+                        break;
+                    } catch (RendererClient.CircuitRefused e) {
+                        problems = e.problems;
+                        log.info("Visualization {} circuit {} refused: {}", row.id(), attempt, e.getMessage());
+                        if (attempt < properties.maxAttempts()) {
+                            try {
+                                circuit = ai.repairCircuit(new VisualizeAi.CircuitRepairSpec(row.request(),
+                                        planned.title(), planned.beats(), circuit, problems)).circuit();
+                            } catch (VisualizationException unavailable) {
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (solved == null) {
+                    store.failed(row.id(), "Could not build a working circuit: " + String.join(" ", problems),
+                            clock.instant());
+                    return;
+                }
+                Set<String> ids = new LinkedHashSet<>();
+                circuit.parts().forEach(p -> ids.add(p.id()));
+                scene.put("circuit", circuit);
+                scene.put("solution", solved);
+                // Each beat's focus, kept only where it names parts of this circuit.
+                scene.put("focus", planned.beats().stream().map(b -> b.focus() == null ? List.<String>of()
+                        : java.util.Arrays.stream(b.focus().split("[,\\s]+")).map(String::strip)
+                                .filter(ids::contains).distinct().toList()).toList());
             }
             default -> throw new IllegalStateException("Not a scene engine: " + planned.engine());
         }

@@ -14,6 +14,7 @@ import { SkeletonText } from "../../shared/ui/Skeleton";
 import { Sage } from "../../shared/illustrations/Sage";
 import { visualizeApi } from "./api";
 import { chainColour } from "./chains";
+import { CircuitView } from "./CircuitView";
 import { CodeView } from "./CodeView";
 import { ChemicalFormula, isFormula } from "./formula";
 import { MoleculeView } from "./MoleculeView";
@@ -21,7 +22,8 @@ import { NarratedScene } from "./NarratedScene";
 import { ProteinView } from "./ProteinView";
 import { VideoPlayer } from "./VideoPlayer";
 import { fraction, stage, videoLength } from "./progress";
-import { isWorking, type CodeScene, type MoleculeScene, type ProteinScene, type Visualization } from "./types";
+import { isWorking, type CircuitScene, type CodeScene, type MoleculeScene, type ProteinScene, type Visualization } from "./types";
+import { si, UNIT } from "./units";
 import "./visualize.css";
 
 const POLL_MS = 2500;
@@ -108,6 +110,7 @@ export function VisualizationPage() {
 
             {v.status === "READY" && v.engine === "MOLECULE" && v.scene && <MoleculeFacts scene={v.scene as MoleculeScene} drawing={v.thumbnailUrl} />}
             {v.status === "READY" && v.engine === "PROTEIN" && v.scene && <ProteinFacts scene={v.scene as ProteinScene} />}
+            {v.status === "READY" && v.engine === "CIRCUIT" && v.scene && <CircuitFacts scene={v.scene as CircuitScene} />}
 
             <div className="row-between">
               <span className="small muted">
@@ -161,6 +164,8 @@ function SceneFor({ v }: { v: Visualization }) {
       {(clock) =>
         v.engine === "MOLECULE" ? (
           <MoleculeView scene={scene as MoleculeScene} clock={clock} />
+        ) : v.engine === "CIRCUIT" ? (
+          <CircuitView scene={scene as CircuitScene} clock={clock} />
         ) : v.engine === "PROTEIN" && v.structureUrl ? (
           <ProteinView scene={scene as ProteinScene} beats={v.beats} structureUrl={v.structureUrl} picture={v.thumbnailUrl} clock={clock} />
         ) : (
@@ -242,6 +247,53 @@ function ProteinFacts({ scene }: { scene: ProteinScene }) {
           </dd>
         </div>
       </dl>
+    </Card>
+  );
+}
+
+const PART_NAMES: Record<string, string> = {
+  resistor: "Resistor",
+  capacitor: "Capacitor",
+  inductor: "Inductor",
+  voltage_source: "Voltage source",
+  current_source: "Current source",
+};
+
+/** Every part with its value and, once settled, its voltage and current: the same numbers as the schematic, as a table. */
+function CircuitFacts({ scene }: { scene: CircuitScene }) {
+  const parts = scene.circuit.parts.filter((p) => p.kind !== "wire");
+  const settled = scene.solution.kind === "transient";
+  return (
+    <Card>
+      <h2 className="card-title">{settled ? "Values once settled" : "Values"}</h2>
+      <div className="viz-table-wrap">
+        <table className="viz-table">
+          <thead>
+            <tr>
+              <th scope="col">Part</th>
+              <th scope="col">Kind</th>
+              <th scope="col">Value</th>
+              <th scope="col">Voltage</th>
+              <th scope="col">Current</th>
+            </tr>
+          </thead>
+          <tbody>
+            {parts.map((p) => {
+              const r = scene.solution.steady.parts[p.id];
+              return (
+                <tr key={p.id}>
+                  <th scope="row">{p.id}</th>
+                  <td>{PART_NAMES[p.kind]}</td>
+                  <td>{si(p.value ?? 0, UNIT[p.kind] ?? "")}</td>
+                  <td>{r ? si(Math.abs(r.voltage), "V") : ""}</td>
+                  <td>{r ? si(Math.abs(r.current), "A") : ""}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="xs muted">Solved exactly from the circuit itself{settled ? ", from the moment it is switched on, with capacitors uncharged" : ""}.</p>
     </Card>
   );
 }

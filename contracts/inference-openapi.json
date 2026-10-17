@@ -291,6 +291,162 @@
         "title": "ChunkOut",
         "type": "object"
       },
+      "CircuitIo": {
+        "properties": {
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/CircuitNodeIo"
+            },
+            "maxItems": 30,
+            "title": "Nodes",
+            "type": "array"
+          },
+          "parts": {
+            "items": {
+              "$ref": "#/components/schemas/CircuitPartIo"
+            },
+            "maxItems": 30,
+            "title": "Parts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "nodes",
+          "parts"
+        ],
+        "title": "CircuitIo",
+        "type": "object"
+      },
+      "CircuitNodeIo": {
+        "properties": {
+          "ground": {
+            "default": false,
+            "title": "Ground",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "x": {
+            "title": "X",
+            "type": "integer"
+          },
+          "y": {
+            "title": "Y",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "x",
+          "y"
+        ],
+        "title": "CircuitNodeIo",
+        "type": "object"
+      },
+      "CircuitPartIo": {
+        "properties": {
+          "a": {
+            "title": "A",
+            "type": "string"
+          },
+          "b": {
+            "title": "B",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "a",
+          "b"
+        ],
+        "title": "CircuitPartIo",
+        "type": "object"
+      },
+      "CircuitRepairRequest": {
+        "description": "A circuit the renderer refused, with every problem it found, to be fixed for the same storyboard.",
+        "properties": {
+          "beats": {
+            "items": {
+              "$ref": "#/components/schemas/BeatIo"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Beats",
+            "type": "array"
+          },
+          "circuit": {
+            "$ref": "#/components/schemas/CircuitIo"
+          },
+          "problems": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Problems",
+            "type": "array"
+          },
+          "request": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Request",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 300,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request",
+          "title",
+          "beats",
+          "circuit",
+          "problems"
+        ],
+        "title": "CircuitRepairRequest",
+        "type": "object"
+      },
+      "CircuitRepairResponse": {
+        "properties": {
+          "circuit": {
+            "$ref": "#/components/schemas/CircuitIo"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          }
+        },
+        "required": [
+          "circuit",
+          "model"
+        ],
+        "title": "CircuitRepairResponse",
+        "type": "object"
+      },
       "DescribeFiguresRequest": {
         "properties": {
           "figures": {
@@ -850,7 +1006,7 @@
       "HealthResponse": {
         "properties": {
           "contractVersion": {
-            "default": "1.5",
+            "default": "1.6",
             "title": "Contractversion",
             "type": "string"
           },
@@ -1956,7 +2112,8 @@
               "animation",
               "molecule",
               "protein",
-              "code"
+              "code",
+              "circuit"
             ],
             "title": "Engine",
             "type": "string"
@@ -1998,12 +2155,23 @@
             "title": "Beats",
             "type": "array"
           },
+          "circuit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CircuitIo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "engine": {
             "enum": [
               "animation",
               "molecule",
               "protein",
-              "code"
+              "code",
+              "circuit"
             ],
             "title": "Engine",
             "type": "string"
@@ -2022,6 +2190,7 @@
               "chemistry",
               "biology",
               "code",
+              "electronics",
               "other"
             ],
             "title": "Kind",
@@ -3768,6 +3937,112 @@
           }
         },
         "summary": "Transcribe"
+      }
+    },
+    "/v1/visualize/circuit": {
+      "post": {
+        "operationId": "repair_circuit_v1_visualize_circuit_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-internal-api-key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CircuitRepairRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CircuitRepairResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Repair Circuit"
       }
     },
     "/v1/visualize/code": {

@@ -26,6 +26,41 @@ class ProteinIo(ApiModel):
     name: str
 
 
+class CircuitNodeIo(ApiModel):
+    id: str
+    x: int
+    y: int
+    ground: bool = False
+
+
+class CircuitPartIo(ApiModel):
+    id: str
+    kind: str
+    value: float | None = None
+    a: str
+    b: str
+
+
+class CircuitIo(ApiModel):
+    nodes: list[CircuitNodeIo] = Field(max_length=30)
+    parts: list[CircuitPartIo] = Field(max_length=30)
+
+
+class CircuitRepairRequest(ApiModel):
+    """A circuit the renderer refused, with every problem it found, to be fixed for the same storyboard."""
+
+    request: str = Field(min_length=1, max_length=4000)
+    title: str = Field(max_length=300)
+    beats: list[BeatIo] = Field(min_length=1, max_length=8)
+    circuit: CircuitIo
+    problems: list[str] = Field(min_length=1, max_length=20)
+
+
+class CircuitRepairResponse(ApiModel):
+    circuit: CircuitIo
+    model: str
+
+
 class StoryboardRequest(ApiModel):
     #: What to visualize: a formula (LaTeX or plain), code, a molecule, or a question / idea in words
     request: str = Field(min_length=1, max_length=4000)
@@ -34,7 +69,7 @@ class StoryboardRequest(ApiModel):
     context: str | None = Field(default=None, max_length=8000)
     learner: LearnerIn | None = None
     #: auto: the storyboard picks the engine; anything else: use that engine (the learner chose it, or rules did)
-    engine: Literal["auto", "animation", "molecule", "protein", "code"] = "auto"
+    engine: Literal["auto", "animation", "molecule", "protein", "code", "circuit"] = "auto"
 
 
 class StoryboardResponse(ApiModel):
@@ -45,6 +80,7 @@ class StoryboardResponse(ApiModel):
     engine: Engine
     molecule: MoleculeIo | None = None
     protein: ProteinIo | None = None
+    circuit: CircuitIo | None = None
     #: engine code: the Python program to trace
     program: str = ""
     beats: list[BeatIo]

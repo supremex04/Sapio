@@ -533,3 +533,62 @@
   font-size: 0.72em;
   line-height: 0;
 }
+
+/* ---------- circuit ---------- */
+.viz-circuit {
+  display: flex;
+  flex-direction: column;
+  height: min(70vh, 34rem);
+  min-height: 22rem;
+  padding: var(--space-3) var(--space-3) 3.5rem; /* room for the subtitle */
+}
+.viz-schematic {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+.viz-part-label {
+  font-family: var(--font-mono);
+  pointer-events: none;
+}
+.viz-response {
+  flex: none;
+  margin: 0 auto;
+  width: min(100%, 36rem);
+}
+.viz-response figcaption {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: rgb(255 255 255 / 0.75);
+  font-size: var(--text-label);
+}
+.viz-response figcaption span {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.viz-response svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  cursor: crosshair;
+}
+.viz-table-wrap {
+  overflow-x: auto;
+}
+.viz-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-small);
+  font-variant-numeric: tabular-nums;
+}
+.viz-table th,
+.viz-table td {
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+.viz-table thead th {
+  color: var(--text-muted);
+  font-weight: var(--weight-heading);
+}

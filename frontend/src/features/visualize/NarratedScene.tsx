@@ -10,6 +10,8 @@ export interface SceneClock {
   playing: boolean;
   /** The narration has played to its end. */
   ended: boolean;
+  /** How far through the whole narration, 0..1 (a circuit's response is swept across it). */
+  fraction: number;
 }
 
 /**
@@ -121,7 +123,7 @@ export function NarratedScene({ audioUrl, timing, beats, children }: { audioUrl:
         />
       )}
       <div className="viz-scene-view">
-        {children({ beat, progress, playing, ended })}
+        {children({ beat, progress, playing, ended, fraction: ended ? 1 : duration > 0 ? Math.min(1, time / duration) : 0 })}
         {beats[beat]?.says && <p className="viz-subtitle">{beats[beat].says}</p>}
         {blocked && !playing && (
           <button type="button" className="viz-start" onClick={play}>

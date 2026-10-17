@@ -24,6 +24,11 @@ final class EngineRouter {
     private static final Pattern SMILES = Pattern.compile("^[A-Za-z0-9@+\\-\\[\\]()=#$/\\\\%.:*]{2,300}$");
     private static final Pattern SMILES_SIGNAL = Pattern.compile("[()=#\\[\\]@]|[a-z][0-9]|[A-Z][0-9]");
     private static final Pattern PDB_ID = Pattern.compile("(?i)(?<![A-Za-z0-9])([1-9][A-Za-z0-9]{3})(?![A-Za-z0-9])");
+    /** Questions about circuit behaviour itself; "how a capacitor works inside" stays with the storyboard. */
+    private static final Pattern CIRCUIT = Pattern.compile("(?i)\\b(voltage divider|current divider|ohm'?s law|"
+            + "kirchhoff'?s?( (current|voltage))? laws?|rc circuit|rl circuit|lc circuit|rlc circuit|series circuit|"
+            + "parallel circuit|series and parallel (resistors|circuits?)|resistors? in (series|parallel)|"
+            + "capacitors? in (series|parallel))\\b");
     private static final Pattern BIOLOGY = Pattern.compile("(?i)\\b(pdb|protein|enzyme|structure|dna|rna|antibody"
             + "|receptor|haemoglobin|hemoglobin|complex|virus|capsid|channel|kinase|ribosome)\\b");
 
@@ -38,6 +43,9 @@ final class EngineRouter {
         Optional<String> pdb = pdbId(text);
         if (pdb.isPresent()) {
             return Optional.of(new Routed(VisualizationEngine.PROTEIN, pdb.get()));
+        }
+        if (CIRCUIT.matcher(text).find()) {
+            return Optional.of(new Routed(VisualizationEngine.CIRCUIT, null));
         }
         if (SMILES.matcher(text).matches() && SMILES_SIGNAL.matcher(text).find()) {
             return Optional.of(new Routed(VisualizationEngine.MOLECULE, text));

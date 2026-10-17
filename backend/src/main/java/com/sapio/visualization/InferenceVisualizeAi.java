@@ -25,6 +25,11 @@ class InferenceVisualizeAi implements VisualizeAi {
         return post("/v1/visualize/code", spec, SceneCode.class);
     }
 
+    @Override
+    public CircuitRepair repairCircuit(CircuitRepairSpec spec) throws VisualizationException {
+        return post("/v1/visualize/circuit", spec, CircuitRepair.class);
+    }
+
     private <T> T post(String path, Object body, Class<T> type) throws VisualizationException {
         try {
             return inference.postJson(path, body, type);

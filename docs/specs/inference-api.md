@@ -166,11 +166,12 @@ Guarantees the service enforces on LLM output:
 - Grades: `score` is clamped into the verdict band (CORRECT 0.8–1, PARTIAL 0.3–0.7, INCORRECT 0–0.2);
   blank answers are INCORRECT without calling the LLM.
 
-## Visualize endpoints (`/v1/visualize/*`, contract 1.5)
+## Visualize endpoints (`/v1/visualize/*`, contract 1.6)
 
 | Endpoint | Task | Request | Response |
 |---|---|---|---|
-| `POST /storyboard` | `visualize_plan` | `{request (formula, words, code; at most 4000), language, context?, learner?, engine: auto\|animation\|molecule\|protein\|code}` | `{feasible, reason, title, kind, engine, molecule?:{name, smiles}, protein?:{pdbId, name}, program, beats:[{shows, says, focus}] (2-8), model}` |
+| `POST /storyboard` | `visualize_plan` | `{request (formula, words, code; at most 4000), language, context?, learner?, engine: auto\|animation\|molecule\|protein\|code\|circuit}` | `{feasible, reason, title, kind, engine, molecule?:{name, smiles}, protein?:{pdbId, name}, circuit?:{nodes, parts}, program, beats:[{shows, says, focus}] (2-8), model}` |
+| `POST /circuit` | `visualize_circuit` | `{request, title, beats, circuit, problems}` (a circuit the renderer refused) | `{circuit, model}` |
 | `POST /code` | `visualize_code` | `{title, beats, previousCode?, error?}` (both set: repair code the renderer refused or could not run) | `{code (one Visualization(Scene) class, Manim CE 0.19), model}` |
 
 The storyboard also routes (contract 1.5): with `engine: auto` it picks the engine and returns that engine's data;

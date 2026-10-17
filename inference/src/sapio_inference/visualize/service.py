@@ -2,10 +2,12 @@
 
 import re
 
+from pydantic import BaseModel
+
 from sapio_inference.api import visualize_schemas as api
 from sapio_inference.llm.router import RoutedLlm
 from sapio_inference.visualize import prompts
-from sapio_inference.visualize.models import SceneCode, Storyboard
+from sapio_inference.visualize.models import Circuit, SceneCode, Storyboard
 
 _FENCE = re.compile(r"^```(?:python)?\s*\n|\n```\s*$")
 
@@ -43,9 +45,31 @@ class VisualizeService:
             )
             if engine == "protein" and board.protein
             else None,
+            circuit=api.CircuitIo.model_validate(board.circuit.model_dump())
+            if engine == "circuit" and board.circuit
+            else None,
             program=strip_fences(board.program) if engine == "code" else "",
             beats=beats,
             model=self._llm.model_name,
+        )
+
+    def repair_circuit(self, request: api.CircuitRepairRequest) -> api.CircuitRepairResponse:
+        """A refused circuit, fixed for the same storyboard from the problems the renderer listed."""
+        fixed = self._llm.generate(
+            system=prompts.CIRCUIT_SYSTEM,
+            prompt=prompts.circuit_repair_prompt(
+                request.request,
+                request.title,
+                [(b.shows, b.says, b.focus) for b in request.beats],
+                request.circuit.model_dump_json(by_alias=True),
+                request.problems,
+            ),
+            schema=_CircuitOut,
+            temperature=0.2,
+            task="visualize_circuit",
+        )
+        return api.CircuitRepairResponse(
+            circuit=api.CircuitIo.model_validate(fixed.circuit.model_dump()), model=self._llm.model_name
         )
 
     def code(self, request: api.SceneCodeRequest) -> api.SceneCodeResponse:
@@ -65,6 +89,10 @@ class VisualizeService:
         return api.SceneCodeResponse(code=strip_fences(scene.code), model=self._llm.model_name)
 
 
+class _CircuitOut(BaseModel):
+    circuit: Circuit
+
+
 def _engine(board: Storyboard, chosen: str) -> tuple[str, str]:
     """The engine to use and, when it cannot be used, why. Missing data falls back to an animation, unless the
     learner chose the engine (then they hear why it did not work)."""
@@ -73,12 +101,18 @@ def _engine(board: Storyboard, chosen: str) -> tuple[str, str]:
         "molecule": not (board.molecule and board.molecule.smiles.strip()),
         "protein": not (board.protein and len(board.protein.pdb_id.strip()) == 4),
         "code": not board.program.strip(),
+        "circuit": not (board.circuit and board.circuit.nodes and board.circuit.parts),
     }.get(engine, False)
     if not missing:
         return engine, ""
     if chosen == "auto":
         return "animation", ""
-    what = {"molecule": "a molecule", "protein": "a structure in the Protein Data Bank", "code": "a program"}
+    what = {
+        "molecule": "a molecule",
+        "protein": "a structure in the Protein Data Bank",
+        "code": "a program",
+        "circuit": "a circuit",
+    }
     return engine, f"Could not find {what[engine]} to show for this request."
 
 

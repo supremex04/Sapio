@@ -11,6 +11,7 @@ export function stage(v: Visualization): string {
       if (v.engine === "MOLECULE") return "Building the molecule";
       if (v.engine === "PROTEIN") return "Fetching the structure";
       if (v.engine === "CODE") return "Running the program";
+      if (v.engine === "CIRCUIT") return "Solving the circuit";
       return v.attempts > 0 ? "Fixing a hiccup and drawing again" : "Drawing the video";
     case "READY":
       return "Ready";

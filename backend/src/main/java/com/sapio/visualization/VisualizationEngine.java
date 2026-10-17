@@ -4,11 +4,11 @@ import java.util.Locale;
 
 /**
  * How a visualization is shown: an animated video (Manim code), a molecule (RDKit, 3D viewer), a structure from the
- * Protein Data Bank (3D viewer) or a program traced line by line. {@code AUTO}: chosen by the rules, then by the
+ * Protein Data Bank (3D viewer), a program traced line by line, or an electric circuit (schematic, solved exactly). {@code AUTO}: chosen by the rules, then by the
  * storyboard (docs/adr/0017-visualization-engines.md).
  */
 public enum VisualizationEngine {
-    AUTO, ANIMATION, MOLECULE, PROTEIN, CODE;
+    AUTO, ANIMATION, MOLECULE, PROTEIN, CODE, CIRCUIT;
 
     /** Name on the wire to inference (lowercase). */
     String wire() {
