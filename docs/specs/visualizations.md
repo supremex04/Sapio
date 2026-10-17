@@ -67,7 +67,7 @@ picture with the focus named (proteins). Narration waits for a click when the br
 | `GET` | `/api/visualizations/{id}/structure?exp&sig` | a protein's structure (mmCIF text) |
 
 A visualization: `{id, request, documentId, status, engineChoice, engine, title, kind, beats:[{shows, says,
-focus}], code, attempts, error (when FAILED), durationSeconds, narrated, videoUrl, thumbnailUrl, audioUrl,
+focus}], attempts, error (when FAILED), durationSeconds, narrated, videoUrl, thumbnailUrl, audioUrl,
 structureUrl (signed, when READY), scene (single visualization only), createdAt, completedAt}`. `scene` by engine:
 molecule `{name, smiles, formula, weight, heavyAtoms, threeD, molBlock, highlights[[atom]], drawings[png], timing}`;
 protein `{pdbId, name, entryTitle, focus[checked], labels[from the structure], chains[{id, description}], timing}`;
@@ -80,7 +80,12 @@ residue is at that number, or is dropped; chains, ranges and ligands that are no
 foci are found in the program traced; ranges past its end, or on blank lines only, are dropped. A dropped focus
 shows the whole structure or program, never something else. In the code view each beat walks one stretch of the
 run on its lines (a long jump ends it, so a final print does not skip to the end), at most 12 steps, and never
-starts before the previous beat started.
+starts before the previous beat started. The trace ends with an `end` step (the final variables and everything
+printed, since a last `print(...)` runs after the last traced line), which the view shows when the narration ends.
+
+The scene code of an animation stays on the server (it is what the repair loop works on) and is not shown. The
+code view, like the 3D viewers, has a fixed-size stage: the listing and the state panel scroll inside it, keeping
+the running line and the newest output in view.
 
 The player has its own controls (play, time, seek, sound, full screen); narrated videos start with sound when the
 browser allows autoplay with sound (after a click in the app), otherwise muted with the sound button showing it.

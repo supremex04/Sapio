@@ -23,11 +23,14 @@ def test_a_program_is_traced_line_by_line_with_its_call_stack():
         s["value"] for s in result["steps"] if s["event"] == "return" and s["stack"][-1]["name"] == "fact"
     ]
     assert returns == ["1", "2", "6"]
+    end = result["steps"][-1]
+    assert end["event"] == "end" and end["output"] == "3! = 6\n"  # the final print shows
+    assert end["stack"][0]["vars"]["total"] == "6"
 
 
 def test_endless_loops_stop_at_the_step_limit():
     result = trace.trace("while True:\n    x = 1\n", [])
-    assert result["truncated"] and len(result["steps"]) == 400
+    assert result["truncated"] and len(result["steps"]) == 400  # no end step: it did not end
 
 
 def test_a_swallowing_except_cannot_escape_the_limit():

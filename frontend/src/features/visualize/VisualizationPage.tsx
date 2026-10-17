@@ -25,7 +25,7 @@ import "./visualize.css";
 
 const POLL_MS = 2500;
 
-/** One visualization: the video once drawn (progress until then), its storyboard, and the code behind it. */
+/** One visualization: the video or narrated viewer once made (progress until then), and its storyboard. */
 export function VisualizationPage() {
   const { id = "" } = useParams();
   const [v, setV] = useState<Visualization | null>(null);
@@ -143,14 +143,6 @@ export function VisualizationPage() {
               </Card>
             )}
 
-            {v.code && v.engine === "ANIMATION" && (
-              <details className="viz-code card">
-                <summary>The code behind it (Python, Manim)</summary>
-                <pre>
-                  <code>{v.code}</code>
-                </pre>
-              </details>
-            )}
           </>
         )}
       </div>

@@ -97,7 +97,7 @@ class VisualizationFlowIT {
         assertThat(done.get("status").asString()).isEqualTo("READY");
         assertThat(done.get("title").asString()).isEqualTo("Pythagoras");
         assertThat(done.get("beats")).hasSize(2);
-        assertThat(done.get("code").asString()).isEqualTo("fixed");
+        assertThat(done.has("code")).isFalse(); // the scene code stays on the server
         assertThat(done.get("attempts").asInt()).isEqualTo(2);
         assertThat(done.get("durationSeconds").asDouble()).isEqualTo(4.5);
         assertThat(done.get("narrated").asBoolean()).isTrue();

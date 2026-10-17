@@ -51,8 +51,10 @@ export interface Frame {
 }
 
 export interface TraceStep {
+  /** 0 for the end step. */
   line: number;
-  event: "line" | "return" | "exception";
+  /** end: the program finished; its final output and variables. */
+  event: "line" | "return" | "exception" | "end";
   stack: Frame[];
   output: string;
   value?: string;
@@ -77,7 +79,6 @@ export interface Visualization {
   title: string | null;
   kind: string | null;
   beats: Beat[];
-  code: string | null;
   attempts: number;
   error: string | null;
   durationSeconds: number | null;

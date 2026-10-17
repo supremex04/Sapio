@@ -45,7 +45,7 @@ public class VisualizationService {
      */
     public record View(UUID id, String request, UUID documentId, VisualizationStore.Status status,
                        VisualizationEngine engineChoice, VisualizationEngine engine, String title, String kind,
-                       List<VisualizeAi.Beat> beats, String code, int attempts, String error, Double durationSeconds,
+                       List<VisualizeAi.Beat> beats, int attempts, String error, Double durationSeconds,
                        boolean narrated, String videoUrl, String thumbnailUrl, String audioUrl, String structureUrl,
                        JsonNode scene, Instant createdAt, Instant completedAt) {
     }
@@ -167,7 +167,7 @@ public class VisualizationService {
                 : json.readValue(r.storyboardJson(), new TypeReference<List<VisualizeAi.Beat>>() { });
         boolean ready = r.status() == VisualizationStore.Status.READY;
         return new View(r.id(), r.request(), r.documentId(), r.status(), r.engineChoice(),
-                r.engine() != null ? r.engine() : r.engineChoice(), r.title(), r.kind(), beats, r.code(),
+                r.engine() != null ? r.engine() : r.engineChoice(), r.title(), r.kind(), beats,
                 r.attempts(), r.status() == VisualizationStore.Status.FAILED ? r.error() : null, r.durationSeconds(),
                 r.narrated(), url(r, ready, r.videoKey(), VisualizationUrlSigner.Asset.video),
                 url(r, ready, r.thumbnailKey(), VisualizationUrlSigner.Asset.thumbnail),

@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cx } from "../../shared/ui/cx";
 import { lineRange, stepsPerBeat } from "./progress";
 import type { SceneClock } from "./NarratedScene";
@@ -16,6 +16,8 @@ export function CodeView({ scene, beats, clock }: { scene: CodeScene; beats: Bea
   const ranges = useMemo(() => (scene.lines ? scene.lines.map((l) => lineRange(l)) : beats.map((b) => lineRange(b.focus))), [scene.lines, beats]);
   const perBeat = useMemo(() => stepsPerBeat(ranges, steps), [ranges, steps]);
   const [manual, setManual] = useState<number | null>(null);
+  const listing = useRef<HTMLOListElement>(null);
+  const output = useRef<HTMLPreElement>(null);
 
   // The step the narration is at: through this beat's steps as it plays, else the last step shown before it.
   let narrated = -1;
@@ -27,15 +29,34 @@ export function CodeView({ scene, beats, clock }: { scene: CodeScene; beats: Bea
       narrated = earlier[earlier.length - 1] ?? -1;
     }
   }
-  const index = clock.playing || manual == null ? narrated : manual;
+  // At the end of the narration: how the program ended (its full output), unless stepping by hand.
+  const auto = clock.ended ? steps.length - 1 : narrated;
+  const index = clock.playing || manual == null ? auto : manual;
   const step = index >= 0 ? steps[index] : undefined;
   const range = ranges[clock.beat];
 
   const go = (to: number) => setManual(Math.max(0, Math.min(steps.length - 1, to)));
 
+  // Keep the running line in view inside the listing, and the newest output at the bottom of its box. Only these
+  // panels scroll; the page stays where the learner put it.
+  const currentLine = step?.line;
+  useEffect(() => {
+    const box = listing.current;
+    const row = box?.querySelector<HTMLElement>("li.is-current");
+    if (!box || !row) return;
+    const top = row.offsetTop - box.offsetTop;
+    if (top < box.scrollTop || top + row.offsetHeight > box.scrollTop + box.clientHeight) {
+      box.scrollTop = Math.max(0, top - box.clientHeight / 3);
+    }
+  }, [currentLine]);
+  const printed = step?.output;
+  useEffect(() => {
+    if (output.current) output.current.scrollTop = output.current.scrollHeight;
+  }, [printed]);
+
   return (
     <div className="viz-code-view">
-      <ol className="viz-listing" aria-label="Program">
+      <ol ref={listing} className="viz-listing" aria-label="Program">
         {lines.map((text, i) => {
           const n = i + 1;
           return (
@@ -62,6 +83,7 @@ export function CodeView({ scene, beats, clock }: { scene: CodeScene; beats: Bea
             </button>
           </span>
         </div>
+        {step?.event === "end" && <p className="xs muted">The program has finished.</p>}
         {step?.event === "return" && <p className="xs muted">Returns {step.value}</p>}
         {step?.event === "exception" && <p className="xs viz-error-text">Raises {step.value}</p>}
         <div className="viz-frames">
@@ -85,7 +107,7 @@ export function CodeView({ scene, beats, clock }: { scene: CodeScene; beats: Bea
         </div>
         <div className="viz-output">
           <span className="xs muted">Output</span>
-          <pre>{step?.output ? step.output : <span className="muted">nothing printed yet</span>}</pre>
+          <pre ref={output}>{step?.output ? step.output : <span className="muted">nothing printed yet</span>}</pre>
           {scene.trace.error && index === steps.length - 1 && <p className="xs viz-error-text">{scene.trace.error}</p>}
         </div>
       </div>

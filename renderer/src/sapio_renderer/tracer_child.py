@@ -49,10 +49,22 @@ def main() -> None:
     real_stdout = sys.stdout
     output = io.StringIO()
     steps: list[dict] = []
+    env: dict = {}
 
     def finish(error: str | None = None, truncated: bool = False) -> None:
         sys.settrace(None)
         sys.stdout = real_stdout
+        if not truncated:
+            # The program's end as a step of its own: what the last line printed (a final print(...) runs after
+            # the last traced step) and the variables it ended with.
+            steps.append(
+                {
+                    "line": 0,
+                    "event": "end",
+                    "stack": [{"name": "main", "line": 0, "vars": _vars(env)}],
+                    "output": output.getvalue()[-MAX_OUTPUT:],
+                }
+            )
         real_stdout.write(
             json.dumps(
                 {
@@ -110,7 +122,7 @@ def main() -> None:
     safe_builtins = {k: v for k, v in vars(builtins).items() if k not in _REMOVED}
     safe_builtins["__import__"] = guarded_import
     safe_builtins["input"] = fake_input
-    env = {"__name__": "__main__", "__builtins__": safe_builtins}
+    env.update({"__name__": "__main__", "__builtins__": safe_builtins})
 
     compiled = compile(code, FILENAME, "exec")
     sys.stdout = output

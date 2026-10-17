@@ -8,6 +8,8 @@ export interface SceneClock {
   beat: number;
   progress: number;
   playing: boolean;
+  /** The narration has played to its end. */
+  ended: boolean;
 }
 
 /**
@@ -89,6 +91,7 @@ export function NarratedScene({ audioUrl, timing, beats, children }: { audioUrl:
   }, [play]);
 
   const seek = (to: number) => {
+    setBlocked(false); // the learner is using the controls: the prompt has done its job
     if (audioUrl && audio.current) audio.current.currentTime = to;
     else {
       silentOffset.current = to;
@@ -118,7 +121,7 @@ export function NarratedScene({ audioUrl, timing, beats, children }: { audioUrl:
         />
       )}
       <div className="viz-scene-view">
-        {children({ beat, progress, playing })}
+        {children({ beat, progress, playing, ended })}
         {beats[beat]?.says && <p className="viz-subtitle">{beats[beat].says}</p>}
         {blocked && !playing && (
           <button type="button" className="viz-start" onClick={play}>

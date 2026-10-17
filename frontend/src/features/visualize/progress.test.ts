@@ -12,7 +12,6 @@ const base: Visualization = {
   title: null,
   kind: null,
   beats: [],
-  code: null,
   attempts: 0,
   error: null,
   durationSeconds: null,
