@@ -1,5 +1,6 @@
 import { Check, RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router";
 import { errorMessage } from "../../shared/api/errors";
 import { Emoji } from "../../shared/illustrations/Emoji";
 import { Alert } from "../../shared/ui/Alert";
@@ -21,6 +22,10 @@ const same = (a: Personalization, b: Personalization) => JSON.stringify(a) === J
  */
 export function PersonalizePage() {
   const toast = useToast();
+  const navigate = useNavigate();
+  // Right after sign-up (?start=1): the first step of getting started, before the daily goal.
+  const starting = useSearchParams()[0].get("start") === "1";
+  const next = () => navigate("/welcome", { replace: true });
   const [saved, setSaved] = useState<Personalization | null>(null);
   const [draft, setDraft] = useState<Personalization>(EMPTY);
   const [saving, setSaving] = useState(false);
@@ -50,6 +55,7 @@ export function PersonalizePage() {
       setSaved(profile);
       setDraft(profile);
       toast.show("success", "Saved. New lessons, notes and tests will be written for you.");
+      if (starting) next();
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -63,8 +69,12 @@ export function PersonalizePage() {
         <header className="pz-header">
           <Emoji name="personalize" size={56} />
           <div className="lib-header-text">
-            <h1>Personalize</h1>
-            <p className="muted">Tell Sapio who you are and how you like to learn. Lessons, notes, tests and the tutor adapt to it. Change it any time.</p>
+            <h1>{starting ? "Tell us about you" : "Personalize"}</h1>
+            <p className="muted">
+              {starting
+                ? "So your lessons, notes, tests and tutor are written for you from the very first one. It takes a minute, every question is optional, and you can change it any time in the Personalize tab."
+                : "Tell Sapio who you are and how you like to learn. Lessons, notes, tests and the tutor adapt to it. Change it any time."}
+            </p>
           </div>
         </header>
 
@@ -165,11 +175,17 @@ export function PersonalizePage() {
             </Card>
 
             <div className="pz-actions">
-              <Button variant="ghost" icon={<RotateCcw size={16} />} disabled={!dirty || saving} onClick={() => setDraft(saved)}>
-                Undo changes
-              </Button>
+              {starting ? (
+                <Button variant="ghost" disabled={saving} onClick={next}>
+                  Skip for now
+                </Button>
+              ) : (
+                <Button variant="ghost" icon={<RotateCcw size={16} />} disabled={!dirty || saving} onClick={() => setDraft(saved)}>
+                  Undo changes
+                </Button>
+              )}
               <Button variant="primary" size="lg" loading={saving} disabled={!dirty} onClick={save}>
-                Save
+                {starting ? "Save and continue" : "Save"}
               </Button>
             </div>
           </>

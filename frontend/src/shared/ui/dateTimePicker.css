@@ -173,17 +173,63 @@
   background: color-mix(in srgb, var(--color-primary) 16%, transparent);
   color: var(--color-primary);
 }
-.dtp-select {
+.dtp-time-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin-left: auto;
-  padding: 5px 8px;
+  padding: 5px 10px;
   border: var(--border-width) solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
   font: inherit;
   font-size: var(--text-small);
+  cursor: pointer;
+}
+.dtp-time-button:hover,
+.dtp-time-button.is-open {
+  border-color: var(--color-primary);
+}
+.dtp-time-button:focus-visible,
+.dtp-time-option:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+/* A short list that scrolls, inside the panel: never taller than about six rows. */
+.dtp-times {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  width: 100%;
+  max-height: 9.5rem;
+  margin-top: var(--space-1);
+  padding: 4px;
+  overflow-y: auto;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  overscroll-behavior: contain;
+}
+.dtp-time-option {
+  padding: 5px 4px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--text-small);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.dtp-time-option:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.dtp-time-option.is-selected {
+  background: color-mix(in srgb, var(--color-primary) 16%, transparent);
+  color: var(--color-primary);
   font-weight: var(--weight-strong);
-  color-scheme: light dark;
 }
 .dtp-foot {
   display: flex;

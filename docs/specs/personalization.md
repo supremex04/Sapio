@@ -2,6 +2,10 @@
 
 Learners tell Sapio who they are and how they like to learn; lessons, Expand / Revision notes, test questions, tutor
 answers and test-report feedback are written for it. Sidebar: **Personalize** (`/personalize`), editable any time.
+New learners land on it right after creating their account (`/personalize?start=1`: "Tell us about you", with
+**Skip for now** and **Save and continue**), so their first lesson is already written for them; then the daily
+goal (`/welcome`). Visualizations use the level, occupation, field, depth and preferences, not the goal: they only
+explain.
 
 ## Rules
 

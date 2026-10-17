@@ -40,7 +40,8 @@ export function RegisterPage() {
         role,
         timeZone: browserTimeZone(),
       });
-      navigate("/welcome", { replace: true });
+      // Learners say who they are first, so their very first lesson is already written for them; then the daily goal.
+      navigate(role === "STUDENT" ? "/personalize?start=1" : "/welcome", { replace: true });
     } catch (e) {
       if (e instanceof ApiError && Object.keys(e.fieldErrors).length > 0) setFieldErrors(e.fieldErrors);
       else setError(errorMessage(e));

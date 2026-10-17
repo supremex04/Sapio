@@ -131,7 +131,7 @@ milestone ([roadmap.md](roadmap.md)). The tutor inside lessons is the only ask-s
 |---|---|---|
 | XP & levels | fixed rules per learning action (checks, test answers, topic/test completion, reviews, daily goal) | modest, secondary rewards (overjustification risk) |
 | Streaks | consecutive local days with XP or ≥ 5 active minutes; today never shows "broken" | habit formation without loss-aversion anxiety |
-| Daily goal | 5/10/15/20/30 minutes, picked at onboarding (`/welcome`), ring on Home | implementation intentions, goal-gradient |
+| Daily goal | 5/10/15/20/30 minutes, picked at onboarding (`/welcome`, right after Personalize for new learners), ring on Home | implementation intentions, goal-gradient |
 | One next step | `GET /api/study/next-step`: reviews due → continue topic → next topic → test → upload | choice overload / defaults |
 | Analytics | logins per day, active time per day (visible-tab heartbeats every 30 s), learning-event log, 14-day chart and recent activity on Home | data for future teacher dashboards |
 

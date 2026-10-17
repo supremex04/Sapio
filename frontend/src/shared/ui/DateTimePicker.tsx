@@ -1,5 +1,5 @@
-import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, X } from "lucide-react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { uiZoom } from "../../app/sidebarState";
 import { cx } from "./cx";
 import { combine, minutesOf, monthGrid, sameDay, timeLabel, timeOptions, valueLabel } from "./dateTime";
@@ -37,6 +37,9 @@ interface Props {
  */
 export function DateTimePicker({ value, onChange, placeholder = "Pick a date", withTime = true, defaultMinutes = 23 * 60 + 59, min, clearable = true, label }: Props) {
   const [open, setOpen] = useState(false);
+  // Every time of day, in a short scrolling list inside the panel: a native <select> of 97 options opens as a list
+  // as tall as the screen in some browsers.
+  const [timesOpen, setTimesOpen] = useState(false);
   const selected = value ? new Date(value) : null;
   const [view, setView] = useState(() => {
     const base = selected ?? new Date();
@@ -80,8 +83,11 @@ export function DateTimePicker({ value, onChange, placeholder = "Pick a date", w
     const viewW = window.innerWidth / zoom;
     const viewH = window.innerHeight / zoom;
     const below = r.bottom / zoom + 6;
-    const top = below + height > viewH - 8 && r.top / zoom - height - 6 > 8 ? r.top / zoom - height - 6 : below;
-    p.style.top = `${Math.max(8, top)}px`;
+    const above = r.top / zoom - height - 6;
+    // Below the button if it fits, else above; if neither, as low as it can go while all of it (Done included)
+    // stays on screen.
+    const top = below + height <= viewH - 8 ? below : above >= 8 ? above : Math.max(8, viewH - height - 8);
+    p.style.top = `${top}px`;
     p.style.left = `${Math.min(Math.max(8, r.left / zoom), viewW - width - 8)}px`;
   }, []);
 
@@ -97,7 +103,7 @@ export function DateTimePicker({ value, onChange, placeholder = "Pick a date", w
       window.removeEventListener("scroll", place, true);
       if (typeof p.hidePopover === "function" && p.matches(":popover-open")) p.hidePopover();
     };
-  }, [open, place, view, withTime]);
+  }, [open, place, view, withTime, timesOpen]);
 
   const step = (delta: number) =>
     setView((v) => {
@@ -177,14 +183,18 @@ export function DateTimePicker({ value, onChange, placeholder = "Pick a date", w
                   </button>
                 ))}
               </div>
-              <select className="dtp-select" value={minutes} onChange={(e) => pickTime(Number(e.target.value))} aria-label="Time">
-                {!timeOptions().includes(minutes) && <option value={minutes}>{timeLabel(minutes)}</option>}
-                {timeOptions().map((m) => (
-                  <option key={m} value={m}>
-                    {timeLabel(m)}
-                  </option>
-                ))}
-              </select>
+              <button
+                type="button"
+                className={cx("dtp-time-button", timesOpen && "is-open")}
+                aria-expanded={timesOpen}
+                aria-controls={`${panelId}-times`}
+                aria-label={`Time: ${timeLabel(minutes)}`}
+                onClick={() => setTimesOpen((o) => !o)}
+              >
+                <Clock size={14} aria-hidden />
+                {timeLabel(minutes)}
+              </button>
+              {timesOpen && <TimeList id={`${panelId}-times`} selected={minutes} onPick={(m) => { pickTime(m); setTimesOpen(false); }} />}
             </div>
           )}
 
@@ -202,6 +212,40 @@ export function DateTimePicker({ value, onChange, placeholder = "Pick a date", w
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** The times of day (every 15 minutes, and 11:59 PM) in a short list that scrolls, opened at the chosen time. */
+function TimeList({ id, selected, onPick }: { id: string; selected: number; onPick: (minutes: number) => void }) {
+  const list = useRef<HTMLDivElement>(null);
+  const options = timeOptions().includes(selected) ? timeOptions() : [...timeOptions(), selected].sort((a, b) => a - b);
+
+  useLayoutEffect(() => {
+    const box = list.current;
+    const current = box?.querySelector<HTMLButtonElement>('[aria-selected="true"]');
+    if (!box || !current) return;
+    box.scrollTop = current.offsetTop - box.offsetTop - box.clientHeight / 2 + current.offsetHeight / 2;
+    current.focus({ preventScroll: true });
+  }, []);
+
+  const move = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    e.preventDefault();
+    const buttons = Array.from(list.current?.querySelectorAll<HTMLButtonElement>("button") ?? []);
+    const at = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    const next = buttons[Math.max(0, Math.min(buttons.length - 1, at + (e.key === "ArrowDown" ? 1 : -1)))];
+    next?.focus();
+    next?.scrollIntoView({ block: "nearest" });
+  };
+
+  return (
+    <div className="dtp-times" id={id} ref={list} role="listbox" aria-label="Time" onKeyDown={move}>
+      {options.map((m) => (
+        <button key={m} type="button" role="option" aria-selected={m === selected} className={cx("dtp-time-option", m === selected && "is-selected")} onClick={() => onPick(m)}>
+          {timeLabel(m)}
+        </button>
+      ))}
     </div>
   );
 }
