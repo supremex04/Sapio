@@ -18,11 +18,11 @@ log = logging.getLogger("sapio_renderer.speech")
 MODEL_DIR = Path(os.environ.get("SAPIO_RENDERER_TTS_DIR", "/app/models"))
 VOICE = os.environ.get("SAPIO_RENDERER_TTS_VOICE", "af_heart")
 LANG = "en-us"
-#: Speaking rate (1.0: Kokoro's own). 0.8 is a calm teaching pace: each line takes 25% longer, and since animations
-#: and viewers are timed to the narration, everything slows with it.
-SPEED = float(os.environ.get("SAPIO_RENDERER_TTS_SPEED", "0.8"))
+#: Speaking rate (1.0: Kokoro's own). 0.9 is an unhurried teaching pace: each line takes about 11% longer, and since
+#: animations and viewers are timed to the narration, everything slows with it (0.8 felt noticeably slow).
+SPEED = float(os.environ.get("SAPIO_RENDERER_TTS_SPEED", "0.9"))
 PEAK = 0.89  # about -1 dBFS
-PAUSE_SECONDS = 0.4  # silence after each line, so beats do not run into each other
+PAUSE_SECONDS = 0.3  # silence after each line, so beats do not run into each other
 MAX_TEXT = 400
 
 _lock = threading.Lock()

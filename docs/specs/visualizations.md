@@ -105,8 +105,8 @@ of the traceback), `timeout` or `output` (no video, empty, or too long). `GET /h
 **Narration.** Kokoro-82M (int8 ONNX, about 120 MB with its voices, baked into the image by
 `scripts/fetch_models.py` and checked by SHA-256) runs in the renderer's own process, before the scene, at roughly
 twice real time on a CPU; clips are peak-normalised, end with a short pause and are cached by text. Voice
-`af_heart` (env `SAPIO_RENDERER_TTS_VOICE`), US English, at speed 0.8 (env `SAPIO_RENDERER_TTS_SPEED`; 1.0 is the
-voice's own rate), with 0.4 s between lines. Animations and viewers are timed to the narration, so this one setting
+`af_heart` (env `SAPIO_RENDERER_TTS_VOICE`), US English, at speed 0.9 (env `SAPIO_RENDERER_TTS_SPEED`; 1.0 is the
+voice's own rate), with 0.3 s between lines. Animations and viewers are timed to the narration, so this one setting
 paces everything. Scene code may import exactly
 `from sapio_narration import narrate`; each line plays once and in order (a wrong or repeated beat number takes
 the next unspoken line). Without the model, or if speech fails, the video renders silently (`narrated: false`).
