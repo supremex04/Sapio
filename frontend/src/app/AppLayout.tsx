@@ -96,19 +96,19 @@ type NavItem = { to: string; label: string; emoji: IconName; end: boolean };
 const TEACHER_NAV: NavItem[] = [
   { to: "/", label: "Home", emoji: "house", end: true },
   { to: "/library", label: "Library", emoji: "library", end: false },
+  { to: "/visualize", label: "Visualize", emoji: "visualize", end: false },
   { to: "/students", label: "Students", emoji: "students", end: false },
   { to: "/notices", label: "Notices", emoji: "notice", end: false },
   { to: "/calendar", label: "Calendar", emoji: "calendar", end: false },
-  { to: "/visualize", label: "Visualize", emoji: "visualize", end: false },
   { to: "/explore", label: "Explore", emoji: "globe-showing-asia-australia", end: false },
 ];
 
 const NAV: NavItem[] = [
   { to: "/", label: "Home", emoji: "house", end: true },
   { to: "/library", label: "Library", emoji: "library", end: false },
+  { to: "/visualize", label: "Visualize", emoji: "visualize", end: false },
   { to: "/explore", label: "Explore", emoji: "globe-showing-asia-australia", end: false },
   { to: "/recall", label: "Recall", emoji: "recall", end: false },
-  { to: "/visualize", label: "Visualize", emoji: "visualize", end: false },
   { to: "/personalize", label: "Personalize", emoji: "personalize", end: false },
 ];
 
