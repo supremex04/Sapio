@@ -17,9 +17,10 @@ cited to the page they came from, and visible to their teacher.
    that open with a warm-up question, checks, interleaved tests, spaced recall and per-topic mastery, pitched at the
    learner's level, field and depth. Not a chat box that waits for questions.
 2. **Hard ideas, visualized.** Narrated animations, 3D molecules and proteins, programs run line by line, and
-   electric circuits solved exactly. The AI plans and explains; exact tools (a circuit solver, a chemistry toolkit,
-   a real interpreter, the Protein Data Bank) produce what is shown, and every result is checked before the
-   learner sees it.
+   electric circuits solved exactly. The AI plans and explains; for molecules, proteins, programs and circuits,
+   what is shown is computed or confirmed by exact tools (a chemistry toolkit, the Protein Data Bank's structure
+   files, a real run of the program, a circuit solver), and animation frames are checked for layout before the
+   learner sees them.
 3. **Teachers and students, connected.** Teachers share notes and AI-drafted tests they review and edit; each
    student gets their own copy on their own path; results, mastery per topic and who needs help on what come
    straight back to the teacher.
