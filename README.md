@@ -1,5 +1,7 @@
 # Sapio
 
+> "While the world races to create smarter AI, we intend to make *smarter humans*."
+
 **Your own material, turned into a course built for you: taught, tested, visualized, and shared with your
 teacher.**
 
