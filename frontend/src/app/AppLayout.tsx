@@ -252,9 +252,11 @@ function UserMenu({ placement, compact }: { placement: "up" | "down"; compact?: 
             <Link to="/welcome" className="menu-item" role="menuitem" onClick={() => setOpen(false)}>
               <Target size={18} aria-hidden /> Daily goal
             </Link>
-            <Link to="/styleguide" className="menu-item" role="menuitem" onClick={() => setOpen(false)}>
-              <Palette size={18} aria-hidden /> Design system
-            </Link>
+            {import.meta.env.DEV && (
+              <Link to="/styleguide" className="menu-item" role="menuitem" onClick={() => setOpen(false)}>
+                <Palette size={18} aria-hidden /> Design system
+              </Link>
+            )}
             <button className="menu-item" role="menuitem" onClick={() => void logout()}>
               <LogOut size={18} aria-hidden /> Sign out
             </button>

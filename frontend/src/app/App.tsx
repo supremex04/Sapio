@@ -16,7 +16,10 @@ const AssessmentPage = lazy(() => import("../features/study/assessment/Assessmen
 const TestSetupPage = lazy(() => import("../features/study/assessment/TestSetupPage").then((m) => ({ default: m.TestSetupPage })));
 const StudyHubPage = lazy(() => import("../features/study/hub/StudyHubPage").then((m) => ({ default: m.StudyHubPage })));
 const LessonPage = lazy(() => import("../features/study/learn/LessonPage").then((m) => ({ default: m.LessonPage })));
-const StyleguidePage = lazy(() => import("./styleguide/StyleguidePage").then((m) => ({ default: m.StyleguidePage })));
+// Development builds only, so production bundles do not ship it.
+const StyleguidePage = import.meta.env.DEV
+  ? lazy(() => import("./styleguide/StyleguidePage").then((m) => ({ default: m.StyleguidePage })))
+  : () => null;
 const ExplorePage = lazy(() => import("../features/sharing/ExplorePage").then((m) => ({ default: m.ExplorePage })));
 const SharedItemPage = lazy(() => import("../features/sharing/SharedItemPage").then((m) => ({ default: m.SharedItemPage })));
 const PersonalizePage = lazy(() => import("../features/personalization/PersonalizePage").then((m) => ({ default: m.PersonalizePage })));
@@ -64,7 +67,8 @@ export function App() {
                   <Route path="class-tests/:id" element={<ClassTestPage />} />
                   <Route path="notices" element={<NoticesPage />} />
                   <Route path="calendar" element={<CalendarPage />} />
-                  <Route path="styleguide" element={<StyleguidePage />} />
+                  {/* The living design reference is for the team: development builds only. */}
+                  {import.meta.env.DEV && <Route path="styleguide" element={<StyleguidePage />} />}
                 </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

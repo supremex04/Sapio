@@ -1,7 +1,7 @@
 # Sapio design system ("Diya")
 
 Status: **v2** (replaces the v1 gradient/glass look). Living reference: **`/styleguide`** in the running
-app shows every token and component in both themes.
+app (development builds only: `npm run dev`) shows every token and component in both themes.
 
 ## Personality
 

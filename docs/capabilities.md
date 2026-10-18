@@ -142,7 +142,7 @@ Spec: [specs/progress.md](specs/progress.md).
 - **Diya v2**: one hue per job, the signature solid "edge" depth, characters, meaningful short motion
   that respects `prefers-reduced-motion`.
 - Complete **light and dark** token sets; theme `light | dark | system`, applied before first paint.
-- Living reference at **`/styleguide`** in the running app.
+- Living reference at **`/styleguide`** in the running app, in development builds only (hidden from deployed users).
 
 Spec: [specs/design-system.md](specs/design-system.md).
 
