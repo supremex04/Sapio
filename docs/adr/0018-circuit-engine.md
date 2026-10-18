@@ -17,7 +17,9 @@ simulator in the browser), WaveDrom and DigitalJS (digital logic).
   it never writes code and never states computed values (captions explain; the viewer shows the numbers).
 - **Checked, then solved exactly**, in the renderer (`circuit.py`). As a drawing: straight horizontal or vertical
   parts, nothing crossing, overlapping or passing over a node; as a circuit: grounded, connected, no shorted part,
-  solvable, no current over 100 A. Each problem is described in words and the AI repairs the circuit (up to
+  solvable, no current over 100 A, and something happens: a non-zero source, current somewhere, and capacitors and
+  inductors that change (an LC circuit with no source sat at 0 V and 0 A, a flat line). Capacitors start uncharged,
+  so the storyboard and repair prompts say how to build RC, RL and LC circuits from a source. Each problem is described in words and the AI repairs the circuit (up to
   `max-attempts` tries). Solving: the DC operating point, or the response from switch-on by reducing the circuit to
   x' = A x + b (capacitor voltages, inductor currents) and using x(t) = x_ss + expm(A t)(x0 - x_ss): no time
   stepping, so no integration error; LC circuits oscillate without damping; the window is five time constants or

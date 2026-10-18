@@ -35,6 +35,14 @@ MAX_PARTS = 30
 GRID_W, GRID_H = 12, 8
 MAX_CURRENT = 100.0  # more than this through any part is a short circuit, not a teaching circuit
 SAMPLES = 241
+_NO_SOURCE = (
+    "The circuit has no source (or every source is 0), so nothing happens: Sapio switches a circuit on with "
+    "capacitors uncharged and no current in inductors. Add a DC voltage or current source. To show an LC circuit "
+    "oscillating, put a voltage source in series with the inductor and the capacitor: the capacitor charges and "
+    "swings to twice the source."
+)
+#: Below this (volts or amperes) a quantity counts as zero: nothing visible happens.
+_NOTHING = 1e-12
 _NEVER_SETTLES = (
     "The circuit never settles: a capacitor is fed by a current source with no resistor path, or an inductor is "
     "driven by a voltage source with no resistance. Add a resistor."
@@ -228,6 +236,9 @@ def solve(circuit: dict) -> dict:
     if problems:
         raise Invalid(problems)
 
+    if not any(p["kind"] in ("voltage_source", "current_source") and p["value"] != 0 for p in parts):
+        raise Invalid([_NO_SOURCE])
+
     caps = [p for p in parts if p["kind"] == "capacitor"]
     inds = [p for p in parts if p["kind"] == "inductor"]
     model = _Model(nets, parts, caps, inds)
@@ -268,12 +279,39 @@ def solve(circuit: dict) -> dict:
             },
         }
 
+    _refuse_if_nothing_happens(result, caps + inds)
+
     worst = max(abs(v["current"]) for v in result["steady"]["parts"].values())
     if result["kind"] == "transient":
         worst = max(worst, max(abs(c) for v in result["parts"].values() for c in v["current"]))
     if worst > MAX_CURRENT:
         raise Invalid([f"A part carries {worst:.3g} A: that is a short circuit. Add resistance."])
     return result
+
+
+def _refuse_if_nothing_happens(result: dict, reactive: list[dict]) -> None:
+    """A circuit whose every current stays zero, or whose capacitors and inductors never change, would show a flat
+    line and still values: refused, so the AI builds one where something happens."""
+    steady = result["steady"]["parts"]
+    if result["kind"] == "dc":
+        if all(abs(v["current"]) < _NOTHING for v in steady.values()):
+            raise Invalid(
+                ["No current flows anywhere: the source is not in a closed loop with the other parts."]
+            )
+        return
+    still = []
+    for p in reactive:
+        quantity = "voltage" if p["kind"] == "capacitor" else "current"
+        if max(abs(x) for x in result["parts"][p["id"]][quantity]) < _NOTHING:
+            still.append(p["id"])
+    if still:
+        them = "them" if len(still) > 1 else "it"
+        verb = "change" if len(still) > 1 else "changes"
+        message = (
+            f"{', '.join(still)} never {verb}: no current reaches {them} from the source. Connect the source so "
+            f"its current flows through {them}."
+        )
+        raise Invalid([message])
 
 
 #: Samples per cycle of the fastest oscillation, so a ringing response is drawn as it is, never aliased.

@@ -227,6 +227,29 @@ def test_shorts_and_impossible_circuits_are_refused():
         circuit.solve(no_path)
 
 
+def test_a_circuit_where_nothing_happens_is_refused_with_a_way_to_fix_it():
+    # Seen in the cloud: an LC "switched on" with no source stays at 0 V and 0 A, a flat line on screen.
+    no_source = loop(
+        {"id": "C1", "kind": "capacitor", "value": 1e-3, "a": "t", "b": "g"},
+        {"id": "W2", "kind": "wire", "a": "t", "b": "r"},
+        {"id": "L1", "kind": "inductor", "value": 0.1, "a": "r", "b": "b"},
+        {"id": "W1", "kind": "wire", "a": "b", "b": "g"},
+    )
+    with pytest.raises(circuit.Invalid) as e:
+        circuit.solve(no_source)
+    assert "no source" in str(e.value) and "in series with the inductor and the capacitor" in str(e.value)
+
+    zero_source = loop(
+        {"id": "V1", "kind": "voltage_source", "value": 0, "a": "t", "b": "g"},
+        {"id": "R1", "kind": "resistor", "value": 100, "a": "t", "b": "r"},
+        {"id": "C1", "kind": "capacitor", "value": 1e-6, "a": "r", "b": "b"},
+        {"id": "W1", "kind": "wire", "a": "b", "b": "g"},
+    )
+    with pytest.raises(circuit.Invalid) as e:
+        circuit.solve(zero_source)
+    assert "no source" in str(e.value)
+
+
 def test_a_current_source_drives_its_current_through_the_load():
     c = loop(
         {"id": "I1", "kind": "current_source", "value": 0.01, "a": "g", "b": "t"},

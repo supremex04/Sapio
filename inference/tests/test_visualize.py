@@ -149,7 +149,12 @@ def test_a_circuit_storyboard_carries_the_circuit_and_captions_without_numbers()
     llm = FakeLlm(board)
     out = VisualizeService(llm).storyboard(v.StoryboardRequest(request="How does an RC circuit charge?"))
     assert out.engine == "circuit" and len(out.circuit.parts) == 4 and out.circuit.nodes[0].ground
-    assert "never state calculated currents" in prompts.storyboard_prompt("RC", None)
+    prompt = prompts.storyboard_prompt("RC", None)
+    assert "never state calculated currents" in prompt
+    # Nothing starts charged, so a circuit without a source shows nothing: the prompt says how to build each kind.
+    assert (
+        "at least one DC source" in prompt and "for an LC oscillation a source, an inductor and a" in prompt
+    )
 
     missing = VisualizeService(FakeLlm({**board, "circuit": None})).storyboard(
         v.StoryboardRequest(request="RC", engine="circuit")
@@ -169,3 +174,4 @@ def test_a_refused_circuit_is_repaired_from_the_problems():
     out = VisualizeService(llm).repair_circuit(request)
     assert out.circuit.parts[2].id == "C1"
     assert "cross without connecting" in llm.prompts[-1] and "Focus: C1" in llm.prompts[-1]
+    assert "at least one DC source with a non-zero value" in llm.prompts[-1]

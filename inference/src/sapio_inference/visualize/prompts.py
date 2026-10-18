@@ -45,9 +45,16 @@ ENGINES = """How to show it (engine):
   source's a is its + terminal; a current source drives its current from a to b. Example, 5 V charging 1 uF through
   1 kilohm: nodes g (0,0, ground), t (0,3), r (4,3), b (4,0); parts V1 voltage_source 5 a=t b=g, R1 resistor 1000
   a=t b=r, C1 capacitor 0.000001 a=r b=b, W1 wire a=b b=g. Each beat's focus is the ids of the parts it is about
-  (R1,C1) or empty. Captions explain what happens and why; they never state calculated currents, voltages or times
+  (R1,C1) or empty. Something must happen: at switch-on every capacitor is uncharged and every inductor carries no
+  current, and nothing can start charged, so the circuit needs at least one DC source with a non-zero value in a
+  closed loop with the parts the narration is about. For RC charging use a source, a resistor and a capacitor in
+  series; for RL a source, a resistor and an inductor in series; for an LC oscillation a source, an inductor and a
+  capacitor in series (the capacitor swings between zero and twice the source; a small series resistor makes the
+  ringing die away). Pick values whose time constant or period lies between about 0.1 ms and 1 s and whose currents
+  lie between microamperes and one ampere, so the change is visible. Captions explain what happens and why; they never state calculated currents, voltages or times
   (the viewer shows the exact values), only the part values you chose ("a one kilohm resistor"). There is no switch
-  in the drawing: the response starts when the circuit is switched on, so say that, never "the switch closes"."""
+  in the drawing: the response starts when the circuit is switched on, so say that, never "the switch closes", and never describe a capacitor that
+  starts charged."""
 
 
 def storyboard_prompt(request: str, context: str | None, engine: str = "auto") -> str:
@@ -241,4 +248,7 @@ The viewer reported:
 Rules: nodes on a grid (x 0 to 12, y 0 to 8, y up), exactly one ground node; parts resistor, capacitor, inductor,
 voltage_source, current_source or wire, each a straight horizontal or vertical line between its nodes a and b, with
 corners made by a node and a wire, never crossing, overlapping or passing over a node; values in ohms, farads,
-henries, volts or amperes (none for wires); a voltage source's a is its + terminal. Return the whole fixed circuit."""
+henries, volts or amperes (none for wires); a voltage source's a is its + terminal. Capacitors start uncharged and
+inductors with no current, so keep at least one DC source with a non-zero value in a closed loop with the parts the
+storyboard is about (for an LC oscillation: a source, the inductor and the capacitor in series). Return the whole
+fixed circuit."""
